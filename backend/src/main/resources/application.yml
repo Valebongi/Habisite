@@ -2,16 +2,7 @@ spring:
   application:
     name: habisite-backend
 
-  datasource:
-    # Railway inyecta PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD automáticamente.
-    # Los valores después de ":" son los defaults para desarrollo local.
-    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:habisite}
-    username: ${PGUSER:habisite_user}
-    password: ${PGPASSWORD:habisite_pass}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      connection-timeout: 20000
-      maximum-pool-size: 5        # Ajustado para el plan gratuito de Railway
+  # datasource configurada en DataSourceConfig.java (soporta DATABASE_URL de Railway y PG* vars)
 
   sql:
     init:

@@ -3,6 +3,7 @@ package com.imb.habisite.service.impl;
 import com.imb.habisite.model.Postulante;
 import com.imb.habisite.service.EmailService;
 import jakarta.mail.MessagingException;
+import java.io.UnsupportedEncodingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
 
-            helper.setFrom(mailFrom);
+            helper.setFrom(mailFrom, "Habisite Challenge");
             helper.setTo(postulante.getCorreoElectronico());
             helper.setSubject("¡Gracias por postularte a Habisite!");
             helper.setText(construirHtml(postulante), true);
@@ -37,7 +38,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(mensaje);
             log.info("Email de confirmación enviado a: {}", postulante.getCorreoElectronico());
 
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             // El email falla silenciosamente para no afectar el registro
             log.error("Error enviando email de confirmación a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
         }

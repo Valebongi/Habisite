@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro de Postulante · Habisite</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    .habisite-wrap {
+      width: 100%;
+      padding: 2rem 1rem;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.08);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .card-header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .card-header h1 {
+      font-size: 1.3rem !important;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-header p {
+      font-size: .875rem;
+      color: #6b7280;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: .875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: .4rem;
+    }
+
+    label .req {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .select-box {
+      position: relative;
+      flex: 0 0 90px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 .5rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .select-box:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    .select-box.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+    }
+
+    #codigo-visible {
+      font-size: .9375rem;
+      color: #111827;
+      pointer-events: none;
+    }
+
+    .select-icon {
+      width: 1.1rem;
+      height: 1.1rem;
+      color: #6b7280;
+      pointer-events: none;
+    }
+
+    .select-box select {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .input-group input {
+      flex: 1;
+    }
+
+    input, select.form-select {
+      width: 100%;
+      padding: .625rem .875rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: .9375rem;
+      color: #111827;
+      background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+      font-family: inherit;
+    }
+
+    input::placeholder { color: #9ca3af; }
+
+    input:focus, select.form-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    }
+
+    input.error, select.form-select.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+    }
+
+    .field-error {
+      font-size: .78rem;
+      color: #ef4444;
+      margin-top: .3rem;
+      display: none;
+    }
+
+    .field-error.visible { display: block; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: .75rem;
+      background: #2563eb;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+
+    button[type="submit"]:hover  { background: #1d4ed8; }
+    button[type="submit"]:active { background: #1e40af; }
+    button[type="submit"]:disabled { opacity: .6; cursor: not-allowed; }
+
+    .alert {
+      display: none;
+      border-radius: 8px;
+      padding: .875rem 1rem;
+      font-size: .875rem;
+      margin-top: 1.25rem;
+      line-height: 1.5;
+    }
+
+    .alert.visible { display: block; }
+
+    .alert-success {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      color: #166534;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .alert strong { display: block; margin-bottom: .25rem; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .row { grid-template-columns: 1fr; gap: 0; }
+      .card { padding: 1.75rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="habisite-wrap">
+<div class="card">
+  <div class="card-header">
+    <h1>Registro de Postulante</h1>
+    <p>Todos los campos son obligatorios.</p>
+  </div>
+
+  <form id="form" novalidate>
+
+    <div class="row">
+      <div class="form-group">
+        <label for="nombres">Nombres <span class="req">*</span></label>
+        <input id="nombres" name="nombres" type="text" placeholder="Juan Carlos" autocomplete="given-name" />
+        <span class="field-error" id="err-nombres"></span>
+      </div>
+      <div class="form-group">
+        <label for="apellidos">Apellidos <span class="req">*</span></label>
+        <input id="apellidos" name="apellidos" type="text" placeholder="Pérez García" autocomplete="family-name" />
+        <span class="field-error" id="err-apellidos"></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label for="dni">DNI <span class="req">*</span></label>
+        <input id="dni" name="dni" type="text" placeholder="12345678" maxlength="8" inputmode="numeric" />
+        <span class="field-error" id="err-dni"></span>
+      </div>
+      <div class="form-group">
+        <label for="celular">Celular <span class="req">*</span></label>
+        <div class="input-group">
+          <div class="select-box" id="box-codigo">
+            <span id="codigo-visible">+54</span>
+            <svg class="select-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            <select id="codigo-pais" name="codigo-pais"></select>
+          </div>
+          <input id="celular" name="celular" type="tel" placeholder="987654321" autocomplete="tel" />
+        </div>
+        <span class="field-error" id="err-celular"></span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="universidad">Universidad <span class="req">*</span></label>
+      <input id="universidad" name="universidad" type="text" placeholder="Tu universidad" autocomplete="organization" />
+      <span class="field-error" id="err-universidad"></span>
+    </div>
+
+    <div class="form-group">
+      <label for="correoElectronico">Correo Electrónico <span class="req">*</span></label>
+      <input id="correoElectronico" name="correoElectronico" type="email" placeholder="tu@email.com" autocomplete="email" />
+      <span class="field-error" id="err-correoElectronico"></span>
+    </div>
+
+    <div class="row">
+      <div class="form-group">
+        <label for="especialidad">Especialidad <span class="req">*</span></label>
+        <select id="especialidad" name="especialidad" class="form-select">
+          <option value="">Selecciona tu especialidad</option>
+          <option value="Arquitectura">Arquitectura</option>
+          <option value="Diseño de Interiores">Diseño de Interiores</option>
+          <option value="Diseño Industrial">Diseño Industrial</option>
+          <option value="Paisajismo">Paisajismo</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <span class="field-error" id="err-especialidad"></span>
+      </div>
+
+      <div class="form-group" id="grupo-otra-especialidad" style="display:none;">
+        <label for="otraEspecialidad">Indique su especialidad <span class="req">*</span></label>
+        <input id="otraEspecialidad" name="otraEspecialidad" type="text" placeholder="Ej: Ingeniería Civil" />
+        <span class="field-error" id="err-otraEspecialidad"></span>
+      </div>
+    </div>
+
+    <button type="submit" id="btn-submit">Registrarme</button>
+
+    <div class="alert alert-success" id="alert-ok">
+      <strong>¡Registro exitoso!</strong>
+      Tu postulación fue enviada correctamente. Revisá tu correo.
+    </div>
+    <div class="alert alert-error" id="alert-err">
+      <strong>Error al registrar</strong>
+      <span id="alert-err-msg"></span>
+    </div>
+
+  </form>
+</div>
+</div>
+
+<script>
+  const API = 'https://api.habisite.com/api/v1/postulantes';
+
+  // ── País selector ──────────────────────────────────────────────────────────
+  const codigosPais = [
+    { code: '+54',  name: 'ARG' },
+    { code: '+1',   name: 'EE.UU/CAN' },
+    { code: '+34',  name: 'ESP' },
+    { code: '+51',  name: 'PER' },
+    { code: '+52',  name: 'MEX' },
+    { code: '+55',  name: 'BRA' },
+    { code: '+56',  name: 'CHI' },
+    { code: '+57',  name: 'COL' },
+    { code: '+58',  name: 'VEN' },
+    { code: '+591', name: 'BOL' },
+    { code: '+593', name: 'ECU' },
+    { code: '+595', name: 'PAR' },
+    { code: '+598', name: 'URU' },
+  ];
+
+  const selectCodigo  = document.getElementById('codigo-pais');
+  const codigoVisible = document.getElementById('codigo-visible');
+
+  codigosPais.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value       = p.code;
+    opt.textContent = `${p.code} ${p.name}`;
+    if (p.code === '+54') opt.selected = true;
+    selectCodigo.appendChild(opt);
+  });
+
+  selectCodigo.addEventListener('change', e => {
+    codigoVisible.textContent = e.target.value;
+  });
+
+  // ── Especialidad "Otro" ────────────────────────────────────────────────────
+  const selectEspecialidad    = document.getElementById('especialidad');
+  const grupoOtra             = document.getElementById('grupo-otra-especialidad');
+  const inputOtra             = document.getElementById('otraEspecialidad');
+
+  selectEspecialidad.addEventListener('change', e => {
+    const esOtro = e.target.value === 'Otro';
+    grupoOtra.style.display = esOtro ? 'block' : 'none';
+    if (!esOtro) { inputOtra.value = ''; clearError('otraEspecialidad'); }
+    clearError('especialidad');
+  });
+
+  // ── Validación ─────────────────────────────────────────────────────────────
+  const rules = {
+    nombres:           { msg: 'Ingresá tus nombres.',         test: v => v.trim().length > 0 },
+    apellidos:         { msg: 'Ingresá tus apellidos.',       test: v => v.trim().length > 0 },
+    dni:               { msg: 'El DNI debe tener 8 dígitos.', test: v => /^\d{8}$/.test(v.trim()) },
+    celular:           { msg: 'Ingresá un celular válido.',   test: v => /^[0-9\-\s]{7,15}$/.test(v.trim()) },
+    universidad:       { msg: 'Ingresá tu universidad.',      test: v => v.trim().length > 0 },
+    correoElectronico: { msg: 'Ingresá un correo válido.',    test: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) },
+    especialidad:      { msg: 'Seleccioná tu especialidad.',  test: v => v !== '' },
+    otraEspecialidad:  { msg: 'Indicá tu especialidad.',      test: v => {
+      if (selectEspecialidad.value !== 'Otro') return true;
+      return v.trim().length > 0;
+    }},
+  };
+
+  function setError(field, msg) {
+    if (field === 'celular') document.getElementById('box-codigo').classList.add('error');
+    document.getElementById(field).classList.add('error');
+    const el = document.getElementById('err-' + field);
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function clearError(field) {
+    if (field === 'celular') document.getElementById('box-codigo').classList.remove('error');
+    document.getElementById(field).classList.remove('error');
+    const el = document.getElementById('err-' + field);
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  function validate() {
+    let ok = true;
+    for (const [field, rule] of Object.entries(rules)) {
+      const val = document.getElementById(field).value;
+      if (!rule.test(val)) { setError(field, rule.msg); ok = false; }
+      else clearError(field);
+    }
+    return ok;
+  }
+
+  Object.keys(rules).forEach(field => {
+    const el = document.getElementById(field);
+    el.addEventListener('input', () => clearError(field));
+    if (field === 'especialidad') el.addEventListener('change', () => clearError(field));
+  });
+
+  // ── Submit → POST /api/v1/postulantes ─────────────────────────────────────
+  document.getElementById('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    document.getElementById('alert-ok').classList.remove('visible');
+    document.getElementById('alert-err').classList.remove('visible');
+
+    if (!validate()) return;
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Enviando...';
+
+    const codigoPais = selectCodigo.value;
+    const numCelular = document.getElementById('celular').value.trim();
+    const espValor   = selectEspecialidad.value;
+
+    const body = {
+      nombres:           document.getElementById('nombres').value.trim(),
+      apellidos:         document.getElementById('apellidos').value.trim(),
+      dni:               document.getElementById('dni').value.trim(),
+      celular:           `${codigoPais} ${numCelular}`,
+      universidad:       document.getElementById('universidad').value.trim(),
+      correoElectronico: document.getElementById('correoElectronico').value.trim(),
+      especialidad:      espValor === 'Otro' ? inputOtra.value.trim() : espValor,
+    };
+
+    try {
+      const res = await fetch(API, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        document.getElementById('form').reset();
+        selectCodigo.value        = '+54';
+        codigoVisible.textContent = '+54';
+        grupoOtra.style.display   = 'none';
+        document.getElementById('alert-ok').classList.add('visible');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        let msg = data.mensaje || data.message || `Error ${res.status}.`;
+        if (data.errores) msg = Object.values(data.errores).join(' ');
+        document.getElementById('alert-err-msg').textContent = msg;
+        document.getElementById('alert-err').classList.add('visible');
+      }
+    } catch {
+      document.getElementById('alert-err-msg').textContent = 'No se pudo conectar con el servidor.';
+      document.getElementById('alert-err').classList.add('visible');
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Registrarme';
+    }
+  });
+</script>
+
+</body>
+</html>

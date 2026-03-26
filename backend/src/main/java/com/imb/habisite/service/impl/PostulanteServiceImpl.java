@@ -7,6 +7,7 @@ import com.imb.habisite.exception.PostulanteNotFoundException;
 import com.imb.habisite.mapper.PostulanteMapper;
 import com.imb.habisite.model.Postulante;
 import com.imb.habisite.repository.PostulanteRepository;
+import com.imb.habisite.service.EmailService;
 import com.imb.habisite.service.PostulanteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class PostulanteServiceImpl implements PostulanteService {
 
     private final PostulanteRepository repository;
     private final PostulanteMapper mapper;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -37,6 +39,9 @@ public class PostulanteServiceImpl implements PostulanteService {
 
         Postulante saved = repository.save(mapper.toEntity(request));
         log.info("Postulante registrado con ID: {}", saved.getId());
+
+        emailService.enviarConfirmacionPostulacion(saved);
+
         return mapper.toResponseDTO(saved);
     }
 

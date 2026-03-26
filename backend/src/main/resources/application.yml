@@ -4,6 +4,20 @@ spring:
 
   # datasource configurada en DataSourceConfig.java (soporta DATABASE_URL de Railway y PG* vars)
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+
+app:
+  mail:
+    from: ${MAIL_FROM:noreply@habisite.com}
+
   sql:
     init:
       mode: always                # Ejecuta schema.sql al arrancar (CREATE TABLE IF NOT EXISTS)

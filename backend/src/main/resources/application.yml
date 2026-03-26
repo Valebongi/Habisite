@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: habisite-backend
+
+  datasource:
+    # Railway inyecta PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD automáticamente.
+    # Los valores después de ":" son los defaults para desarrollo local.
+    url: jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:habisite}
+    username: ${PGUSER:habisite_user}
+    password: ${PGPASSWORD:habisite_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 5        # Ajustado para el plan gratuito de Railway
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # La BD se crea vía scripts SQL, no por Hibernate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # Exponer endpoint de health para Railway
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health
+    endpoint:
+      health:
+        show-details: never
+
+server:
+  # Railway inyecta PORT en producción; 8080 es el default local
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    com.imb.habisite: DEBUG
+    org.hibernate.SQL: INFO

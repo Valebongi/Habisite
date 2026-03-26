@@ -1,0 +1,17 @@
+package com.imb.habisite.repository;
+
+import com.imb.habisite.model.Postulante;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface PostulanteRepository extends JpaRepository<Postulante, Long> {
+
+    boolean existsByDni(String dni);
+
+    boolean existsByCorreoElectronico(String correoElectronico);
+
+    Optional<Postulante> findByDni(String dni);
+}

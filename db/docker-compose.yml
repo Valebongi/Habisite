@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: habisite_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: habisite
+      POSTGRES_USER: habisite_user
+      POSTGRES_PASSWORD: habisite_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - habisite_pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habisite_user -d habisite"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  habisite_pgdata:
+    driver: local

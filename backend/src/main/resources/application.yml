@@ -15,28 +15,27 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate          # La BD se crea vía scripts SQL, no por Hibernate
+      ddl-auto: none              # Schema gestionado vía scripts SQL, Hibernate no toca nada
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-  # Exponer endpoint de health para Railway
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health
-    endpoint:
-      health:
-        show-details: never
-
 server:
   # Railway inyecta PORT en producción; 8080 es el default local
   port: ${PORT:8080}
   servlet:
     context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 logging:
   level:

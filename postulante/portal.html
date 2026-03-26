@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Postulante · Habisite Design Challenge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange: #E85520; --dark: #111827; --gray: #6b7280; --border: #e5e7eb; --bg: #f4f5f7; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-logo { font-size: 1.1rem; font-weight: 800; color: var(--dark); letter-spacing: -.5px; }
+    .topbar-logo span { color: var(--orange); }
+    .topbar-nav { display: flex; gap: 1.5rem; align-items: center; }
+    .topbar-nav a { font-size: .875rem; color: var(--gray); text-decoration: none; }
+    .topbar-nav a:hover { color: var(--orange); }
+    .topbar-nav .btn-logout { background: transparent; border: 1px solid var(--border); color: #374151; border-radius: 6px; padding: .4rem .9rem; font-size: .8rem; cursor: pointer; }
+    .topbar-nav .btn-logout:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 260px 1fr; gap: 2rem; max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── Sidebar card ── */
+    .profile-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 1.75rem 1.25rem; height: fit-content; }
+    .profile-avatar { width: 64px; height: 64px; background: var(--orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem; }
+    .profile-name { text-align: center; font-weight: 700; font-size: 1rem; }
+    .profile-meta { text-align: center; font-size: .8rem; color: var(--gray); margin-top: .25rem; margin-bottom: 1.25rem; }
+    .profile-nav { display: flex; flex-direction: column; gap: .25rem; }
+    .p-nav-item { padding: .65rem .75rem; border-radius: 8px; font-size: .875rem; color: var(--gray); cursor: pointer; border: none; background: none; text-align: left; transition: all .15s; width: 100%; display: flex; align-items: center; gap: .6rem; }
+    .p-nav-item:hover { background: #f9fafb; color: var(--dark); }
+    .p-nav-item.active { background: #fff3ee; color: var(--orange); font-weight: 600; }
+    .divider { height: 1px; background: var(--border); margin: .75rem 0; }
+    .status-badge { display: inline-block; padding: .3rem .75rem; border-radius: 20px; font-size: .75rem; font-weight: 600; background: #f0fdf4; color: #16a34a; margin: .5rem auto 0; display: block; text-align: center; }
+
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Section card ── */
+    .sec-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .sec-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .sec-header h2 { font-size: 1rem; font-weight: 700; }
+    .sec-header p { font-size: .8rem; color: var(--gray); margin-top: .2rem; }
+    .sec-body { padding: 1.5rem; }
+
+    /* ── Mi Postulación ── */
+    .dato-row { display: flex; justify-content: space-between; align-items: center; padding: .75rem 0; border-bottom: 1px solid #f3f4f6; font-size: .875rem; }
+    .dato-row:last-child { border-bottom: none; }
+    .dato-label { color: var(--gray); font-size: .8rem; }
+    .dato-val { font-weight: 600; color: var(--dark); }
+
+    /* ── Formulario edición ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: .3rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: .8rem; font-weight: 600; }
+    input, select {
+      padding: .6rem .75rem; border: 1px solid var(--border);
+      border-radius: 6px; font-size: .875rem; outline: none; font-family: inherit;
+    }
+    input:focus, select:focus { border-color: var(--orange); }
+    .form-actions { margin-top: 1.5rem; display: flex; gap: .75rem; justify-content: flex-end; }
+
+    /* ── Evaluaciones ── */
+    .eval-card { border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem; margin-bottom: .75rem; }
+    .eval-card:last-child { margin-bottom: 0; }
+    .eval-jurado { font-size: .8rem; color: var(--gray); margin-bottom: .5rem; }
+    .eval-puntaje { font-size: 1.5rem; font-weight: 800; color: var(--orange); }
+    .eval-comment { font-size: .85rem; color: #374151; margin-top: .5rem; }
+
+    /* ── Botones ── */
+    .btn { padding: .5rem 1.25rem; border-radius: 6px; font-size: .85rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: #374151; }
+
+    /* ── Login ── */
+    .login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .login-card { background: #fff; border-radius: 12px; padding: 2.5rem 2rem; width: 380px; box-shadow: 0 4px 24px rgba(0,0,0,.1); }
+    .login-logo { font-size: 1.2rem; font-weight: 800; color: var(--dark); letter-spacing: -.5px; margin-bottom: .25rem; }
+    .login-logo span { color: var(--orange); }
+    .login-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: .3rem; }
+    .login-card p { font-size: .85rem; color: var(--gray); margin-bottom: 1.5rem; }
+    .login-form .form-group { margin-bottom: 1rem; }
+    .login-form input { width: 100%; }
+    .btn-block { width: 100%; padding: .75rem; }
+    .login-error { color: #dc2626; font-size: .8rem; margin-top: .5rem; display: none; }
+    .login-link { text-align: center; margin-top: 1rem; font-size: .8rem; color: var(--gray); }
+    .login-link a { color: var(--orange); text-decoration: none; font-weight: 600; }
+
+    /* ── Alerta ── */
+    .alert { padding: .75rem 1rem; border-radius: 8px; font-size: .85rem; margin-bottom: 1rem; display: none; }
+    .alert-ok { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .alert-err { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">Habi<span>site</span></div>
+      <div style="font-size:.7rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:1rem;">Portal Postulante</div>
+      <h2>Accedé a tu postulación</h2>
+      <p>Ingresá tu DNI para consultar o actualizar tus datos</p>
+      <div class="login-form">
+        <div class="form-group">
+          <label>DNI</label>
+          <input type="text" id="login-dni" placeholder="12345678" maxlength="8" onkeydown="if(event.key==='Enter')loginPostulante()" />
+        </div>
+        <div class="login-error" id="login-error">No encontramos una postulación con ese DNI</div>
+        <button class="btn btn-orange btn-block" style="margin-top:.75rem;" onclick="loginPostulante()">Buscar mi postulación</button>
+      </div>
+      <div class="login-link">¿Aún no te inscribiste? <a href="../frontend/index.html">Registrate aquí</a></div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <header class="topbar">
+    <div class="topbar-logo">Habi<span>site</span></div>
+    <nav class="topbar-nav">
+      <a href="#">Concurso</a>
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <!-- Sidebar perfil -->
+    <aside>
+      <div class="profile-card">
+        <div class="profile-avatar" id="prof-avatar">?</div>
+        <div class="profile-name" id="prof-nombre">—</div>
+        <div class="profile-meta" id="prof-meta">—</div>
+        <span class="status-badge">Inscripto ✓</span>
+        <div class="divider"></div>
+        <nav class="profile-nav">
+          <button class="p-nav-item active" onclick="showSection('mi-postulacion', this)">
+            📄 Mi postulación
+          </button>
+          <button class="p-nav-item" onclick="showSection('editar', this)">
+            ✏️ Editar datos
+          </button>
+          <button class="p-nav-item" onclick="showSection('evaluaciones', this)">
+            ⭐ Evaluaciones
+          </button>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Contenido -->
+    <div>
+
+      <!-- Mi postulación -->
+      <div class="section active" id="sec-mi-postulacion">
+        <div class="sec-card">
+          <div class="sec-header">
+            <h2>Mi postulación</h2>
+            <p>Datos registrados en el concurso</p>
+          </div>
+          <div class="sec-body">
+            <div id="datos-postulacion">Cargando…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editar datos -->
+      <div class="section" id="sec-editar">
+        <div class="sec-card">
+          <div class="sec-header">
+            <h2>Editar mis datos</h2>
+            <p>Actualizá tu información de postulación</p>
+          </div>
+          <div class="sec-body">
+            <div class="alert alert-ok" id="alert-ok">Datos actualizados correctamente</div>
+            <div class="alert alert-err" id="alert-err">Error al actualizar los datos</div>
+            <form onsubmit="guardarCambios(event)">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nombres</label>
+                  <input type="text" id="edit-nombres" required />
+                </div>
+                <div class="form-group">
+                  <label>Apellidos</label>
+                  <input type="text" id="edit-apellidos" required />
+                </div>
+                <div class="form-group">
+                  <label>DNI</label>
+                  <input type="text" id="edit-dni" maxlength="8" required />
+                </div>
+                <div class="form-group">
+                  <label>Celular</label>
+                  <input type="text" id="edit-celular" required />
+                </div>
+                <div class="form-group full">
+                  <label>Universidad</label>
+                  <input type="text" id="edit-universidad" required />
+                </div>
+                <div class="form-group full">
+                  <label>Correo electrónico</label>
+                  <input type="email" id="edit-correo" required />
+                </div>
+                <div class="form-group full">
+                  <label>Especialidad</label>
+                  <select id="edit-especialidad" required>
+                    <option value="Arquitectura">Arquitectura</option>
+                    <option value="Diseño de Interiores">Diseño de Interiores</option>
+                    <option value="Diseño Industrial">Diseño Industrial</option>
+                    <option value="Paisajismo">Paisajismo</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="showSection('mi-postulacion', document.querySelector('.p-nav-item'))">Cancelar</button>
+                <button type="submit" class="btn btn-orange">Guardar cambios</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evaluaciones -->
+      <div class="section" id="sec-evaluaciones">
+        <div class="sec-card">
+          <div class="sec-header">
+            <h2>Evaluaciones del jurado</h2>
+            <p>Puntajes y comentarios recibidos</p>
+          </div>
+          <div class="sec-body" id="eval-body">
+            <p style="color:var(--gray);font-size:.875rem;">Cargando evaluaciones…</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.habisite.com/api/v1';
+    let postulante = null;
+
+    // ── Login ──
+    async function loginPostulante() {
+      const dni = document.getElementById('login-dni').value.trim();
+      if (!dni) return;
+      try {
+        const res = await fetch(`${API}/postulantes/dni/${dni}`);
+        if (!res.ok) throw new Error();
+        postulante = await res.json();
+        sessionStorage.setItem('p_dni', dni);
+        document.getElementById('login-overlay').style.display = 'none';
+        cargarPerfil();
+      } catch {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('p_dni');
+      location.reload();
+    }
+
+    const savedDni = sessionStorage.getItem('p_dni');
+    if (savedDni) {
+      fetch(`${API}/postulantes/dni/${savedDni}`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(p => { postulante = p; document.getElementById('login-overlay').style.display = 'none'; cargarPerfil(); })
+        .catch(() => sessionStorage.removeItem('p_dni'));
+    }
+
+    // ── Perfil ──
+    function cargarPerfil() {
+      const p = postulante;
+      document.getElementById('prof-avatar').textContent = p.nombres[0].toUpperCase();
+      document.getElementById('prof-nombre').textContent = `${p.nombres} ${p.apellidos}`;
+      document.getElementById('prof-meta').textContent = `${p.especialidad} · DNI ${p.dni}`;
+
+      // Mi postulación
+      document.getElementById('datos-postulacion').innerHTML = `
+        <div class="dato-row"><span class="dato-label">Nombre completo</span><span class="dato-val">${p.nombres} ${p.apellidos}</span></div>
+        <div class="dato-row"><span class="dato-label">DNI</span><span class="dato-val">${p.dni}</span></div>
+        <div class="dato-row"><span class="dato-label">Celular</span><span class="dato-val">${p.celular}</span></div>
+        <div class="dato-row"><span class="dato-label">Universidad</span><span class="dato-val">${p.universidad}</span></div>
+        <div class="dato-row"><span class="dato-label">Especialidad</span><span class="dato-val">${p.especialidad}</span></div>
+        <div class="dato-row"><span class="dato-label">Correo</span><span class="dato-val">${p.correoElectronico}</span></div>
+        <div class="dato-row"><span class="dato-label">Inscripto el</span><span class="dato-val">${new Date(p.creadoEn).toLocaleDateString('es-AR', {day:'numeric',month:'long',year:'numeric'})}</span></div>
+      `;
+
+      // Formulario edición
+      document.getElementById('edit-nombres').value    = p.nombres;
+      document.getElementById('edit-apellidos').value  = p.apellidos;
+      document.getElementById('edit-dni').value        = p.dni;
+      document.getElementById('edit-celular').value    = p.celular;
+      document.getElementById('edit-universidad').value = p.universidad;
+      document.getElementById('edit-correo').value     = p.correoElectronico;
+      document.getElementById('edit-especialidad').value = p.especialidad;
+    }
+
+    // ── Nav ──
+    function showSection(name, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.p-nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('sec-' + name).classList.add('active');
+      if (btn) btn.classList.add('active');
+      if (name === 'evaluaciones') cargarEvaluaciones();
+    }
+
+    // ── Guardar cambios ──
+    async function guardarCambios(e) {
+      e.preventDefault();
+      document.getElementById('alert-ok').style.display = 'none';
+      document.getElementById('alert-err').style.display = 'none';
+      const body = {
+        nombres:           document.getElementById('edit-nombres').value.trim(),
+        apellidos:         document.getElementById('edit-apellidos').value.trim(),
+        dni:               document.getElementById('edit-dni').value.trim(),
+        celular:           document.getElementById('edit-celular').value.trim(),
+        universidad:       document.getElementById('edit-universidad').value.trim(),
+        correoElectronico: document.getElementById('edit-correo').value.trim(),
+        especialidad:      document.getElementById('edit-especialidad').value
+      };
+      try {
+        const res = await fetch(`${API}/postulantes/${postulante.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error();
+        postulante = await res.json();
+        sessionStorage.setItem('p_dni', postulante.dni);
+        cargarPerfil();
+        document.getElementById('alert-ok').style.display = 'block';
+      } catch {
+        document.getElementById('alert-err').style.display = 'block';
+      }
+    }
+
+    // ── Evaluaciones ──
+    async function cargarEvaluaciones() {
+      const body = document.getElementById('eval-body');
+      body.innerHTML = '<p style="color:var(--gray);font-size:.875rem;">Cargando…</p>';
+      try {
+        const data = await fetch(`${API}/evaluaciones/postulante/${postulante.id}`).then(r => r.json());
+        if (!data.length) {
+          body.innerHTML = '<p style="color:var(--gray);font-size:.875rem;">Todavía no tenés evaluaciones del jurado.</p>';
+          return;
+        }
+        const prom = (data.reduce((s, e) => s + e.puntaje, 0) / data.length).toFixed(1);
+        body.innerHTML = `
+          <div style="text-align:center;padding:1rem 0 1.5rem;">
+            <div style="font-size:3rem;font-weight:800;color:var(--orange);">${prom}<span style="font-size:1.2rem;color:var(--gray)">/10</span></div>
+            <div style="font-size:.8rem;color:var(--gray);margin-top:.25rem;">Promedio · ${data.length} evaluación${data.length !== 1 ? 'es' : ''}</div>
+          </div>
+          ${data.map(e => `
+            <div class="eval-card">
+              <div class="eval-jurado">Jurado: <strong>${e.juradoNombre}</strong> · ${new Date(e.evaluadoEn).toLocaleDateString('es-AR')}</div>
+              <div class="eval-puntaje">${e.puntaje}/10</div>
+              ${e.comentario ? `<div class="eval-comment">${e.comentario}</div>` : ''}
+            </div>
+          `).join('')}
+        `;
+      } catch {
+        body.innerHTML = '<p style="color:#dc2626;font-size:.875rem;">Error al cargar evaluaciones.</p>';
+      }
+    }
+  </script>
+</body>
+</html>

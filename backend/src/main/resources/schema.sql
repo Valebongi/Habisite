@@ -9,3 +9,13 @@ CREATE TABLE IF NOT EXISTS postulante (
     especialidad        VARCHAR(100)    NOT NULL,
     creado_en           TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS evaluacion (
+    id              BIGSERIAL       PRIMARY KEY,
+    postulante_id   BIGINT          NOT NULL REFERENCES postulante(id) ON DELETE CASCADE,
+    jurado_nombre   VARCHAR(100)    NOT NULL,
+    puntaje         INTEGER         NOT NULL CHECK (puntaje BETWEEN 1 AND 10),
+    comentario      TEXT,
+    evaluado_en     TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    UNIQUE (postulante_id, jurado_nombre)
+);

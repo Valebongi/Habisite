@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Habisite Design Challenge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange: #E85520; --dark: #111827; --gray: #6b7280; --border: #e5e7eb; --bg: #f4f5f7; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px; background: var(--dark); color: #fff;
+      display: flex; flex-direction: column; position: fixed;
+      left: 0; top: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-brand { padding: 1.5rem 1.25rem; border-bottom: 1px solid #1f2937; }
+    .sidebar-brand .logo { font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+    .sidebar-brand .role { font-size: .7rem; color: var(--orange); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+    .sidebar-nav { padding: .75rem 0; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .7rem 1.25rem; color: #9ca3af; text-decoration: none;
+      font-size: .875rem; cursor: pointer; border: none; background: none;
+      width: 100%; text-align: left; transition: all .15s;
+    }
+    .nav-item:hover { background: #1f2937; color: #fff; }
+    .nav-item.active { background: #1f2937; color: var(--orange); border-left: 3px solid var(--orange); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid #1f2937; }
+    .btn-logout {
+      width: 100%; padding: .6rem; background: transparent; border: 1px solid #374151;
+      color: #9ca3af; border-radius: 6px; font-size: .8rem; cursor: pointer;
+    }
+    .btn-logout:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── Main ── */
+    .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-title { font-size: 1rem; font-weight: 700; }
+    .topbar-user { display: flex; align-items: center; gap: .6rem; font-size: .875rem; color: var(--gray); }
+    .avatar {
+      width: 34px; height: 34px; background: var(--orange); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: .8rem;
+    }
+    .content { padding: 2rem; flex: 1; }
+
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Stats cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); border-left: 4px solid var(--orange);
+    }
+    .stat-label { font-size: .7rem; color: var(--gray); text-transform: uppercase; letter-spacing: .5px; margin-bottom: .4rem; }
+    .stat-value { font-size: 2.2rem; font-weight: 800; color: var(--dark); }
+    .stat-sub { font-size: .75rem; color: #9ca3af; margin-top: .2rem; }
+
+    /* ── Charts placeholder ── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem; }
+    .chart-card { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .chart-card h3 { font-size: .875rem; font-weight: 600; margin-bottom: 1rem; }
+    .chart-placeholder {
+      height: 180px; background: #f9fafb; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #9ca3af; font-size: .8rem; border: 2px dashed var(--border);
+    }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    /* ── Table card ── */
+    .table-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .table-header { padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-header h2 { font-size: .95rem; font-weight: 700; }
+    .table-actions { display: flex; gap: .5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; padding: .7rem 1.25rem; background: #f9fafb; color: var(--gray); font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+    td { padding: .9rem 1.25rem; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .empty-row { text-align: center; color: #9ca3af; padding: 3rem !important; }
+
+    /* ── Buttons ── */
+    .btn { padding: .45rem 1.1rem; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: #374151; }
+    .btn-sm { padding: .3rem .7rem; font-size: .75rem; }
+
+    /* ── Badge ── */
+    .badge { display: inline-block; padding: .2rem .65rem; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .badge-orange { background: #fff3ee; color: var(--orange); }
+    .badge-gray { background: #f3f4f6; color: var(--gray); }
+    .badge-green { background: #f0fdf4; color: #16a34a; }
+
+    /* ── Login overlay ── */
+    .login-overlay {
+      position: fixed; inset: 0; background: rgba(17,24,39,.7);
+      display: flex; align-items: center; justify-content: center; z-index: 999;
+    }
+    .login-card { background: #fff; border-radius: 12px; padding: 2.5rem 2rem; width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .login-card h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: .4rem; }
+    .login-card p { font-size: .85rem; color: var(--gray); margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .3rem; }
+    .form-group input {
+      width: 100%; padding: .6rem .75rem; border: 1px solid var(--border);
+      border-radius: 6px; font-size: .875rem; outline: none;
+    }
+    .form-group input:focus { border-color: var(--orange); }
+    .btn-block { width: 100%; padding: .75rem; }
+    .login-error { color: #dc2626; font-size: .8rem; margin-top: .5rem; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Login overlay -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div style="font-size:.7rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.5rem;">Habisite</div>
+      <h2>Panel Administrador</h2>
+      <p>Ingresá tus credenciales para continuar</p>
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="login-user" placeholder="admin" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()" />
+      </div>
+      <div class="login-error" id="login-error">Credenciales incorrectas</div>
+      <button class="btn btn-orange btn-block" style="margin-top:1rem;" onclick="login()">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">Habisite</div>
+      <div class="role">Admin Panel</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showSection('dashboard', this)">
+        <span class="nav-icon">▣</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showSection('postulantes', this)">
+        <span class="nav-icon">👥</span> Postulantes
+      </button>
+      <button class="nav-item" onclick="showSection('evaluaciones', this)">
+        <span class="nav-icon">📋</span> Evaluaciones
+      </button>
+      <button class="nav-item" onclick="showSection('estadisticas', this)">
+        <span class="nav-icon">📊</span> Estadísticas
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <div class="topbar-user">
+        <div class="avatar">A</div>
+        Administrador
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Dashboard -->
+      <div class="section active" id="sec-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Postulantes</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-sub">inscriptos al concurso</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Evaluaciones</div>
+            <div class="stat-value" id="stat-eval">—</div>
+            <div class="stat-sub">realizadas por el jurado</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Universidades</div>
+            <div class="stat-value" id="stat-univ">—</div>
+            <div class="stat-sub">distintas representadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Especialidades</div>
+            <div class="stat-value" id="stat-esp">—</div>
+            <div class="stat-sub">categorías representadas</div>
+          </div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Postulantes por Especialidad</h3>
+            <div class="chart-placeholder" id="chart-esp">Implementar con Chart.js</div>
+          </div>
+          <div class="chart-card">
+            <h3>Postulantes por Universidad</h3>
+            <div class="chart-placeholder">Implementar con Chart.js</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Postulantes -->
+      <div class="section" id="sec-postulantes">
+        <div class="table-card">
+          <div class="table-header">
+            <h2>Postulantes inscriptos</h2>
+            <div class="table-actions">
+              <button class="btn btn-outline" onclick="cargarPostulantes()">↻ Actualizar</button>
+              <button class="btn btn-orange" onclick="exportarCSV()">↓ Exportar CSV</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Nombre</th><th>DNI</th><th>Universidad</th>
+                  <th>Especialidad</th><th>Correo</th><th>Registrado</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-postulantes">
+                <tr><td class="empty-row" colspan="8">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evaluaciones -->
+      <div class="section" id="sec-evaluaciones">
+        <div class="table-card">
+          <div class="table-header">
+            <h2>Evaluaciones del Jurado</h2>
+            <button class="btn btn-outline" onclick="cargarEvaluaciones()">↻ Actualizar</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Postulante</th><th>Jurado</th><th>Puntaje</th><th>Comentario</th><th>Fecha</th></tr>
+              </thead>
+              <tbody id="tbody-evaluaciones">
+                <tr><td class="empty-row" colspan="6">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estadísticas -->
+      <div class="section" id="sec-estadisticas">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Distribución por Especialidad</h3>
+            <div class="chart-placeholder">Implementar con Chart.js</div>
+          </div>
+          <div class="chart-card">
+            <h3>Distribución por Universidad</h3>
+            <div class="chart-placeholder">Implementar con Chart.js</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Puntajes promedio por especialidad</h3>
+          <div class="chart-placeholder" style="height:200px;">Implementar con Chart.js</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const API = 'https://api.habisite.com/api/v1';
+
+    // ── Auth (básico – reemplazar con JWT/OAuth) ──
+    const ADMIN_USER = 'admin';
+    const ADMIN_PASS = 'habisite2025';
+
+    function login() {
+      const u = document.getElementById('login-user').value;
+      const p = document.getElementById('login-pass').value;
+      if (u === ADMIN_USER && p === ADMIN_PASS) {
+        sessionStorage.setItem('admin_ok', '1');
+        document.getElementById('login-overlay').style.display = 'none';
+        init();
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('admin_ok');
+      location.reload();
+    }
+
+    if (sessionStorage.getItem('admin_ok')) {
+      document.getElementById('login-overlay').style.display = 'none';
+      init();
+    }
+
+    // ── Navigation ──
+    function showSection(name, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('sec-' + name).classList.add('active');
+      btn.classList.add('active');
+      document.getElementById('page-title').textContent = btn.textContent.trim();
+      if (name === 'postulantes') cargarPostulantes();
+      if (name === 'evaluaciones') cargarEvaluaciones();
+    }
+
+    // ── Data loading ──
+    async function init() {
+      try {
+        const res = await fetch(`${API}/admin/stats`);
+        const s = await res.json();
+        document.getElementById('stat-total').textContent = s.totalPostulantes;
+        document.getElementById('stat-eval').textContent = s.totalEvaluaciones;
+        document.getElementById('stat-univ').textContent = Object.keys(s.porUniversidad || {}).length;
+        document.getElementById('stat-esp').textContent = Object.keys(s.porEspecialidad || {}).length;
+        // TODO: renderizar gráficos con s.porEspecialidad y s.porUniversidad
+      } catch (e) {
+        console.error('Error cargando stats:', e);
+      }
+    }
+
+    async function cargarPostulantes() {
+      const tbody = document.getElementById('tbody-postulantes');
+      tbody.innerHTML = '<tr><td class="empty-row" colspan="8">Cargando…</td></tr>';
+      try {
+        const data = await fetch(`${API}/postulantes`).then(r => r.json());
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td class="empty-row" colspan="8">Sin postulantes aún</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(p => `
+          <tr>
+            <td style="color:var(--gray)">#${p.id}</td>
+            <td><strong>${p.nombres} ${p.apellidos}</strong></td>
+            <td>${p.dni}</td>
+            <td>${p.universidad}</td>
+            <td><span class="badge badge-orange">${p.especialidad}</span></td>
+            <td>${p.correoElectronico}</td>
+            <td>${new Date(p.creadoEn).toLocaleDateString('es-AR')}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="alert('Detalle ID ${p.id} — por implementar')">Ver</button></td>
+          </tr>
+        `).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td class="empty-row" colspan="8" style="color:#dc2626">Error al cargar datos</td></tr>';
+      }
+    }
+
+    async function cargarEvaluaciones() {
+      const tbody = document.getElementById('tbody-evaluaciones');
+      tbody.innerHTML = '<tr><td class="empty-row" colspan="6">Cargando…</td></tr>';
+      try {
+        const data = await fetch(`${API}/evaluaciones`).then(r => r.json());
+        if (!data.length) {
+          tbody.innerHTML = '<tr><td class="empty-row" colspan="6">Sin evaluaciones aún</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.map(e => `
+          <tr>
+            <td style="color:var(--gray)">#${e.id}</td>
+            <td>${e.postulanteNombre}</td>
+            <td>${e.juradoNombre}</td>
+            <td><strong style="color:var(--orange)">${e.puntaje}/10</strong></td>
+            <td>${e.comentario || '—'}</td>
+            <td>${new Date(e.evaluadoEn).toLocaleDateString('es-AR')}</td>
+          </tr>
+        `).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td class="empty-row" colspan="6" style="color:#dc2626">Error al cargar datos</td></tr>';
+      }
+    }
+
+    function exportarCSV() {
+      // TODO: implementar exportación CSV
+      alert('Exportación CSV — por implementar');
+    }
+  </script>
+</body>
+</html>

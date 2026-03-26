@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jurado · Habisite Design Challenge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --orange: #E85520; --dark: #111827; --gray: #6b7280; --border: #e5e7eb; --bg: #f4f5f7; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px; background: var(--dark); color: #fff;
+      display: flex; flex-direction: column; position: fixed;
+      left: 0; top: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-brand { padding: 1.5rem 1.25rem; border-bottom: 1px solid #1f2937; }
+    .sidebar-brand .logo { font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+    .sidebar-brand .role { font-size: .7rem; color: var(--orange); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+    .sidebar-brand .jurado-name { font-size: .8rem; color: #9ca3af; margin-top: 6px; }
+    .sidebar-nav { padding: .75rem 0; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .7rem 1.25rem; color: #9ca3af; text-decoration: none;
+      font-size: .875rem; cursor: pointer; border: none; background: none;
+      width: 100%; text-align: left; transition: all .15s;
+    }
+    .nav-item:hover { background: #1f2937; color: #fff; }
+    .nav-item.active { background: #1f2937; color: var(--orange); border-left: 3px solid var(--orange); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid #1f2937; }
+    .btn-logout { width: 100%; padding: .6rem; background: transparent; border: 1px solid #374151; color: #9ca3af; border-radius: 6px; font-size: .8rem; cursor: pointer; }
+    .btn-logout:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── Main ── */
+    .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; }
+    .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar-title { font-size: 1rem; font-weight: 700; }
+    .topbar-user { display: flex; align-items: center; gap: .6rem; font-size: .875rem; color: var(--gray); }
+    .avatar { width: 34px; height: 34px; background: var(--orange); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .8rem; }
+    .content { padding: 2rem; flex: 1; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Cards postulación ── */
+    .postulacion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
+    .postulacion-card {
+      background: #fff; border-radius: 10px; padding: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 2px solid var(--border);
+      transition: border-color .15s;
+    }
+    .postulacion-card:hover { border-color: var(--orange); }
+    .postulacion-card.evaluada { border-color: #16a34a; opacity: .8; }
+    .p-nombre { font-size: 1rem; font-weight: 700; margin-bottom: .25rem; }
+    .p-meta { font-size: .8rem; color: var(--gray); margin-bottom: 1rem; }
+    .p-detail { font-size: .8rem; color: #374151; margin-bottom: .3rem; }
+    .p-detail span { font-weight: 600; }
+    .p-actions { margin-top: 1.25rem; display: flex; gap: .5rem; }
+
+    /* ── Botones ── */
+    .btn { padding: .45rem 1.1rem; border-radius: 6px; font-size: .8rem; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: #374151; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-block { width: 100%; }
+
+    /* ── Badge ── */
+    .badge { display: inline-block; padding: .2rem .65rem; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .badge-orange { background: #fff3ee; color: var(--orange); }
+    .badge-green { background: #f0fdf4; color: #16a34a; }
+    .badge-gray { background: #f3f4f6; color: var(--gray); }
+
+    /* ── Modal evaluación ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.6); display: none; align-items: center; justify-content: center; z-index: 200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 2rem; width: 480px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: .25rem; }
+    .modal .modal-sub { font-size: .8rem; color: var(--gray); margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .35rem; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: .6rem .75rem; border: 1px solid var(--border);
+      border-radius: 6px; font-size: .875rem; outline: none; font-family: inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--orange); }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; }
+
+    /* ── Puntaje visual ── */
+    .puntaje-stars { display: flex; gap: .35rem; margin-top: .5rem; }
+    .star { width: 32px; height: 32px; border-radius: 6px; background: #f3f4f6; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: .85rem; cursor: pointer; font-weight: 700; transition: all .1s; }
+    .star.sel { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+    /* ── Tabla mis evaluaciones ── */
+    .table-card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; }
+    .table-header { padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-header h2 { font-size: .95rem; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; padding: .7rem 1.25rem; background: #f9fafb; color: var(--gray); font-size: .7rem; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+    td { padding: .9rem 1.25rem; border-bottom: 1px solid #f3f4f6; }
+    tr:last-child td { border-bottom: none; }
+    .empty-row { text-align: center; color: #9ca3af; padding: 3rem !important; }
+
+    /* ── Login ── */
+    .login-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.7); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .login-card { background: #fff; border-radius: 12px; padding: 2.5rem 2rem; width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .login-card h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: .4rem; }
+    .login-card p { font-size: .85rem; color: var(--gray); margin-bottom: 1.5rem; }
+    .login-error { color: #dc2626; font-size: .8rem; margin-top: .5rem; display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <div style="font-size:.7rem;color:var(--orange);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.5rem;">Habisite</div>
+      <h2>Portal Jurado</h2>
+      <p>Ingresá con tu nombre de jurado asignado</p>
+      <div class="form-group">
+        <label>Nombre de Jurado</label>
+        <input type="text" id="login-nombre" placeholder="Ej: María García" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginJurado()" />
+      </div>
+      <div class="login-error" id="login-error">Credenciales incorrectas</div>
+      <button class="btn btn-orange btn-block" style="margin-top:1rem;" onclick="loginJurado()">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- Modal evaluación -->
+  <div class="modal-overlay" id="modal-eval">
+    <div class="modal">
+      <h3>Evaluar Postulante</h3>
+      <div class="modal-sub" id="modal-postulante-nombre">—</div>
+
+      <div class="form-group">
+        <label>Puntaje (1–10)</label>
+        <div class="puntaje-stars" id="puntaje-stars">
+          <!-- generado por JS -->
+        </div>
+        <input type="hidden" id="eval-puntaje" value="0" />
+      </div>
+
+      <div class="form-group">
+        <label>Comentario (opcional)</label>
+        <textarea id="eval-comentario" placeholder="Observaciones sobre la postulación…"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-orange" onclick="enviarEvaluacion()">Guardar evaluación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">Habisite</div>
+      <div class="role">Portal Jurado</div>
+      <div class="jurado-name" id="sidebar-nombre">—</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showSection('pendientes', this)">
+        <span class="nav-icon">📥</span> Por evaluar
+      </button>
+      <button class="nav-item" onclick="showSection('mis-eval', this)">
+        <span class="nav-icon">✅</span> Mis evaluaciones
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Postulaciones por evaluar</span>
+      <div class="topbar-user">
+        <div class="avatar" id="topbar-avatar">J</div>
+        <span id="topbar-nombre">Jurado</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Pendientes -->
+      <div class="section active" id="sec-pendientes">
+        <div class="postulacion-grid" id="grid-pendientes">
+          <p style="color:var(--gray);font-size:.875rem;">Cargando postulaciones…</p>
+        </div>
+      </div>
+
+      <!-- Mis evaluaciones -->
+      <div class="section" id="sec-mis-eval">
+        <div class="table-card">
+          <div class="table-header">
+            <h2>Mis evaluaciones</h2>
+            <button class="btn btn-outline" onclick="cargarMisEval()">↻ Actualizar</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Postulante</th><th>Puntaje</th><th>Comentario</th><th>Fecha</th></tr>
+            </thead>
+            <tbody id="tbody-mis-eval">
+              <tr><td class="empty-row" colspan="4">Sin evaluaciones aún</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const API = 'https://api.habisite.com/api/v1';
+
+    // ── Auth básico (reemplazar con JWT) ──
+    const JURADO_PASS = 'jurado2025';
+    let juradoNombre = '';
+    let evaluadosIds = new Set();
+    let postulanteSeleccionado = null;
+
+    function loginJurado() {
+      const nombre = document.getElementById('login-nombre').value.trim();
+      const pass   = document.getElementById('login-pass').value;
+      if (nombre && pass === JURADO_PASS) {
+        sessionStorage.setItem('jurado_ok', nombre);
+        document.getElementById('login-overlay').style.display = 'none';
+        iniciarSesion(nombre);
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+
+    function iniciarSesion(nombre) {
+      juradoNombre = nombre;
+      document.getElementById('sidebar-nombre').textContent = nombre;
+      document.getElementById('topbar-nombre').textContent = nombre;
+      document.getElementById('topbar-avatar').textContent = nombre[0].toUpperCase();
+      cargarPendientes();
+    }
+
+    function logout() {
+      sessionStorage.removeItem('jurado_ok');
+      location.reload();
+    }
+
+    const saved = sessionStorage.getItem('jurado_ok');
+    if (saved) {
+      document.getElementById('login-overlay').style.display = 'none';
+      iniciarSesion(saved);
+    }
+
+    // ── Nav ──
+    function showSection(name, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('sec-' + name).classList.add('active');
+      btn.classList.add('active');
+      document.getElementById('page-title').textContent = btn.textContent.trim();
+      if (name === 'mis-eval') cargarMisEval();
+    }
+
+    // ── Carga postulantes pendientes ──
+    async function cargarPendientes() {
+      const grid = document.getElementById('grid-pendientes');
+      grid.innerHTML = '<p style="color:var(--gray);font-size:.875rem;">Cargando…</p>';
+      try {
+        // Cargar postulantes y mis evaluaciones en paralelo
+        const [postulantes, misEval] = await Promise.all([
+          fetch(`${API}/postulantes`).then(r => r.json()),
+          fetch(`${API}/evaluaciones`).then(r => r.json())
+        ]);
+        evaluadosIds = new Set(
+          misEval.filter(e => e.juradoNombre === juradoNombre).map(e => e.postulanteId)
+        );
+        if (!postulantes.length) {
+          grid.innerHTML = '<p style="color:var(--gray);font-size:.875rem;">No hay postulaciones registradas aún.</p>';
+          return;
+        }
+        grid.innerHTML = postulantes.map(p => {
+          const evaluada = evaluadosIds.has(p.id);
+          return `
+            <div class="postulacion-card ${evaluada ? 'evaluada' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem;">
+                <div class="p-nombre">${p.nombres} ${p.apellidos}</div>
+                <span class="badge ${evaluada ? 'badge-green' : 'badge-gray'}">${evaluada ? 'Evaluada' : 'Pendiente'}</span>
+              </div>
+              <div class="p-meta">DNI ${p.dni} · Registrado ${new Date(p.creadoEn).toLocaleDateString('es-AR')}</div>
+              <div class="p-detail"><span>Universidad:</span> ${p.universidad}</div>
+              <div class="p-detail"><span>Especialidad:</span> <span class="badge badge-orange">${p.especialidad}</span></div>
+              <div class="p-detail"><span>Celular:</span> ${p.celular}</div>
+              <div class="p-actions">
+                ${evaluada
+                  ? `<button class="btn btn-outline" disabled style="opacity:.5">Ya evaluada</button>`
+                  : `<button class="btn btn-orange" onclick="abrirModal(${p.id}, '${p.nombres} ${p.apellidos}')">Evaluar</button>`
+                }
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch {
+        grid.innerHTML = '<p style="color:#dc2626;font-size:.875rem;">Error al cargar postulaciones.</p>';
+      }
+    }
+
+    async function cargarMisEval() {
+      const tbody = document.getElementById('tbody-mis-eval');
+      tbody.innerHTML = '<tr><td class="empty-row" colspan="4">Cargando…</td></tr>';
+      try {
+        const data = await fetch(`${API}/evaluaciones`).then(r => r.json());
+        const mias = data.filter(e => e.juradoNombre === juradoNombre);
+        if (!mias.length) {
+          tbody.innerHTML = '<tr><td class="empty-row" colspan="4">Sin evaluaciones aún</td></tr>';
+          return;
+        }
+        tbody.innerHTML = mias.map(e => `
+          <tr>
+            <td><strong>${e.postulanteNombre}</strong></td>
+            <td><strong style="color:var(--orange)">${e.puntaje}/10</strong></td>
+            <td>${e.comentario || '—'}</td>
+            <td>${new Date(e.evaluadoEn).toLocaleDateString('es-AR')}</td>
+          </tr>
+        `).join('');
+      } catch {
+        tbody.innerHTML = '<tr><td class="empty-row" colspan="4" style="color:#dc2626">Error al cargar</td></tr>';
+      }
+    }
+
+    // ── Modal ──
+    function abrirModal(id, nombre) {
+      postulanteSeleccionado = id;
+      document.getElementById('modal-postulante-nombre').textContent = nombre;
+      document.getElementById('eval-puntaje').value = '0';
+      document.getElementById('eval-comentario').value = '';
+      renderStars(0);
+      document.getElementById('modal-eval').classList.add('open');
+    }
+
+    function cerrarModal() {
+      document.getElementById('modal-eval').classList.remove('open');
+      postulanteSeleccionado = null;
+    }
+
+    function renderStars(sel) {
+      const cont = document.getElementById('puntaje-stars');
+      cont.innerHTML = Array.from({length: 10}, (_, i) => {
+        const v = i + 1;
+        return `<div class="star ${v <= sel ? 'sel' : ''}" onclick="selStar(${v})">${v}</div>`;
+      }).join('');
+    }
+
+    function selStar(v) {
+      document.getElementById('eval-puntaje').value = v;
+      renderStars(v);
+    }
+
+    async function enviarEvaluacion() {
+      const puntaje = parseInt(document.getElementById('eval-puntaje').value);
+      if (!puntaje) { alert('Seleccioná un puntaje del 1 al 10'); return; }
+      const comentario = document.getElementById('eval-comentario').value.trim();
+      try {
+        const res = await fetch(`${API}/evaluaciones`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postulanteId: postulanteSeleccionado,
+            juradoNombre,
+            puntaje,
+            comentario: comentario || null
+          })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.message || 'Error al guardar');
+          return;
+        }
+        cerrarModal();
+        cargarPendientes();
+      } catch {
+        alert('Error de conexión');
+      }
+    }
+  </script>
+</body>
+</html>

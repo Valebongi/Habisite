@@ -13,7 +13,12 @@ spring:
       connection-timeout: 20000
       maximum-pool-size: 5        # Ajustado para el plan gratuito de Railway
 
+  sql:
+    init:
+      mode: always                # Ejecuta schema.sql al arrancar (CREATE TABLE IF NOT EXISTS)
+
   jpa:
+    defer-datasource-initialization: true   # JPA espera a que schema.sql termine antes de validar
     hibernate:
       ddl-auto: none              # Schema gestionado vía scripts SQL, Hibernate no toca nada
     show-sql: false

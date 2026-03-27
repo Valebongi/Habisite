@@ -152,11 +152,28 @@ const LoginPage: React.FC = () => {
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword]     = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [showSoporte, setShowSoporte] = useState(false);
   const [showToast, setShowToast]   = useState(false);
   const [toastMsg, setToastMsg]     = useState('');
+
+  // Auto-login si hay sesión guardada en localStorage
+  useEffect(() => {
+    if (localStorage.getItem('postulante_data')) {
+      history.replace('/postulante/perfil');
+    } else if (localStorage.getItem('admin_ok')) {
+      history.replace('/admin');
+    } else if (localStorage.getItem('jurado_nombre')) {
+      history.replace('/jurado');
+    }
+  }, [history]);
+
+  const saveAuth = (key: string, value: string) => {
+    sessionStorage.setItem(key, value);
+    if (rememberMe) localStorage.setItem(key, value);
+  };
 
   const handleLogin = async () => {
     setError('');
@@ -168,13 +185,13 @@ const LoginPage: React.FC = () => {
       const res = await api.auth.login({ username: identifier.trim(), password: password.trim() });
 
       if (res.rol === 'ADMIN') {
-        sessionStorage.setItem('admin_ok', 'true');
+        saveAuth('admin_ok', 'true');
         history.replace('/admin');
       } else if (res.rol === 'JURADO') {
-        sessionStorage.setItem('jurado_nombre', res.nombre);
+        saveAuth('jurado_nombre', res.nombre);
         history.replace('/jurado');
       } else {
-        sessionStorage.setItem('postulante_data', JSON.stringify(res.postulante));
+        saveAuth('postulante_data', JSON.stringify(res.postulante));
         history.replace('/postulante/perfil');
       }
     } catch (err: unknown) {
@@ -236,6 +253,21 @@ const LoginPage: React.FC = () => {
           </p>
         </IonText>
       )}
+
+      {/* Recordarme */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 16px', cursor: 'pointer' }}
+        onClick={() => setRememberMe(r => !r)}>
+        <div style={{
+          width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+          border: `2px solid ${rememberMe ? ORANGE : '#d1d5db'}`,
+          background: rememberMe ? ORANGE : '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.15s ease',
+        }}>
+          {rememberMe && <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 800, lineHeight: 1 }}>✓</span>}
+        </div>
+        <span style={{ fontSize: '0.85rem', color: '#4b5563', userSelect: 'none' }}>Recordarme en este dispositivo</span>
+      </div>
 
       <IonButton expand="block" onClick={handleLogin} disabled={loading} style={styles.submitBtn}>
         {loading ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Ingresando…</> : 'Ingresar'}

@@ -31,20 +31,22 @@ const CODIGOS_PAIS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const getPostulante = (): Postulante | null => {
-  const raw = sessionStorage.getItem('postulante_data');
+  const raw = sessionStorage.getItem('postulante_data') ?? localStorage.getItem('postulante_data');
   if (!raw) return null;
   try { return JSON.parse(raw) as Postulante; } catch { return null; }
 };
 
 const handleLogout = () => {
   sessionStorage.removeItem('postulante_data');
+  localStorage.removeItem('postulante_data');
   window.location.replace('/login');
 };
 
 const usePostulanteGuard = () => {
   const history = useHistory();
   useEffect(() => {
-    if (!sessionStorage.getItem('postulante_data')) history.replace('/login');
+    const ok = sessionStorage.getItem('postulante_data') ?? localStorage.getItem('postulante_data');
+    if (!ok) history.replace('/login');
   }, [history]);
 };
 

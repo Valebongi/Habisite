@@ -17,17 +17,20 @@ const ORANGE = '#E85520';
 const DARK   = '#0d0e10';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const juradoNombre = () => sessionStorage.getItem('jurado_nombre') ?? 'Jurado';
+const juradoNombre = () =>
+  sessionStorage.getItem('jurado_nombre') ?? localStorage.getItem('jurado_nombre') ?? 'Jurado';
 
 const handleLogout = () => {
   sessionStorage.removeItem('jurado_nombre');
+  localStorage.removeItem('jurado_nombre');
   window.location.replace('/login');
 };
 
 const useJuradoGuard = () => {
   const history = useHistory();
   useEffect(() => {
-    if (!sessionStorage.getItem('jurado_nombre')) history.replace('/login');
+    const ok = sessionStorage.getItem('jurado_nombre') ?? localStorage.getItem('jurado_nombre');
+    if (!ok) history.replace('/login');
   }, [history]);
 };
 

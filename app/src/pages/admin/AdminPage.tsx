@@ -1,1018 +1,1039 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { IonPage, IonContent, IonSpinner, IonIcon, useIonToast } from '@ionic/react';
+import { AdminMainTour, AdminSectionTour, onboardingPending, sectionTourPending } from './AdminOnboarding';
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonTabs,
-  IonTab,
-  IonTabBar,
-  IonTabButton,
-  IonIcon,
-  IonLabel,
-  IonRouterOutlet,
-  IonButton,
-  IonButtons,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
-  IonList,
-  IonItem,
-  IonBadge,
-  IonSearchbar,
-  IonText,
-  IonSpinner,
-  IonFab,
-  IonFabButton,
-  IonSelect,
-  IonSelectOption,
-  IonToast,
-} from '@ionic/react';
-import {
-  gridOutline,
-  peopleOutline,
-  starOutline,
-  addOutline,
-  helpCircleOutline,
-  checkmarkOutline,
-  documentTextOutline,
-  closeCircleOutline,
-  downloadOutline,
-  keyOutline,
-  checkmarkCircleOutline,
+  gridOutline, peopleOutline, starOutline, clipboardOutline,
+  barChartOutline, documentTextOutline, helpCircleOutline,
+  ribbonOutline, settingsOutline,
 } from 'ionicons/icons';
-import { Redirect, Route, useHistory } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import {
+  api, AdminStats, Postulante, Evaluacion,
+  SoporteTicket, Resolucion,
+} from '../../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import {
-  api,
-  AdminStats,
-  Postulante,
-  Evaluacion,
-  SoporteTicket,
-  Resolucion,
-} from '../../services/api';
 
-// ─── Onboarding Tour Admin ────────────────────────────────────────────────────
+// ─── Paleta ───────────────────────────────────────────────────────────────────
+const C = {
+  orange:  '#E85520',
+  dark:    '#111827',
+  gray:    '#6b7280',
+  border:  '#e5e7eb',
+  bg:      '#f4f5f7',
+  white:   '#ffffff',
+} as const;
 
-const ADMIN_ONBOARDING_KEY = 'habisite_admin_onboarding_done';
-const ORANGE = '#E85520';
+const CHART_COLORS = ['#E85520', '#3dc2ff', '#2dd36f', '#ffc409', '#eb445a', '#92949c', '#6a64f1', '#f97316'];
 
-const ADMIN_TOUR_STEPS = [
-  {
-    path: '/admin/dashboard',
-    tabIndex: 0,
-    emoji: '📊',
-    seccion: 'Dashboard',
-    descripcion: 'Vista general del concurso en tiempo real: postulantes registrados, evaluaciones, entregas y su estado. Los gráficos muestran la distribución por especialidad y universidad.',
-    detalle: 'Los números se actualizan cada vez que entrás a esta pestaña.',
-  },
-  {
-    path: '/admin/postulantes',
-    tabIndex: 1,
-    emoji: '👥',
-    seccion: 'Postulantes',
-    descripcion: 'Listado completo de inscriptos. Buscá por nombre, DNI o universidad. Si un postulante olvidó su contraseña, usá "Regenerar clave" para enviarle una nueva por email.',
-    detalle: 'El DNI es el usuario de ingreso del postulante — no se puede cambiar.',
-  },
-  {
-    path: '/admin/evaluaciones',
-    tabIndex: 2,
-    emoji: '⭐',
-    seccion: 'Evaluaciones del Jurado',
-    descripcion: 'Acá ves todos los puntajes (1–10) asignados por cada jurado a cada postulante, junto con sus comentarios y la fecha de evaluación.',
-    detalle: 'Los jurados evalúan desde su propio panel. Vos solo tenés visibilidad.',
-  },
-  {
-    path: '/admin/entregas',
-    tabIndex: 3,
-    emoji: '📁',
-    seccion: 'Entregas',
-    descripcion: 'Revisá las propuestas enviadas por los postulantes. Podés aprobar o rechazar cada entrega, filtrar por estado y descargar los archivos adjuntos.',
-    detalle: 'Las entregas "Pendientes" están esperando tu revisión — aparecen resaltadas.',
-  },
-  {
-    path: '/admin/soporte',
-    tabIndex: 4,
-    emoji: '🎫',
-    seccion: 'Soporte',
-    descripcion: 'Cuando un postulante tiene un problema y llena el formulario de soporte, el ticket aparece aquí. Revisalo y marcálo como resuelto una vez atendido.',
-    detalle: 'También recibís un email en growthimbar@gmail.com por cada ticket nuevo.',
-  },
+// ─── Tipos internos ───────────────────────────────────────────────────────────
+interface AreaItem {
+  id: string;
+  seccion: string;
+  tipo: string;
+  responsable: string;
+  ultimaMod: string;
+  estado: 'publicado' | 'revision' | 'pendiente';
+}
+
+interface MenuItem {
+  id: string;
+  icon: string;
+  label: string;
+  sub?: { id: string; label: string }[];
+}
+
+// ─── Mock de áreas del sitio (conectar con API cuando esté disponible) ────────
+const AREAS: AreaItem[] = [
+  { id: '1',  seccion: 'Hero / Banner principal',    tipo: 'Imagen + texto',  responsable: 'Admin',        ultimaMod: '2026-03-20', estado: 'publicado' },
+  { id: '2',  seccion: 'Objetivo del concurso',      tipo: 'Texto',           responsable: 'Admin',        ultimaMod: '2026-03-18', estado: 'publicado' },
+  { id: '3',  seccion: 'Fases del concurso',         tipo: 'Contenido',       responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
+  { id: '4',  seccion: 'Cronograma de fechas',       tipo: 'Imagen / Tabla',  responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
+  { id: '5',  seccion: 'Bases y Condiciones',        tipo: 'Documento PDF',   responsable: 'Admin',        ultimaMod: '2026-03-22', estado: 'revision'  },
+  { id: '6',  seccion: 'Premios',                    tipo: 'Contenido',       responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
+  { id: '7',  seccion: 'Formulario de inscripción',  tipo: 'Formulario',      responsable: 'Admin',        ultimaMod: '2026-03-25', estado: 'publicado' },
+  { id: '8',  seccion: 'Jurado',                     tipo: 'Perfiles',        responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
+  { id: '9',  seccion: 'Galería / Participantes',    tipo: 'Galería',         responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
+  { id: '10', seccion: 'Footer y contacto',          tipo: 'Contenido',       responsable: 'Admin',        ultimaMod: '2026-03-15', estado: 'publicado' },
 ];
 
-const TAB_LEFT_ADMIN = ['10%', '30%', '50%', '70%', '90%'];
+// ─── Menú lateral ─────────────────────────────────────────────────────────────
+const MENU: MenuItem[] = [
+  { id: 'dashboard',    icon: gridOutline,         label: 'Dashboard' },
+  { id: 'postulantes',  icon: peopleOutline,        label: 'Postulantes' },
+  { id: 'evaluaciones', icon: starOutline,           label: 'Evaluaciones' },
+  {
+    id: 'areas', icon: clipboardOutline, label: 'Relevamiento de Áreas',
+    sub: [
+      { id: 'areas-sitio',         label: 'Secciones del sitio' },
+      { id: 'areas-publicaciones', label: 'Publicaciones' },
+      { id: 'areas-recursos',      label: 'Imágenes y recursos' },
+    ],
+  },
+  { id: 'estadisticas',  icon: barChartOutline,      label: 'Estadísticas' },
+  { id: 'entregas',      icon: documentTextOutline,  label: 'Entregas' },
+  { id: 'soporte',       icon: helpCircleOutline,    label: 'Soporte' },
+  { id: 'jurado',        icon: ribbonOutline,        label: 'Jurado' },
+  { id: 'configuracion', icon: settingsOutline,      label: 'Configuración' },
+];
 
-const OnboardingAdminTour: React.FC = () => {
-  const history = useHistory();
-  const [step, setStep] = useState<number>(-1);
-  const [visible, setVisible] = useState(!localStorage.getItem(ADMIN_ONBOARDING_KEY));
+// ─── Helpers de UI ────────────────────────────────────────────────────────────
+const OrangeBar: React.FC<{ label: string; action?: React.ReactNode }> = ({ label, action }) => (
+  <div style={{ background: C.orange, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, borderRadius: 14 }}>
+    <span style={{ color: '#fff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.85rem' }}>
+      {label}
+    </span>
+    {action}
+  </div>
+);
 
-  useEffect(() => {
-    if (!visible || step < 0) return;
-    history.replace(ADMIN_TOUR_STEPS[step].path);
-  }, [step, visible, history]);
+const StatCard: React.FC<{ value: string | number; label: string; sub?: string }> = ({ value, label, sub }) => (
+  <div style={{ background: C.white, borderRadius: 10, padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,.07)', borderLeft: `4px solid ${C.orange}`, flex: 1, minWidth: 160 }}>
+    <div style={{ fontSize: '0.7rem', color: C.gray, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{label}</div>
+    <div style={{ fontSize: '2.2rem', fontWeight: 800, color: C.dark, lineHeight: 1 }}>{value}</div>
+    {sub && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 4 }}>{sub}</div>}
+  </div>
+);
 
-  const siguiente = () => {
-    if (step < ADMIN_TOUR_STEPS.length - 1) setStep(s => s + 1);
-    else finalizar();
+const ChartBox: React.FC<{ label: string; height?: number }> = ({ label, height = 180 }) => (
+  <div style={{ height, background: '#f9fafb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.8rem', border: `2px dashed ${C.border}`, letterSpacing: '0.5px' }}>
+    {label}
+  </div>
+);
+
+const Badge: React.FC<{ estado: AreaItem['estado'] }> = ({ estado }) => {
+  const map = {
+    publicado: { bg: '#f0fdf4', color: '#16a34a', label: 'Publicado' },
+    revision:  { bg: '#fff7ed', color: C.orange,  label: 'En revisión' },
+    pendiente: { bg: '#f3f4f6', color: C.gray,    label: 'Pendiente' },
   };
-
-  const finalizar = () => {
-    localStorage.setItem(ADMIN_ONBOARDING_KEY, '1');
-    setVisible(false);
-  };
-
-  if (!visible) return null;
-
-  // ── Pantalla de bienvenida ────────────────────────────────────────────────
-  if (step === -1) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'linear-gradient(135deg, #0d0e10 0%, #2a1208 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px' }}>
-        <div style={{ position: 'absolute', top: 40, right: 60, width: 120, height: 120, border: `1.5px solid ${ORANGE}33`, borderRadius: 8, transform: 'rotate(20deg)' }} />
-        <div style={{ position: 'absolute', bottom: 80, left: 40, width: 80, height: 80, border: `1.5px solid ${ORANGE}22`, borderRadius: 6, transform: 'rotate(-15deg)' }} />
-
-        <div style={{ fontSize: '4rem', marginBottom: 20 }}>🛠️</div>
-        <p style={{ margin: '0 0 6px', color: ORANGE, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-          Panel de Administración
-        </p>
-        <h1 style={{ margin: '0 0 16px', color: '#fff', fontWeight: 800, fontSize: '1.7rem', textAlign: 'center', lineHeight: 1.2 }}>
-          ¡Bienvenido, Admin!
-        </h1>
-        <p style={{ margin: '0 0 48px', color: '#ffffff88', textAlign: 'center', fontSize: '1rem', lineHeight: 1.65 }}>
-          Te mostramos en 5 pasos qué hace cada sección del panel para que puedas gestionar el concurso sin problemas.
-        </p>
-        <IonButton expand="block" onClick={() => setStep(0)}
-          style={{ width: '100%', '--background': ORANGE, '--border-radius': '12px', '--padding-top': '14px', '--padding-bottom': '14px', fontWeight: 700 }}>
-          Ver el tour →
-        </IonButton>
-        <IonButton expand="block" fill="clear" onClick={finalizar}
-          style={{ width: '100%', '--color': '#ffffff44', marginTop: 4 }}>
-          Saltar
-        </IonButton>
-      </div>
-    );
-  }
-
-  // ── Overlay contextual por sección ───────────────────────────────────────
-  const current = ADMIN_TOUR_STEPS[step];
-  const esUltimo = step === ADMIN_TOUR_STEPS.length - 1;
-
+  const s = map[estado];
   return (
-    <>
-      {/* Dim overlay — no cubre la tab bar */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 56, zIndex: 9997, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
-
-      {/* Indicador sobre el tab activo */}
-      <div style={{ position: 'fixed', bottom: 58, left: TAB_LEFT_ADMIN[current.tabIndex], transform: 'translateX(-50%)', zIndex: 9999, pointerEvents: 'none' }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', border: `2.5px solid ${ORANGE}`, background: `${ORANGE}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 9, height: 9, borderRadius: '50%', background: ORANGE }} />
-        </div>
-        <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `6px solid ${ORANGE}`, margin: '0 auto' }} />
-      </div>
-
-      {/* Card explicativa */}
-      <div style={{ position: 'fixed', bottom: 56 + 16, left: 12, right: 12, zIndex: 9998, background: '#fff', borderRadius: 18, padding: '22px 20px 18px', boxShadow: '0 -2px 40px rgba(0,0,0,0.25)' }}>
-
-        {/* Barra de progreso */}
-        <div style={{ display: 'flex', gap: 5, marginBottom: 18 }}>
-          {ADMIN_TOUR_STEPS.map((_, i) => (
-            <div key={i} style={{ height: 4, borderRadius: 2, flex: i === step ? 3 : 1, background: i <= step ? ORANGE : '#e5e7eb', transition: 'flex 0.3s ease, background 0.3s ease' }} />
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <span style={{ fontSize: '1.6rem' }}>{current.emoji}</span>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sección {step + 1} de {ADMIN_TOUR_STEPS.length}</p>
-            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#111827' }}>{current.seccion}</h3>
-          </div>
-        </div>
-
-        <p style={{ margin: '0 0 8px', color: '#374151', lineHeight: 1.6, fontSize: '0.93rem' }}>{current.descripcion}</p>
-        <p style={{ margin: '0 0 18px', color: '#6b7280', lineHeight: 1.5, fontSize: '0.82rem', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${ORANGE}55` }}>
-          💡 {current.detalle}
-        </p>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          {step > 0 && (
-            <IonButton fill="outline" color="medium" onClick={() => setStep(s => s - 1)} style={{ flex: 1 }}>
-              ← Atrás
-            </IonButton>
-          )}
-          <IonButton onClick={siguiente} style={{ flex: 2, '--background': ORANGE }}>
-            {esUltimo
-              ? <><IonIcon icon={checkmarkCircleOutline} slot="start" /> ¡Entendido!</>
-              : 'Siguiente →'}
-          </IonButton>
-        </div>
-      </div>
-    </>
+    <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 }}>
+      {s.label}
+    </span>
   );
 };
 
-// ─── Logout y guard ───────────────────────────────────────────────────────────
-const handleAdminLogout = () => {
-  sessionStorage.removeItem('admin_ok');
-  window.location.replace('/login');
+// ─── Secciones de contenido ───────────────────────────────────────────────────
+
+const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats, postulantes, evaluaciones }) => {
+  const publicadas  = AREAS.filter(a => a.estado === 'publicado').length;
+  const pendientes  = AREAS.filter(a => a.estado === 'pendiente').length;
+  const sinAsignar  = AREAS.filter(a => a.responsable === 'Sin asignar').length;
+  const promPuntaje = evaluaciones.length
+    ? (evaluaciones.reduce((s, e) => s + e.puntaje, 0) / evaluaciones.length).toFixed(1)
+    : '—';
+
+  return (
+    <div>
+      <OrangeBar label="Dashboard" />
+
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+        <StatCard value={stats?.totalPostulantes ?? '—'} label="Total postulantes" sub="inscriptos al concurso" />
+        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" sub="realizadas por el jurado" />
+        <StatCard value={promPuntaje} label="Puntaje promedio" sub="sobre 10 puntos" />
+        <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" sub="representadas" />
+      </div>
+
+      <OrangeBar label="Estado del sitio" />
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+        <StatCard value={publicadas}  label="Secciones publicadas"   sub={`de ${AREAS.length} totales`} />
+        <StatCard value={pendientes}  label="Secciones pendientes"   sub="sin contenido aún" />
+        <StatCard value={sinAsignar}  label="Sin responsable"        sub="requieren asignación" />
+      </div>
+
+      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 16 }}>Áreas sin responsable asignado</div>
+        {AREAS.filter(a => a.responsable === 'Sin asignar').map(a => (
+          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.seccion}</div>
+              <div style={{ fontSize: '0.75rem', color: C.gray }}>{a.tipo}</div>
+            </div>
+            <Badge estado={a.estado} />
+          </div>
+        ))}
+      </div>
+
+      <OrangeBar label="Últimos registros" />
+      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+        {postulantes.length === 0
+          ? <div style={{ padding: 32, textAlign: 'center', color: C.gray, fontSize: '0.875rem' }}>Sin postulantes registrados aún</div>
+          : postulantes.slice(-5).reverse().map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: `1px solid #f3f4f6` }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.nombres} {p.apellidos}</div>
+                  <div style={{ fontSize: '0.75rem', color: C.gray }}>{p.universidad}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ background: '#fff3ee', color: C.orange, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 }}>{p.especialidad}</span>
+                  <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 4 }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</div>
+                </div>
+              </div>
+            ))
+        }
+      </div>
+    </div>
+  );
 };
 
-const useAdminGuard = () => {
-  const history = useHistory();
-  useEffect(() => {
-    if (!sessionStorage.getItem('admin_ok')) {
-      history.replace('/login');
-    }
-  }, [history]);
+const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; reload: () => void }> = ({ postulantes, loading, reload }) => {
+  const [q, setQ] = useState('');
+  const [filtroEsp, setFiltroEsp] = useState('');
+  const [regenerando, setRegenerando] = useState<number | null>(null);
+  const especialidades = [...new Set(postulantes.map(p => p.especialidad))].sort();
+  const filtrados = postulantes.filter(p => {
+    const s = q.toLowerCase();
+    const matchQ = !s || p.nombres.toLowerCase().includes(s) || p.apellidos.toLowerCase().includes(s) || p.dni.includes(s) || p.universidad.toLowerCase().includes(s);
+    const matchE = !filtroEsp || p.especialidad === filtroEsp;
+    return matchQ && matchE;
+  });
+
+  const exportCSV = () => {
+    const header = 'ID,Nombres,Apellidos,DNI,Celular,Universidad,Especialidad,Correo,Fecha';
+    const rows = filtrados.map(p => `${p.id},${p.nombres},${p.apellidos},${p.dni},${p.celular},${p.universidad},${p.especialidad},${p.correoElectronico},${p.creadoEn}`);
+    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
+  };
+
+  const handleRegenerarClave = async (id: number) => {
+    setRegenerando(id);
+    try { await api.postulantes.regenerarClave(id); }
+    catch { /* silencioso */ }
+    finally { setRegenerando(null); }
+  };
+
+  return (
+    <div>
+      <OrangeBar
+        label={`Postulantes (${filtrados.length})`}
+        action={
+          <div id="tour-postulantes-actions" style={{ display: 'flex', gap: 8 }}>
+            <button onClick={reload}    style={btnOutlineWhite}>↻ Actualizar</button>
+            <button onClick={exportCSV} style={btnOutlineWhite}>↓ CSV</button>
+          </div>
+        }
+      />
+
+      <div id="tour-postulantes-filter" style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <input
+          value={q} onChange={e => setQ(e.target.value)}
+          placeholder="Buscar nombre, DNI, universidad…"
+          style={{ flex: 1, minWidth: 220, padding: '8px 16px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.875rem', outline: 'none' }}
+        />
+        <select value={filtroEsp} onChange={e => setFiltroEsp(e.target.value)}
+          style={{ padding: '8px 16px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.875rem', color: C.dark, background: '#fff', cursor: 'pointer' }}>
+          <option value="">Todas las especialidades</option>
+          {especialidades.map(e => <option key={e} value={e}>{e}</option>)}
+        </select>
+      </div>
+
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : (
+          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb' }}>
+                    {['#', 'Nombre', 'DNI', 'Universidad', 'Especialidad', 'Correo', 'Registrado', 'Acciones'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtrados.length === 0
+                    ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin resultados</td></tr>
+                    : filtrados.map(p => (
+                        <tr key={p.id} style={{ borderBottom: `1px solid #f3f4f6` }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                          <td style={{ padding: '12px 16px', color: C.gray }}>{p.id}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
+                          <td style={{ padding: '12px 16px' }}>{p.dni}</td>
+                          <td style={{ padding: '12px 16px' }}>{p.universidad}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ background: '#fff3ee', color: C.orange, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.especialidad}</span>
+                          </td>
+                          <td style={{ padding: '12px 16px', color: C.gray }}>{p.correoElectronico}</td>
+                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap', color: C.gray }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <button
+                              onClick={() => handleRegenerarClave(p.id)}
+                              disabled={regenerando === p.id}
+                              style={{ ...btnSm, whiteSpace: 'nowrap', opacity: regenerando === p.id ? 0.5 : 1 }}
+                            >
+                              {regenerando === p.id ? '…' : '🔑 Clave'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      }
+    </div>
+  );
 };
 
-// ─── Header compartido admin ──────────────────────────────────────────────────
-const AdminHeader: React.FC<{ titulo?: string }> = ({ titulo = 'Panel Admin' }) => (
-  <IonHeader>
-    <IonToolbar color="primary">
-      <IonTitle>{titulo}</IonTitle>
-      <IonButtons slot="end">
-        <IonButton color="light" fill="clear" onClick={handleAdminLogout}>Salir</IonButton>
-      </IonButtons>
-    </IonToolbar>
-  </IonHeader>
-);
+const SecEvaluaciones: React.FC<{ evaluaciones: Evaluacion[]; loading: boolean; reload: () => void }> = ({ evaluaciones, loading, reload }) => {
+  const promedio = evaluaciones.length
+    ? (evaluaciones.reduce((s, e) => s + e.puntaje, 0) / evaluaciones.length).toFixed(1)
+    : null;
+  const porJurado: Record<string, { count: number; total: number }> = {};
+  evaluaciones.forEach(e => {
+    if (!porJurado[e.juradoNombre]) porJurado[e.juradoNombre] = { count: 0, total: 0 };
+    porJurado[e.juradoNombre].count++;
+    porJurado[e.juradoNombre].total += e.puntaje;
+  });
 
-// ─── Colores para gráficos ────────────────────────────────────────────────────
-const CHART_COLORS = ['#E85520', '#3dc2ff', '#2dd36f', '#ffc409', '#eb445a', '#92949c', '#6a64f1', '#f97316'];
+  return (
+    <div>
+      <OrangeBar label={`Evaluaciones (${evaluaciones.length})`} action={<button onClick={reload} style={btnOutlineWhite}>↻ Actualizar</button>} />
 
-// ─── Tab: Dashboard ───────────────────────────────────────────────────────────
-const DashboardTab: React.FC = () => {
-  useAdminGuard();
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+      {promedio && (
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+          <StatCard value={promedio} label="Puntaje promedio" sub="del jurado" />
+          <StatCard value={evaluaciones.length} label="Evaluaciones totales" />
+          <StatCard value={Object.keys(porJurado).length} label="Jurados activos" />
+          <StatCard value={Math.max(...evaluaciones.map(e => e.puntaje))} label="Puntaje más alto" sub="/ 10 puntos" />
+        </div>
+      )}
 
-  useEffect(() => {
-    api.admin
-      .stats()
-      .then(setStats)
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'Error al cargar estadísticas';
-        setError(msg);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <IonPage>
-        <AdminHeader />
-        <IonContent style={{ '--background': '#f4f5f7' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-            <IonSpinner name="crescent" color="primary" />
+      {Object.keys(porJurado).length > 0 && (
+        <>
+          <OrangeBar label="Actividad por jurado" />
+          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
+            {Object.entries(porJurado).map(([nombre, d]) => (
+              <div key={nombre} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: `1px solid #f3f4f6` }}>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{nombre}</div>
+                <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', color: C.gray }}>{d.count} evaluación{d.count !== 1 ? 'es' : ''}</span>
+                  <span style={{ fontWeight: 700, color: C.orange, fontSize: '1rem' }}>{(d.total / d.count).toFixed(1)}<span style={{ fontSize: '0.7rem', color: C.gray }}>/10</span></span>
+                </div>
+              </div>
+            ))}
           </div>
-        </IonContent>
-      </IonPage>
-    );
-  }
+        </>
+      )}
 
-  if (error) {
-    return (
-      <IonPage>
-        <AdminHeader />
-        <IonContent style={{ '--background': '#f4f5f7' }}>
-          <div style={{ padding: 24 }}>
-            <IonText color="danger"><p>{error}</p></IonText>
+      <OrangeBar label="Detalle de evaluaciones" />
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : (
+          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb' }}>
+                    {['#', 'Postulante', 'Jurado', 'Puntaje', 'Comentario', 'Fecha'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {evaluaciones.length === 0
+                    ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin evaluaciones aún</td></tr>
+                    : evaluaciones.map(e => (
+                        <tr key={e.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '12px 16px', color: C.gray }}>{e.id}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{e.postulanteNombre}</td>
+                          <td style={{ padding: '12px 16px' }}>{e.juradoNombre}</td>
+                          <td style={{ padding: '12px 16px' }}><strong style={{ color: C.orange, fontSize: '1.1rem' }}>{e.puntaje}</strong><span style={{ color: C.gray, fontSize: '0.75rem' }}>/10</span></td>
+                          <td style={{ padding: '12px 16px', color: C.gray, maxWidth: 240 }}>{e.comentario || '—'}</td>
+                          <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{new Date(e.evaluadoEn).toLocaleDateString('es-AR')}</td>
+                        </tr>
+                      ))
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
-        </IonContent>
-      </IonPage>
-    );
-  }
+        )
+      }
+    </div>
+  );
+};
 
+const SecAreasSitio: React.FC = () => {
+  const [areas, setAreas] = useState<AreaItem[]>(AREAS);
+
+  const asignar = (id: string) => {
+    const nombre = prompt('Nombre del responsable:');
+    if (!nombre) return;
+    setAreas(prev => prev.map(a => a.id === id ? { ...a, responsable: nombre, ultimaMod: new Date().toISOString().slice(0, 10) } : a));
+  };
+
+  const cambiarEstado = (id: string, estado: AreaItem['estado']) => {
+    setAreas(prev => prev.map(a => a.id === id ? { ...a, estado, ultimaMod: new Date().toISOString().slice(0, 10) } : a));
+  };
+
+  const pub  = areas.filter(a => a.estado === 'publicado').length;
+  const rev  = areas.filter(a => a.estado === 'revision').length;
+  const pend = areas.filter(a => a.estado === 'pendiente').length;
+
+  return (
+    <div>
+      <OrangeBar label="Relevamiento — Secciones del sitio" />
+
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+        <StatCard value={pub}  label="Publicadas"  sub="en el sitio" />
+        <StatCard value={rev}  label="En revisión" sub="requieren aprobación" />
+        <StatCard value={pend} label="Pendientes"  sub="sin contenido" />
+      </div>
+
+      <div id="tour-areas-table" style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                {['Sección', 'Tipo de contenido', 'Responsable', 'Última modif.', 'Estado', 'Acciones'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {areas.map(a => (
+                <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={{ padding: '13px 16px', fontWeight: 600 }}>{a.seccion}</td>
+                  <td style={{ padding: '13px 16px', color: C.gray }}>{a.tipo}</td>
+                  <td style={{ padding: '13px 16px' }}>
+                    <span style={{ color: a.responsable === 'Sin asignar' ? '#dc2626' : C.dark, fontWeight: a.responsable === 'Sin asignar' ? 600 : 400 }}>
+                      {a.responsable}
+                    </span>
+                  </td>
+                  <td style={{ padding: '13px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{a.ultimaMod}</td>
+                  <td style={{ padding: '13px 16px' }}><Badge estado={a.estado} /></td>
+                  <td style={{ padding: '13px 16px' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => asignar(a.id)} style={btnSm}>Asignar</button>
+                      <select
+                        value={a.estado}
+                        onChange={e => cambiarEstado(a.id, e.target.value as AreaItem['estado'])}
+                        style={{ padding: '4px 12px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer', background: '#fff' }}
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="revision">En revisión</option>
+                        <option value="publicado">Publicado</option>
+                      </select>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: '0.75rem', color: C.gray }}>
+        * Los cambios de responsable y estado son locales hasta integrar la API de gestión de contenido.
+      </div>
+    </div>
+  );
+};
+
+const SecEstadisticas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats }) => {
   const espData = stats
     ? Object.entries(stats.porEspecialidad).map(([name, value]) => ({ name, value: Number(value) }))
     : [];
   const univData = stats
     ? Object.entries(stats.porUniversidad).map(([name, value]) => ({ name, value: Number(value) }))
     : [];
-
   const resolucionesPie = stats
     ? [
         { name: 'Pendientes', value: Number(stats.resolucionesPendientes) },
-        { name: 'Aprobadas', value: Number(stats.resolucionesAprobadas) },
+        { name: 'Aprobadas',  value: Number(stats.resolucionesAprobadas)  },
         { name: 'Rechazadas', value: Number(stats.resolucionesRechazadas) },
       ].filter(d => d.value > 0)
     : [];
-
   const PIE_COLORS = ['#ffc409', '#2dd36f', '#eb445a'];
 
   return (
-    <IonPage>
-    <AdminHeader />
-    <IonContent style={{ '--background': '#f4f5f7' }}>
-      <IonGrid style={{ padding: 16 }}>
+    <div>
+      <OrangeBar label="Estadísticas del concurso" />
 
-        {/* KPIs — postulantes y evaluaciones */}
-        <IonRow>
-          {[
-            { label: 'Postulantes', value: stats?.totalPostulantes ?? 0 },
-            { label: 'Evaluaciones', value: stats?.totalEvaluaciones ?? 0 },
-            { label: 'Universidades', value: stats ? Object.keys(stats.porUniversidad).length : 0 },
-            { label: 'Especialidades', value: stats ? Object.keys(stats.porEspecialidad).length : 0 },
-          ].map(({ label, value }) => (
-            <IonCol key={label} size="6" sizeMd="3">
-              <IonCard style={{ margin: 0 }}>
-                <IonCardContent style={{ textAlign: 'center', padding: '12px 8px' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color: '#E85520' }}>{value}</div>
-                  <IonText color="medium"><p style={{ margin: 0, fontSize: '0.82rem' }}>{label}</p></IonText>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          ))}
-        </IonRow>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        <StatCard value={stats?.totalPostulantes ?? '—'}  label="Total postulantes" />
+        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" />
+        <StatCard value={stats?.totalResoluciones ?? '—'} label="Entregas" />
+        <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" />
+      </div>
 
-        {/* KPIs — entregas */}
-        <IonRow style={{ marginTop: 4 }}>
-          {[
-            { label: 'Entregas totales', value: stats?.totalResoluciones ?? 0, color: '#E85520' },
-            { label: 'Pendientes', value: stats?.resolucionesPendientes ?? 0, color: '#ffc409' },
-            { label: 'Aprobadas', value: stats?.resolucionesAprobadas ?? 0, color: '#2dd36f' },
-            { label: 'Rechazadas', value: stats?.resolucionesRechazadas ?? 0, color: '#eb445a' },
-          ].map(({ label, value, color }) => (
-            <IonCol key={label} size="6" sizeMd="3">
-              <IonCard style={{ margin: 0 }}>
-                <IonCardContent style={{ textAlign: 'center', padding: '12px 8px' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, color }}>{value}</div>
-                  <IonText color="medium"><p style={{ margin: 0, fontSize: '0.82rem' }}>{label}</p></IonText>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          ))}
-        </IonRow>
+      {resolucionesPie.length > 0 && (
+        <>
+          <OrangeBar label="Entregas por estado" />
+          <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={resolucionesPie} dataKey="value" nameKey="name"
+                  cx="50%" cy="50%" outerRadius={80}
+                  label={({ percent }: { percent?: number }) => percent != null ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
+                >
+                  {resolucionesPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Legend iconSize={10} wrapperStyle={{ fontSize: '0.8rem' }} />
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
-        {/* Gráficos */}
-        <IonRow style={{ marginTop: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Postulantes por especialidad</div>
+          {espData.length === 0
+            ? <ChartBox label="Sin datos aún" />
+            : (
+              <ResponsiveContainer width="100%" height={Math.max(160, espData.length * 36)}>
+                <BarChart data={espData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10 }}
+                    tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 13) + '…' : v} />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
+                    {espData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </div>
 
-          {/* Entregas por estado — PieChart */}
-          {resolucionesPie.length > 0 && (
-            <IonCol size="12" sizeMd="4">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle style={{ fontSize: '0.95rem' }}>Estado de entregas</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent style={{ padding: '0 8px 12px' }}>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={resolucionesPie}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        label={({ percent }: { percent?: number }) =>
-                          percent != null ? `${(percent * 100).toFixed(0)}%` : ''
-                        }
-                        labelLine={false}
-                      >
-                        {resolucionesPie.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend iconSize={10} wrapperStyle={{ fontSize: '0.8rem' }} />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          )}
-
-          {/* Por especialidad — BarChart horizontal */}
-          <IonCol size="12" sizeMd={resolucionesPie.length > 0 ? '4' : '6'}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle style={{ fontSize: '0.95rem' }}>Por Especialidad</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent style={{ padding: '0 4px 12px' }}>
-                {espData.length === 0 ? (
-                  <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <IonText color="medium"><p>Sin datos</p></IonText>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={Math.max(160, espData.length * 36)}>
-                    <BarChart data={espData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
-                      <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={100}
-                        tick={{ fontSize: 10 }}
-                        tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 13) + '…' : v}
-                      />
-                      <Tooltip />
-                      <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
-                        {espData.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </IonCardContent>
-            </IonCard>
-          </IonCol>
-
-          {/* Por universidad — BarChart horizontal */}
-          <IonCol size="12" sizeMd={resolucionesPie.length > 0 ? '4' : '6'}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle style={{ fontSize: '0.95rem' }}>Por Universidad</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent style={{ padding: '0 4px 12px' }}>
-                {univData.length === 0 ? (
-                  <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <IonText color="medium"><p>Sin datos</p></IonText>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={Math.max(160, univData.length * 36)}>
-                    <BarChart data={univData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
-                      <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={110}
-                        tick={{ fontSize: 10 }}
-                        tickFormatter={(v: string) => v.length > 16 ? v.slice(0, 15) + '…' : v}
-                      />
-                      <Tooltip />
-                      <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
-                        {univData.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </IonCardContent>
-            </IonCard>
-          </IonCol>
-
-        </IonRow>
-      </IonGrid>
-    </IonContent>
-    </IonPage>
+        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Ranking de universidades</div>
+          {univData.length === 0
+            ? <ChartBox label="Sin datos aún" />
+            : (
+              <ResponsiveContainer width="100%" height={Math.max(160, univData.length * 36)}>
+                <BarChart data={univData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10 }}
+                    tickFormatter={(v: string) => v.length > 16 ? v.slice(0, 15) + '…' : v} />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
+                    {univData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </div>
+      </div>
+    </div>
   );
 };
 
-// ─── Tab: Postulantes ─────────────────────────────────────────────────────────
-const PostulantesTab: React.FC = () => {
-  useAdminGuard();
-  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
-  const [filtro, setFiltro] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [regenerando, setRegenerando] = useState<number | null>(null);
-  const [toastMsg, setToastMsg] = useState('');
-  const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
-
-  useEffect(() => {
-    api.postulantes
-      .listar()
-      .then(setPostulantes)
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'Error al cargar postulantes';
-        setError(msg);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtrados = postulantes.filter((p) => {
-    const q = filtro.toLowerCase();
-    return (
-      p.nombres.toLowerCase().includes(q) ||
-      p.apellidos.toLowerCase().includes(q) ||
-      p.dni.includes(q) ||
-      p.universidad.toLowerCase().includes(q) ||
-      p.especialidad.toLowerCase().includes(q)
-    );
-  });
-
-  const handleRegenerarClave = async (id: number) => {
-    setRegenerando(id);
-    try {
-      await api.postulantes.regenerarClave(id);
-      setToastColor('success');
-      setToastMsg('Nueva contraseña generada y enviada por email.');
-    } catch {
-      setToastColor('danger');
-      setToastMsg('Error al regenerar la clave.');
-    } finally {
-      setRegenerando(null);
-    }
-  };
-
-  const formatFecha = (fecha: string) =>
-    new Date(fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  return (
-    <IonPage>
-    <AdminHeader titulo="Postulantes" />
-    <IonContent style={{ '--background': '#f4f5f7' }}>
-      <IonSearchbar
-        value={filtro}
-        onIonInput={(e) => setFiltro(e.detail.value ?? '')}
-        placeholder="Buscar por nombre, DNI, universidad…"
-        style={{ padding: '8px 8px 0' }}
-      />
-
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <IonSpinner name="crescent" color="primary" />
-        </div>
-      )}
-
-      {error && (
-        <div style={{ padding: 16 }}>
-          <IonText color="danger"><p>{error}</p></IonText>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <IonList style={{ background: 'transparent', padding: '0 8px' }}>
-          {filtrados.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 32 }}>
-              <IonText color="medium"><p>No se encontraron postulantes.</p></IonText>
-            </div>
-          ) : (
-            filtrados.map((p) => (
-              <IonCard key={p.id} style={{ margin: '8px 0' }}>
-                <IonItem lines="none">
-                  <IonLabel>
-                    <h2 style={{ fontWeight: 600 }}>{p.nombres} {p.apellidos}</h2>
-                    <p>DNI: {p.dni} &nbsp;|&nbsp; {p.universidad}</p>
-                    <p style={{ color: '#92949c', fontSize: '0.8rem' }}>{formatFecha(p.creadoEn)}</p>
-                  </IonLabel>
-                  <IonBadge color="primary" slot="end" style={{ fontSize: '0.75rem' }}>
-                    {p.especialidad}
-                  </IonBadge>
-                </IonItem>
-                <div style={{ padding: '0 12px 10px' }}>
-                  <IonButton
-                    fill="outline"
-                    size="small"
-                    color="warning"
-                    disabled={regenerando === p.id}
-                    onClick={() => handleRegenerarClave(p.id)}
-                  >
-                    <IonIcon icon={keyOutline} slot="start" />
-                    {regenerando === p.id ? <IonSpinner name="dots" /> : 'Regenerar clave'}
-                  </IonButton>
-                </div>
-              </IonCard>
-            ))
-          )}
-        </IonList>
-      )}
-
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton color="primary">
-          <IonIcon icon={addOutline} />
-        </IonFabButton>
-      </IonFab>
-
-      <IonToast
-        isOpen={!!toastMsg}
-        onDidDismiss={() => setToastMsg('')}
-        message={toastMsg}
-        duration={3000}
-        color={toastColor}
-        position="top"
-      />
-    </IonContent>
-    </IonPage>  );
+// ─── Sección Entregas ─────────────────────────────────────────────────────────
+const estadoEntregaColor: Record<string, string> = {
+  PENDIENTE: '#ffc409',
+  APROBADA:  '#2dd36f',
+  RECHAZADA: '#eb445a',
 };
 
-// ─── Tab: Evaluaciones ────────────────────────────────────────────────────────
-const EvaluacionesTab: React.FC = () => {
-  useAdminGuard();
-  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    api.evaluaciones
-      .listar()
-      .then(setEvaluaciones)
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : 'Error al cargar evaluaciones';
-        setError(msg);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const formatFecha = (fecha: string) =>
-    new Date(fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  return (
-    <IonPage>
-    <AdminHeader titulo="Evaluaciones" />
-    <IonContent style={{ '--background': '#f4f5f7' }}>
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <IonSpinner name="crescent" color="primary" />
-        </div>
-      )}
-      {error && (
-        <div style={{ padding: 16 }}>
-          <IonText color="danger"><p>{error}</p></IonText>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <IonList style={{ background: 'transparent', padding: '8px' }}>
-          {evaluaciones.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 32 }}>
-              <IonText color="medium"><p>No hay evaluaciones registradas.</p></IonText>
-            </div>
-          ) : (
-            evaluaciones.map((ev) => (
-              <IonCard key={ev.id} style={{ margin: '8px 0' }}>
-                <IonItem lines="none">
-                  <IonLabel>
-                    <h2 style={{ fontWeight: 600 }}>{ev.postulanteNombre}</h2>
-                    <p>Jurado: {ev.juradoNombre}</p>
-                    {ev.comentario && (
-                      <p style={{ fontSize: '0.85rem', color: '#555' }}>{ev.comentario}</p>
-                    )}
-                    <p style={{ color: '#92949c', fontSize: '0.8rem' }}>{formatFecha(ev.evaluadoEn)}</p>
-                  </IonLabel>
-                  <div slot="end" style={{ textAlign: 'center', minWidth: 48 }}>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 700, color: '#E85520' }}>{ev.puntaje}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#92949c' }}>/10</span>
-                  </div>
-                </IonItem>
-              </IonCard>
-            ))
-          )}
-        </IonList>
-      )}
-    </IonContent>
-    </IonPage>
-  );
-};
-
-// ─── Tab: Entregas ────────────────────────────────────────────────────────────
-const estadoColor: Record<string, string> = {
-  PENDIENTE: 'warning',
-  APROBADA: 'success',
-  RECHAZADA: 'danger',
-};
-
-const EntregasTab: React.FC = () => {
-  useAdminGuard();
+const SecEntregas: React.FC = () => {
   const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState<string>('');
+  const [filtroEstado, setFiltroEstado] = useState('');
   const [saving, setSaving] = useState<number | null>(null);
 
-  const cargar = () => {
+  const cargar = useCallback(async () => {
     setLoading(true);
-    api.resoluciones
-      .listarTodas()
-      .then(setResoluciones)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Error al cargar entregas'))
-      .finally(() => setLoading(false));
-  };
+    try { setResoluciones(await api.resoluciones.listarTodas()); }
+    catch { /* silencioso */ }
+    finally { setLoading(false); }
+  }, []);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const cambiarEstado = async (id: number, estado: string) => {
     setSaving(id);
     try {
       await api.resoluciones.cambiarEstado(id, estado);
-      setResoluciones(prev =>
-        prev.map(r => r.id === id ? { ...r, estado: estado as Resolucion['estado'] } : r)
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar');
-    } finally {
-      setSaving(null);
-    }
+      setResoluciones(prev => prev.map(r => r.id === id ? { ...r, estado: estado as Resolucion['estado'] } : r));
+    } catch { /* silencioso */ }
+    finally { setSaving(null); }
   };
 
-  const formatFecha = (fecha: string) =>
-    new Date(fecha).toLocaleDateString('es-PE', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
-
-  const filtradas = filtroEstado
-    ? resoluciones.filter(r => r.estado === filtroEstado)
-    : resoluciones;
-
+  const filtradas = filtroEstado ? resoluciones.filter(r => r.estado === filtroEstado) : resoluciones;
   const pendientes = resoluciones.filter(r => r.estado === 'PENDIENTE').length;
 
   return (
-    <IonPage>
-    <AdminHeader titulo="Entregas" />
-    <IonContent style={{ '--background': '#f4f5f7' }}>
-      {/* Filtro por estado */}
-      <div style={{ padding: '8px 12px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
-        <IonSelect
-          value={filtroEstado}
-          placeholder="Todos los estados"
-          onIonChange={e => setFiltroEstado(e.detail.value ?? '')}
-          style={{ flex: 1, '--padding-start': '8px', fontSize: '0.9rem' }}
-          interface="popover"
-        >
-          <IonSelectOption value="">Todos</IonSelectOption>
-          <IonSelectOption value="PENDIENTE">Pendientes</IonSelectOption>
-          <IonSelectOption value="APROBADA">Aprobadas</IonSelectOption>
-          <IonSelectOption value="RECHAZADA">Rechazadas</IonSelectOption>
-        </IonSelect>
-      </div>
+    <div>
+      <OrangeBar
+        label={`Entregas (${filtradas.length})`}
+        action={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select
+              id="tour-entregas-filter"
+              value={filtroEstado}
+              onChange={e => setFiltroEstado(e.target.value)}
+              style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: '0.75rem', color: '#fff', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
+            >
+              <option value="">Todos</option>
+              <option value="PENDIENTE">Pendientes</option>
+              <option value="APROBADA">Aprobadas</option>
+              <option value="RECHAZADA">Rechazadas</option>
+            </select>
+            <button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>
+          </div>
+        }
+      />
 
       {pendientes > 0 && (
-        <div style={{
-          background: '#fff7ed', borderLeft: '4px solid #E85520',
-          margin: '10px 12px 4px', padding: '8px 12px', borderRadius: 8,
-        }}>
-          <IonText>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400e' }}>
-              <strong>{pendientes}</strong> entrega{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de revisión
-            </p>
-          </IonText>
+        <div style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
+            <strong>{pendientes}</strong> entrega{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de revisión
+          </span>
         </div>
       )}
 
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <IonSpinner name="crescent" color="primary" />
-        </div>
-      )}
-      {error && (
-        <div style={{ padding: 16 }}>
-          <IonText color="danger"><p>{error}</p></IonText>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <IonList style={{ background: 'transparent', padding: '4px 8px 80px' }}>
-          {filtradas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 48 }}>
-              <IonText color="medium"><p>No hay entregas{filtroEstado ? ` con estado "${filtroEstado}"` : ''}.</p></IonText>
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : filtradas.length === 0
+          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              No hay entregas{filtroEstado ? ` con estado "${filtroEstado}"` : ''}
             </div>
-          ) : (
-            filtradas.map(r => (
-              <IonCard key={r.id} style={{ margin: '8px 0' }}>
-                <IonItem lines="none">
-                  <IonLabel>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
-                      <h2 style={{ fontWeight: 600, margin: 0 }}>{r.titulo}</h2>
-                      <IonBadge color={estadoColor[r.estado] ?? 'medium'}>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filtradas.map(r => (
+                <div key={r.id} style={{ background: C.white, borderRadius: 10, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{r.titulo}</span>
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
+                        background: `${estadoEntregaColor[r.estado]}22`,
+                        color: estadoEntregaColor[r.estado],
+                      }}>
                         {r.estado}
-                      </IonBadge>
-                    </div>
-                    <p style={{ margin: '2px 0', fontSize: '0.85rem', color: '#374151' }}>
-                      <strong>{r.postulanteNombre}</strong>
-                      {' · '}
-                      <span style={{ color: '#6b7280' }}>{r.concursoTitulo}</span>
-                    </p>
-                    {r.descripcion && (
-                      <p style={{ margin: '4px 0 2px', fontSize: '0.82rem', color: '#555', lineHeight: 1.4 }}>
-                        {r.descripcion}
-                      </p>
-                    )}
-                    <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {r.tieneArchivo && (
-                        <a
-                          href={`/api/v1/resoluciones/${r.id}/archivo`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: '0.82rem', color: '#E85520', display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <IonIcon icon={downloadOutline} style={{ fontSize: '0.9rem' }} />
-                          Descargar archivo
-                        </a>
-                      )}
-                      {r.urlExterno && (
-                        <a
-                          href={r.urlExterno}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: '0.82rem', color: '#3dc2ff' }}
-                        >
-                          Ver enlace externo
-                        </a>
-                      )}
-                      <span style={{ fontSize: '0.75rem', color: '#92949c', marginLeft: 'auto' }}>
-                        {formatFecha(r.creadoEn)}
                       </span>
                     </div>
-                  </IonLabel>
-                </IonItem>
-
-                {/* Acciones de estado */}
-                {r.estado === 'PENDIENTE' && (
-                  <div style={{ padding: '0 12px 12px', display: 'flex', gap: 8 }}>
-                    <IonButton
-                      fill="outline"
-                      color="success"
-                      size="small"
-                      disabled={saving === r.id}
-                      onClick={() => cambiarEstado(r.id, 'APROBADA')}
-                    >
-                      <IonIcon icon={checkmarkOutline} slot="start" />
-                      {saving === r.id ? <IonSpinner name="dots" /> : 'Aprobar'}
-                    </IonButton>
-                    <IonButton
-                      fill="outline"
-                      color="danger"
-                      size="small"
-                      disabled={saving === r.id}
-                      onClick={() => cambiarEstado(r.id, 'RECHAZADA')}
-                    >
-                      <IonIcon icon={closeCircleOutline} slot="start" />
-                      Rechazar
-                    </IonButton>
+                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
+                      {new Date(r.creadoEn).toLocaleDateString('es-AR')}
+                    </span>
                   </div>
-                )}
-
-                {r.estado !== 'PENDIENTE' && (
-                  <div style={{ padding: '0 12px 10px' }}>
-                    <IonButton
-                      fill="clear"
-                      size="small"
-                      color="medium"
-                      onClick={() => cambiarEstado(r.id, 'PENDIENTE')}
-                    >
-                      Restablecer a Pendiente
-                    </IonButton>
+                  <div style={{ fontSize: '0.82rem', color: C.gray, marginBottom: 6 }}>
+                    <strong style={{ color: C.dark }}>{r.postulanteNombre}</strong> · {r.concursoTitulo}
                   </div>
-                )}
-              </IonCard>
-            ))
-          )}
-        </IonList>
-      )}
-    </IonContent>
-    </IonPage>
+                  {r.descripcion && (
+                    <div style={{ fontSize: '0.82rem', color: '#555', marginBottom: 8, lineHeight: 1.4 }}>{r.descripcion}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {r.tieneArchivo && (
+                      <a href={`/api/v1/resoluciones/${r.id}/archivo`} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: '0.8rem', color: C.orange, textDecoration: 'none' }}>
+                        ↓ Descargar archivo
+                      </a>
+                    )}
+                    {r.urlExterno && (
+                      <a href={r.urlExterno} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: '0.8rem', color: '#3dc2ff', textDecoration: 'none' }}>
+                        Ver enlace externo
+                      </a>
+                    )}
+                    {r.estado === 'PENDIENTE' && (
+                      <>
+                        <button onClick={() => cambiarEstado(r.id, 'APROBADA')} disabled={saving === r.id}
+                          style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
+                          {saving === r.id ? '…' : '✓ Aprobar'}
+                        </button>
+                        <button onClick={() => cambiarEstado(r.id, 'RECHAZADA')} disabled={saving === r.id}
+                          style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>
+                          ✗ Rechazar
+                        </button>
+                      </>
+                    )}
+                    {r.estado !== 'PENDIENTE' && (
+                      <button onClick={() => cambiarEstado(r.id, 'PENDIENTE')}
+                        style={{ ...btnSm, marginLeft: 'auto' }}>
+                        Restablecer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+      }
+    </div>
   );
 };
 
-// ─── Tab: Soporte ─────────────────────────────────────────────────────────────
-const SoporteTab: React.FC = () => {
-  useAdminGuard();
+// ─── Sección Soporte ──────────────────────────────────────────────────────────
+const SecSoporte: React.FC = () => {
   const [tickets, setTickets] = useState<SoporteTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  const cargar = () => {
+  const cargar = useCallback(async () => {
     setLoading(true);
-    api.soporte
-      .listarTickets()
-      .then(setTickets)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Error al cargar tickets'))
-      .finally(() => setLoading(false));
-  };
+    try { setTickets(await api.soporte.listarTickets()); }
+    catch { /* silencioso */ }
+    finally { setLoading(false); }
+  }, []);
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const resolver = async (id: number) => {
-    try {
-      await api.soporte.resolverTicket(id);
-      cargar();
-    } catch {
-      // silencioso
-    }
+    try { await api.soporte.resolverTicket(id); cargar(); }
+    catch { /* silencioso */ }
   };
-
-  const formatFecha = (fecha: string) =>
-    new Date(fecha).toLocaleDateString('es-PE', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
 
   const pendientes = tickets.filter(t => !t.resuelto).length;
 
   return (
-    <IonPage>
-    <AdminHeader titulo="Soporte" />
-    <IonContent style={{ '--background': '#f4f5f7' }}>
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <IonSpinner name="crescent" color="primary" />
-        </div>
-      )}
-      {error && (
-        <div style={{ padding: 16 }}>
-          <IonText color="danger"><p>{error}</p></IonText>
+    <div>
+      <OrangeBar
+        label={`Soporte (${tickets.length})`}
+        action={<button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>}
+      />
+
+      {pendientes > 0 && (
+        <div id="tour-soporte-alert" style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
+            <strong>{pendientes}</strong> ticket{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de resolución
+          </span>
         </div>
       )}
 
-      {!loading && !error && (
-        <>
-          {pendientes > 0 && (
-            <div style={{
-              background: '#fff7ed', borderLeft: '4px solid #E85520',
-              margin: '12px 8px 4px', padding: '10px 14px', borderRadius: 8,
-            }}>
-              <IonText>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#92400e' }}>
-                  <strong>{pendientes}</strong> ticket{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de resolución
-                </p>
-              </IonText>
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : tickets.length === 0
+          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              No hay tickets de soporte
             </div>
-          )}
-
-          <IonList style={{ background: 'transparent', padding: '8px' }}>
-            {tickets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48 }}>
-                <IonText color="medium"><p>No hay tickets de soporte.</p></IonText>
-              </div>
-            ) : (
-              tickets.map(t => (
-                <IonCard key={t.id} style={{ margin: '8px 0', opacity: t.resuelto ? 0.6 : 1 }}>
-                  <IonItem lines="none">
-                    <IonLabel>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                        <h2 style={{ fontWeight: 600, margin: 0 }}>{t.nombre}</h2>
-                        {t.resuelto
-                          ? <IonBadge color="success">Resuelto</IonBadge>
-                          : <IonBadge color="warning">Pendiente</IonBadge>
-                        }
-                      </div>
-                      {t.dni && (
-                        <p style={{ margin: '2px 0', fontSize: '0.82rem', color: '#6b7280' }}>DNI: {t.dni}</p>
-                      )}
-                      <p style={{ margin: '6px 0', fontSize: '0.88rem', color: '#374151', lineHeight: 1.5 }}>
-                        {t.mensaje}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#92949c' }}>{formatFecha(t.creadoEn)}</p>
-                    </IonLabel>
-                    {!t.resuelto && (
-                      <IonButton
-                        slot="end" fill="outline" color="success" size="small"
-                        onClick={() => resolver(t.id)}
-                      >
-                        <IonIcon icon={checkmarkOutline} slot="start" />
-                        Resolver
-                      </IonButton>
-                    )}
-                  </IonItem>
-                </IonCard>
-              ))
-            )}
-          </IonList>
-        </>
-      )}
-    </IonContent>
-    </IonPage>
+          : (
+            <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              {tickets.map(t => (
+                <div key={t.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, opacity: t.resuelto ? 0.65 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.nombre}</span>
+                      {t.dni && <span style={{ fontSize: '0.75rem', color: C.gray }}>DNI: {t.dni}</span>}
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
+                        background: t.resuelto ? '#f0fdf4' : '#fff7ed',
+                        color: t.resuelto ? '#16a34a' : '#92400e',
+                      }}>
+                        {t.resuelto ? 'Resuelto' : 'Pendiente'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
+                      {new Date(t.creadoEn).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 8px', lineHeight: 1.5 }}>{t.mensaje}</p>
+                  {!t.resuelto && (
+                    <button onClick={() => resolver(t.id)} style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
+                      ✓ Marcar como resuelto
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+      }
+    </div>
   );
 };
 
-// ─── AdminPage — solo IonTabs, sin IonPage propio ─────────────────────────────
-const AdminPage: React.FC = () => (
-  <>
-  <OnboardingAdminTour />
-  <IonTabs>
-    <IonRouterOutlet>
-      <Route exact path="/admin/dashboard" component={DashboardTab} />
-      <Route exact path="/admin/postulantes" component={PostulantesTab} />
-      <Route exact path="/admin/evaluaciones" component={EvaluacionesTab} />
-      <Route exact path="/admin/entregas" component={EntregasTab} />
-      <Route exact path="/admin/soporte" component={SoporteTab} />
-      <Route exact path="/admin"><Redirect to="/admin/dashboard" /></Route>
-    </IonRouterOutlet>
+const SecJurado: React.FC<{ evaluaciones: Evaluacion[] }> = ({ evaluaciones }) => {
+  const porJurado: Record<string, { count: number; total: number; max: number; min: number }> = {};
+  evaluaciones.forEach(e => {
+    if (!porJurado[e.juradoNombre]) porJurado[e.juradoNombre] = { count: 0, total: 0, max: 0, min: 11 };
+    const j = porJurado[e.juradoNombre];
+    j.count++; j.total += e.puntaje;
+    if (e.puntaje > j.max) j.max = e.puntaje;
+    if (e.puntaje < j.min) j.min = e.puntaje;
+  });
 
-        <IonTabBar slot="bottom">
-          <IonTabButton tab="dashboard" href="/admin/dashboard">
-            <IonIcon icon={gridOutline} />
-            <IonLabel>Dashboard</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="postulantes" href="/admin/postulantes">
-            <IonIcon icon={peopleOutline} />
-            <IonLabel>Postulantes</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="evaluaciones" href="/admin/evaluaciones">
-            <IonIcon icon={starOutline} />
-            <IonLabel>Jurado</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="entregas" href="/admin/entregas">
-            <IonIcon icon={documentTextOutline} />
-            <IonLabel>Entregas</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="soporte" href="/admin/soporte">
-            <IonIcon icon={helpCircleOutline} />
-            <IonLabel>Soporte</IonLabel>
-          </IonTabButton>
-        </IonTabBar>
-      </IonTabs>
-  </>
+  return (
+    <div>
+      <OrangeBar label={`Jurado (${Object.keys(porJurado).length} activos)`} />
+
+      {Object.keys(porJurado).length === 0
+        ? (
+          <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+            Ningún miembro del jurado ha realizado evaluaciones aún
+          </div>
+        )
+        : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {Object.entries(porJurado).map(([nombre, d]) => (
+              <div key={nombre} style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', borderTop: `4px solid ${C.orange}` }}>
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>{nombre}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.8rem' }}>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Evaluaciones</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.3rem', color: C.dark }}>{d.count}</div>
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Promedio</div>
+                    <div style={{ fontWeight: 700, fontSize: '1.3rem', color: C.orange }}>{(d.total / d.count).toFixed(1)}</div>
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Puntaje máx.</div>
+                    <div style={{ fontWeight: 700, color: '#16a34a' }}>{d.max}/10</div>
+                  </div>
+                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Puntaje mín.</div>
+                    <div style={{ fontWeight: 700, color: C.gray }}>{d.min === 11 ? '—' : d.min}/10</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  );
+};
+
+const SecPlaceholder: React.FC<{ titulo: string; desc: string }> = ({ titulo, desc }) => (
+  <div>
+    <OrangeBar label={titulo} />
+    <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+      <div style={{ border: `2px dashed ${C.border}`, borderRadius: 8, padding: '3rem 2rem', color: C.gray, fontSize: '0.875rem' }}>
+        {desc}
+      </div>
+    </div>
+  </div>
 );
+
+// ─── Estilos de botones reutilizables ─────────────────────────────────────────
+const btnOutlineWhite: React.CSSProperties = {
+  border: '2px solid #fff', color: '#fff', background: 'transparent',
+  padding: '6px 22px', fontWeight: 700, textTransform: 'uppercase' as const,
+  fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '1px', borderRadius: 999,
+};
+
+const btnSm: React.CSSProperties = {
+  padding: '5px 16px', background: 'transparent', border: `1px solid ${C.border}`,
+  borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer', color: C.dark,
+};
+
+// ─── AdminPage principal ───────────────────────────────────────────────────────
+const AdminPage: React.FC = () => {
+  const history  = useHistory();
+  const [presentToast] = useIonToast();
+
+  const [sidebarOpen, setSidebarOpen]     = useState(true);
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [expanded, setExpanded]           = useState<Set<string>>(new Set(['areas']));
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [sectionTour, setSectionTour] = useState<string | null>(null);
+
+  const [stats, setStats]               = useState<AdminStats | null>(null);
+  const [postulantes, setPostulantes]   = useState<Postulante[]>([]);
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [loadingP, setLoadingP] = useState(false);
+  const [loadingE, setLoadingE] = useState(false);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem('admin_ok')) { history.replace('/login'); return; }
+    if (onboardingPending()) setShowOnboarding(true);
+    loadStats();
+    loadPostulantes();
+    loadEvaluaciones();
+  }, []);
+
+  const loadStats = async () => {
+    try { setStats(await api.admin.stats()); }
+    catch { presentToast({ message: 'Error cargando estadísticas', color: 'danger', duration: 3000 }); }
+  };
+
+  const loadPostulantes = useCallback(async () => {
+    setLoadingP(true);
+    try { setPostulantes(await api.postulantes.listar()); }
+    catch { presentToast({ message: 'Error cargando postulantes', color: 'danger', duration: 3000 }); }
+    finally { setLoadingP(false); }
+  }, []);
+
+  const loadEvaluaciones = useCallback(async () => {
+    setLoadingE(true);
+    try { setEvaluaciones(await api.evaluaciones.listar()); }
+    catch { presentToast({ message: 'Error cargando evaluaciones', color: 'danger', duration: 3000 }); }
+    finally { setLoadingE(false); }
+  }, []);
+
+  const navigate = (id: string) => {
+    setActiveSection(id);
+    if (sectionTourPending(id)) setSectionTour(id);
+  };
+
+  const toggleExpand = (id: string) => setExpanded(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const logout = () => { sessionStorage.removeItem('admin_ok'); history.replace('/login'); };
+
+  const allItems = MENU.flatMap(m => m.sub ? [m, ...m.sub] : [m]);
+  const pageTitle = allItems.find(m => m.id === activeSection)?.label ?? 'Dashboard';
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'dashboard':           return <SecDashboard stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
+      case 'postulantes':         return <SecPostulantes postulantes={postulantes} loading={loadingP} reload={loadPostulantes} />;
+      case 'evaluaciones':        return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
+      case 'areas-sitio':         return <SecAreasSitio />;
+      case 'areas-publicaciones': return <SecPlaceholder titulo="Publicaciones" desc="Gestión de publicaciones — conectar con API de CMS" />;
+      case 'areas-recursos':      return <SecPlaceholder titulo="Imágenes y Recursos" desc="Gestión de archivos e imágenes — conectar con almacenamiento" />;
+      case 'estadisticas':        return <SecEstadisticas stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
+      case 'entregas':            return <SecEntregas />;
+      case 'soporte':             return <SecSoporte />;
+      case 'jurado':              return <SecJurado evaluaciones={evaluaciones} />;
+      case 'configuracion':       return <SecPlaceholder titulo="Configuración" desc="Parámetros del concurso, fechas límite, accesos — por implementar" />;
+      default:                    return null;
+    }
+  };
+
+  return (
+    <IonPage>
+      <IonContent scrollY={false} style={{ '--overflow': 'hidden' }}>
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.dark }}>
+
+          {/* ─── Sidebar ──────────────────────────────────────────────────── */}
+          <aside id="admin-sidebar" style={{
+            width: sidebarOpen ? 260 : 52,
+            minWidth: sidebarOpen ? 260 : 52,
+            background: C.dark,
+            color: '#fff',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            transition: 'width 0.25s ease, min-width 0.25s ease',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              padding: sidebarOpen ? '1.25rem 1rem 1.25rem 1.25rem' : '1rem 0',
+              borderBottom: '1px solid #1f2937',
+              display: 'flex', alignItems: 'center',
+              justifyContent: sidebarOpen ? 'space-between' : 'center',
+              flexShrink: 0,
+            }}>
+              {sidebarOpen && (
+                <div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Habisite</div>
+                  <div style={{ fontSize: '0.62rem', color: C.orange, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 3 }}>Panel de Administración</div>
+                </div>
+              )}
+              <button
+                onClick={() => setSidebarOpen(o => !o)}
+                title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+                style={{
+                  background: '#1f2937', border: 'none', cursor: 'pointer',
+                  color: '#9ca3af', width: 32, height: 32, borderRadius: 999,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.75rem', flexShrink: 0, transition: 'background 0.15s',
+                }}
+              >
+                {sidebarOpen ? '◀' : '▶'}
+              </button>
+            </div>
+
+            {sidebarOpen && (
+              <nav id="admin-nav" className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
+                {MENU.map(item => {
+                  const isActive = activeSection === item.id || (item.sub?.some(s => s.id === activeSection));
+                  return (
+                    <div key={item.id}>
+                      <button
+                        onClick={() => item.sub ? toggleExpand(item.id) : navigate(item.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          width: '100%', padding: '0.7rem 1.25rem',
+                          background: isActive ? '#1f2937' : 'transparent',
+                          color: isActive ? C.orange : '#9ca3af',
+                          border: 'none', cursor: 'pointer', fontSize: '0.875rem', textAlign: 'left',
+                          borderLeft: isActive ? `3px solid ${C.orange}` : '3px solid transparent',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <IonIcon icon={item.icon} style={{ fontSize: '1.1rem', flexShrink: 0 }} />
+                          {item.label}
+                        </span>
+                        {item.sub && (
+                          <span style={{ fontSize: '0.6rem', transition: 'transform 0.2s', display: 'inline-block', transform: expanded.has(item.id) ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                        )}
+                      </button>
+                      {item.sub && expanded.has(item.id) && (
+                        <div style={{ background: '#0d1420' }}>
+                          {item.sub.map(sub => (
+                            <button
+                              key={sub.id}
+                              onClick={() => navigate(sub.id)}
+                              style={{
+                                display: 'block', width: '100%', padding: '0.6rem 1.25rem 0.6rem 3.2rem',
+                                background: activeSection === sub.id ? '#1f2937' : 'transparent',
+                                color: activeSection === sub.id ? C.orange : '#6b7280',
+                                border: 'none', cursor: 'pointer', fontSize: '0.8rem', textAlign: 'left',
+                                borderLeft: activeSection === sub.id ? `3px solid ${C.orange}` : '3px solid transparent',
+                                transition: 'all 0.12s',
+                              }}
+                            >
+                              {sub.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+            )}
+
+            {sidebarOpen && (
+              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #1f2937', flexShrink: 0 }}>
+                <button onClick={logout} style={{ width: '100%', padding: '0.6rem', background: 'transparent', border: '1px solid #374151', color: '#9ca3af', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer' }}>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </aside>
+
+          {/* ─── Contenido principal ──────────────────────────────────────── */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
+            <div id="admin-topbar" style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{pageTitle}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button onClick={loadStats} style={{ ...btnSm, fontSize: '0.75rem', color: C.gray }}>↻ Sync</button>
+                <span style={{ fontSize: '0.8rem', color: C.gray }}>Administrador</span>
+                <div style={{ width: 32, height: 32, background: C.orange, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem' }}>A</div>
+              </div>
+            </div>
+
+            <div id="admin-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+              {renderContent()}
+            </div>
+          </div>
+
+        </div>
+        {showOnboarding && (
+          <AdminMainTour
+            onNavigate={(section) => setActiveSection(section)}
+            onFinish={() => setShowOnboarding(false)}
+          />
+        )}
+        {sectionTour && (
+          <AdminSectionTour
+            section={sectionTour}
+            onFinish={() => setSectionTour(null)}
+          />
+        )}
+      </IonContent>
+    </IonPage>
+  );
+};
 
 export default AdminPage;

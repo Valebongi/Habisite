@@ -64,7 +64,7 @@ public class EmailServiceImpl implements EmailService {
                             <td style="background:linear-gradient(135deg,#0d0e10 0%%,#2a1208 100%%);padding:32px 40px;text-align:center;">
                               <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
                               <p style="margin:0;font-size:11px;font-weight:600;color:#E85520;letter-spacing:.22em;text-transform:uppercase;">
-                                DESIGN CHALLENGE 2026
+                                Concurso de innovación arquitectónica
                               </p>
                             </td>
                           </tr>
@@ -75,18 +75,35 @@ public class EmailServiceImpl implements EmailService {
                               <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
                                 ¡Hola, %s!
                               </p>
-                              <p style="margin:0 0 28px;font-size:15px;color:#4b5563;line-height:1.6;">
-                                Tu cuenta en Habisite Design Challenge fue creada. A continuación encontrás
-                                tus credenciales de acceso. Guardálas en un lugar seguro.
+                              <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
+                                Recibimos tu postulación al concurso de innovación arquitectónica de Habisite.
+                                Estamos muy contentos de que quieras ser parte de esta iniciativa.
                               </p>
 
-                              <!-- Credentials box -->
+                              <!-- Datos registrados -->
                               <table width="100%%" cellpadding="0" cellspacing="0"
-                                     style="background:#fff8f5;border:2px solid #E85520;border-radius:10px;margin-bottom:28px;">
+                                     style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
                                 <tr>
-                                  <td style="padding:24px 28px;">
+                                  <td style="padding:20px 24px;">
+                                    <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;">
+                                      Datos registrados
+                                    </p>
+                                    %s
+                                    %s
+                                    %s
+                                    %s
+                                    %s
+                                  </td>
+                                </tr>
+                              </table>
+
+                              <!-- Credenciales -->
+                              <table width="100%%" cellpadding="0" cellspacing="0"
+                                     style="background:#fff8f5;border:2px solid #E85520;border-radius:10px;margin-bottom:24px;">
+                                <tr>
+                                  <td style="padding:22px 24px;">
                                     <p style="margin:0 0 14px;font-size:11px;font-weight:700;color:#E85520;text-transform:uppercase;letter-spacing:.08em;">
-                                      Tus credenciales
+                                      Tus credenciales de acceso
                                     </p>
                                     <table width="100%%" cellpadding="0" cellspacing="0">
                                       <tr>
@@ -106,13 +123,25 @@ public class EmailServiceImpl implements EmailService {
                                 </tr>
                               </table>
 
-                              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;background:#f9fafb;padding:14px 16px;border-radius:8px;border-left:3px solid #d1d5db;">
-                                <strong style="color:#374151;">Importante:</strong> Tu usuario es tu número de DNI.
-                                Podés cambiar tus datos de perfil una vez que ingreses al sistema.
-                              </p>
+                              <!-- Aviso acceso web -->
+                              <table width="100%%" cellpadding="0" cellspacing="0"
+                                     style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:24px;">
+                                <tr>
+                                  <td style="padding:18px 22px;">
+                                    <p style="margin:0;font-size:14px;color:#1e40af;line-height:1.6;">
+                                      <strong>Próximamente</strong> se habilitará el acceso completo a la plataforma web.
+                                      Cuando esté disponible, podrás ingresar con estas credenciales desde
+                                      <strong>concursos.habisite.com</strong>.
+                                      Te notificaremos por este mismo correo.
+                                    </p>
+                                  </td>
+                                </tr>
+                              </table>
 
                               <p style="margin:0;font-size:15px;color:#4b5563;">
-                                ¡Mucho éxito en el concurso!<br/>
+                                En los próximos días te contactaremos con más información sobre las etapas del concurso.
+                                Mientras tanto, si tenés alguna consulta podés responder este correo.<br/><br/>
+                                ¡Mucho éxito!<br/>
                                 <strong style="color:#111827;">El equipo de Habisite</strong>
                               </p>
                             </td>
@@ -122,7 +151,7 @@ public class EmailServiceImpl implements EmailService {
                           <tr>
                             <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
                               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                                No compartas estas credenciales. Si creés que tu cuenta fue comprometida, contactá a la organización.
+                                Guardá tus credenciales en un lugar seguro. No las compartas con nadie.
                               </p>
                             </td>
                           </tr>
@@ -135,10 +164,16 @@ public class EmailServiceImpl implements EmailService {
                 </html>
                 """.formatted(
                 p.getNombres(),
+                fila("Nombre completo", p.getNombres() + " " + p.getApellidos()),
+                fila("DNI", p.getDni()),
+                fila("Universidad", p.getUniversidad()),
+                fila("Especialidad", p.getEspecialidad()),
+                fila("Correo", p.getCorreoElectronico()),
                 p.getDni(),
                 plainPassword
         );
     }
+
 
     @Override
     @Async

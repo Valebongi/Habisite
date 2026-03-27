@@ -59,7 +59,12 @@ import {
   Resolucion,
 } from '../../services/api';
 
-// ─── Guard de sesión ──────────────────────────────────────────────────────────
+// ─── Logout y guard ───────────────────────────────────────────────────────────
+const handleAdminLogout = () => {
+  sessionStorage.removeItem('admin_ok');
+  window.location.replace('/login');
+};
+
 const useAdminGuard = () => {
   const history = useHistory();
   useEffect(() => {
@@ -68,6 +73,18 @@ const useAdminGuard = () => {
     }
   }, [history]);
 };
+
+// ─── Header compartido admin ──────────────────────────────────────────────────
+const AdminHeader: React.FC<{ titulo?: string }> = ({ titulo = 'Panel Admin' }) => (
+  <IonHeader>
+    <IonToolbar color="primary">
+      <IonTitle>{titulo}</IonTitle>
+      <IonButtons slot="end">
+        <IonButton color="light" fill="clear" onClick={handleAdminLogout}>Salir</IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+);
 
 // ─── Colores para gráficos ────────────────────────────────────────────────────
 const CHART_COLORS = ['#E85520', '#3dc2ff', '#2dd36f', '#ffc409', '#eb445a', '#92949c', '#6a64f1', '#f97316'];
@@ -92,21 +109,27 @@ const DashboardTab: React.FC = () => {
 
   if (loading) {
     return (
-      <IonContent style={{ '--background': '#f4f5f7' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <IonSpinner name="crescent" color="primary" />
-        </div>
-      </IonContent>
+      <IonPage>
+        <AdminHeader />
+        <IonContent style={{ '--background': '#f4f5f7' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+            <IonSpinner name="crescent" color="primary" />
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
   if (error) {
     return (
-      <IonContent style={{ '--background': '#f4f5f7' }}>
-        <div style={{ padding: 24 }}>
-          <IonText color="danger"><p>{error}</p></IonText>
-        </div>
-      </IonContent>
+      <IonPage>
+        <AdminHeader />
+        <IonContent style={{ '--background': '#f4f5f7' }}>
+          <div style={{ padding: 24 }}>
+            <IonText color="danger"><p>{error}</p></IonText>
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
@@ -128,6 +151,8 @@ const DashboardTab: React.FC = () => {
   const PIE_COLORS = ['#ffc409', '#2dd36f', '#eb445a'];
 
   return (
+    <IonPage>
+    <AdminHeader />
     <IonContent style={{ '--background': '#f4f5f7' }}>
       <IonGrid style={{ padding: 16 }}>
 
@@ -280,6 +305,7 @@ const DashboardTab: React.FC = () => {
         </IonRow>
       </IonGrid>
     </IonContent>
+    </IonPage>
   );
 };
 
@@ -334,6 +360,8 @@ const PostulantesTab: React.FC = () => {
     new Date(fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
+    <IonPage>
+    <AdminHeader titulo="Postulantes" />
     <IonContent style={{ '--background': '#f4f5f7' }}>
       <IonSearchbar
         value={filtro}
@@ -406,7 +434,7 @@ const PostulantesTab: React.FC = () => {
         position="top"
       />
     </IonContent>
-  );
+    </IonPage>  );
 };
 
 // ─── Tab: Evaluaciones ────────────────────────────────────────────────────────
@@ -431,6 +459,8 @@ const EvaluacionesTab: React.FC = () => {
     new Date(fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
+    <IonPage>
+    <AdminHeader titulo="Evaluaciones" />
     <IonContent style={{ '--background': '#f4f5f7' }}>
       {loading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
@@ -472,6 +502,7 @@ const EvaluacionesTab: React.FC = () => {
         </IonList>
       )}
     </IonContent>
+    </IonPage>
   );
 };
 
@@ -527,6 +558,8 @@ const EntregasTab: React.FC = () => {
   const pendientes = resoluciones.filter(r => r.estado === 'PENDIENTE').length;
 
   return (
+    <IonPage>
+    <AdminHeader titulo="Entregas" />
     <IonContent style={{ '--background': '#f4f5f7' }}>
       {/* Filtro por estado */}
       <div style={{ padding: '8px 12px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -668,6 +701,7 @@ const EntregasTab: React.FC = () => {
         </IonList>
       )}
     </IonContent>
+    </IonPage>
   );
 };
 
@@ -707,6 +741,8 @@ const SoporteTab: React.FC = () => {
   const pendientes = tickets.filter(t => !t.resuelto).length;
 
   return (
+    <IonPage>
+    <AdminHeader titulo="Soporte" />
     <IonContent style={{ '--background': '#f4f5f7' }}>
       {loading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
@@ -776,42 +812,21 @@ const SoporteTab: React.FC = () => {
         </>
       )}
     </IonContent>
+    </IonPage>
   );
 };
 
-// ─── AdminPage principal con Tabs ─────────────────────────────────────────────
-const AdminPage: React.FC = () => {
-  const history = useHistory();
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_ok');
-    window.location.replace('/login');
-  };
-
-  return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Panel Admin</IonTitle>
-          <IonButtons slot="end">
-            <IonButton color="light" fill="clear" onClick={handleLogout}>
-              Salir
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonTabs>
-        <IonRouterOutlet>
-          <Route exact path="/admin/dashboard" render={() => <IonTab tab="dashboard"><DashboardTab /></IonTab>} />
-          <Route exact path="/admin/postulantes" render={() => <IonTab tab="postulantes"><PostulantesTab /></IonTab>} />
-          <Route exact path="/admin/evaluaciones" render={() => <IonTab tab="evaluaciones"><EvaluacionesTab /></IonTab>} />
-          <Route exact path="/admin/entregas" render={() => <IonTab tab="entregas"><EntregasTab /></IonTab>} />
-          <Route exact path="/admin/soporte" render={() => <IonTab tab="soporte"><SoporteTab /></IonTab>} />
-          <Route exact path="/admin">
-            <Redirect to="/admin/dashboard" />
-          </Route>
-        </IonRouterOutlet>
+// ─── AdminPage — solo IonTabs, sin IonPage propio ─────────────────────────────
+const AdminPage: React.FC = () => (
+  <IonTabs>
+    <IonRouterOutlet>
+      <Route exact path="/admin/dashboard" component={DashboardTab} />
+      <Route exact path="/admin/postulantes" component={PostulantesTab} />
+      <Route exact path="/admin/evaluaciones" component={EvaluacionesTab} />
+      <Route exact path="/admin/entregas" component={EntregasTab} />
+      <Route exact path="/admin/soporte" component={SoporteTab} />
+      <Route exact path="/admin"><Redirect to="/admin/dashboard" /></Route>
+    </IonRouterOutlet>
 
         <IonTabBar slot="bottom">
           <IonTabButton tab="dashboard" href="/admin/dashboard">
@@ -836,8 +851,6 @@ const AdminPage: React.FC = () => {
           </IonTabButton>
         </IonTabBar>
       </IonTabs>
-    </IonPage>
-  );
-};
+);
 
 export default AdminPage;

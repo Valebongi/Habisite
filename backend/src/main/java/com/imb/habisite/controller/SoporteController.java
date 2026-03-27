@@ -5,13 +5,16 @@ import com.imb.habisite.dto.SoporteTicketResponseDTO;
 import com.imb.habisite.model.SoporteTicket;
 import com.imb.habisite.repository.SoporteTicketRepository;
 import com.imb.habisite.service.EmailService;
+import com.imb.habisite.service.PostulanteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/v1/soporte")
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ public class SoporteController {
 
     private final SoporteTicketRepository ticketRepo;
     private final EmailService emailService;
+    private final PostulanteService postulanteService;
 
     /** Crea un ticket de soporte desde la pantalla de login */
     @PostMapping("/ticket")
@@ -32,6 +36,17 @@ public class SoporteController {
 
         SoporteTicket guardado = ticketRepo.save(ticket);
         emailService.notificarTicketSoporte(guardado);
+
+        // Si viene DNI, regenerar y enviar credenciales automáticamente
+        if (dto.getDni() != null && !dto.getDni().isBlank()) {
+            try {
+                var postulante = postulanteService.buscarPorDni(dto.getDni().trim());
+                postulanteService.regenerarClave(postulante.getId());
+                log.info("Credenciales regeneradas automáticamente para DNI {}", dto.getDni());
+            } catch (Exception e) {
+                log.warn("No se encontró postulante con DNI {} al procesar ticket de soporte", dto.getDni());
+            }
+        }
 
         return ResponseEntity.ok(toDTO(guardado));
     }

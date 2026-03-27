@@ -159,8 +159,12 @@ const LoginPage: React.FC = () => {
   const [showToast, setShowToast]   = useState(false);
   const [toastMsg, setToastMsg]     = useState('');
 
-  // Auto-login si hay sesión guardada en localStorage
+  // Auto-login si hay sesión guardada en localStorage (se omite si viene de un logout explícito)
   useEffect(() => {
+    if (sessionStorage.getItem('habisite_logout')) {
+      sessionStorage.removeItem('habisite_logout');
+      return;
+    }
     if (localStorage.getItem('postulante_data')) {
       history.replace('/postulante/perfil');
     } else if (localStorage.getItem('admin_ok')) {

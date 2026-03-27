@@ -21,6 +21,7 @@ const juradoNombre = () =>
   sessionStorage.getItem('jurado_nombre') ?? localStorage.getItem('jurado_nombre') ?? 'Jurado';
 
 const handleLogout = () => {
+  sessionStorage.setItem('habisite_logout', '1');
   sessionStorage.removeItem('jurado_nombre');
   localStorage.removeItem('jurado_nombre');
   window.location.replace('/login');

@@ -37,6 +37,7 @@ const getPostulante = (): Postulante | null => {
 };
 
 const handleLogout = () => {
+  sessionStorage.setItem('habisite_logout', '1');
   sessionStorage.removeItem('postulante_data');
   localStorage.removeItem('postulante_data');
   window.location.replace('/login');

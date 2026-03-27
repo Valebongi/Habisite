@@ -148,7 +148,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
 
             helper.setFrom(mailFrom, "Habisite Challenge");
-            helper.setTo(mailFrom); // se envía al mismo remitente (admin)
+            helper.setTo("growthimbar@gmail.com");
             helper.setSubject("🎫 Nuevo ticket de soporte — Habisite");
             helper.setText(construirHtmlTicket(ticket), true);
 

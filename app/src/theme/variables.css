@@ -1,4 +1,8 @@
 /* Tema naranja Habisite — color primario #E85520 */
+
+/* Ocultar scrollbar en sidebar sin perder el scroll */
+.sidebar-nav::-webkit-scrollbar { display: none; }
+.sidebar-nav { scrollbar-width: none; -ms-overflow-style: none; }
 :root {
   /* Paleta primaria */
   --ion-color-primary:          #E85520;

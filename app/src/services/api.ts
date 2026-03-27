@@ -1,8 +1,7 @@
 // Servicio API — Habisite Design Challenge
 // TODO: reemplazar con autenticación JWT real
 
-// En dev, Vite proxea /api → localhost:8080; en prod apunta a la URL real
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+const BASE_URL = `${import.meta.env.VITE_API_URL ?? 'https://api.habisite.com/api'}/v1`;
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 

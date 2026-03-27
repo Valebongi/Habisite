@@ -17,5 +17,8 @@ public interface PostulanteService {
 
     PostulanteResponseDTO actualizar(Long id, PostulanteRequestDTO request);
 
+    /** Genera una nueva contraseña y la envía por email al postulante. */
+    void regenerarClave(Long id);
+
     void eliminar(Long id);
 }

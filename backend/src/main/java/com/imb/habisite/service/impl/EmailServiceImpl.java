@@ -1,6 +1,7 @@
 package com.imb.habisite.service.impl;
 
 import com.imb.habisite.model.Postulante;
+import com.imb.habisite.model.SoporteTicket;
 import com.imb.habisite.service.EmailService;
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
@@ -25,26 +26,25 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public void enviarConfirmacionPostulacion(Postulante postulante) {
+    public void enviarCredenciales(Postulante postulante, String plainPassword) {
         try {
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
 
             helper.setFrom(mailFrom, "Habisite Challenge");
             helper.setTo(postulante.getCorreoElectronico());
-            helper.setSubject("¡Gracias por postularte a Habisite!");
-            helper.setText(construirHtml(postulante), true);
+            helper.setSubject("Tus credenciales de acceso — Habisite Design Challenge");
+            helper.setText(construirHtmlCredenciales(postulante, plainPassword), true);
 
             mailSender.send(mensaje);
-            log.info("Email de confirmación enviado a: {}", postulante.getCorreoElectronico());
+            log.info("Email de credenciales enviado a: {}", postulante.getCorreoElectronico());
 
         } catch (MessagingException | UnsupportedEncodingException e) {
-            // El email falla silenciosamente para no afectar el registro
-            log.error("Error enviando email de confirmación a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
+            log.error("Error enviando credenciales a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
         }
     }
 
-    private String construirHtml(Postulante p) {
+    private String construirHtmlCredenciales(Postulante p, String plainPassword) {
         return """
                 <!DOCTYPE html>
                 <html lang="es">
@@ -61,48 +61,58 @@ public class EmailServiceImpl implements EmailService {
 
                           <!-- Header -->
                           <tr>
-                            <td style="background:#1e3a5f;padding:32px 40px;text-align:center;">
-                              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-.5px;">
-                                Habisite
-                              </h1>
-                              <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;">
-                                Concurso de innovación arquitectónica
+                            <td style="background:linear-gradient(135deg,#0d0e10 0%%,#2a1208 100%%);padding:32px 40px;text-align:center;">
+                              <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
+                              <p style="margin:0;font-size:11px;font-weight:600;color:#E85520;letter-spacing:.22em;text-transform:uppercase;">
+                                DESIGN CHALLENGE 2026
                               </p>
                             </td>
                           </tr>
 
                           <!-- Body -->
                           <tr>
-                            <td style="padding:40px 40px 32px;">
-                              <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">
+                            <td style="padding:36px 40px 28px;">
+                              <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
                                 ¡Hola, %s!
                               </p>
-                              <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
-                                Recibimos tu postulación al concurso de innovación arquitectónica de Habisite.
-                                Estamos muy contentos de que quieras ser parte de esta iniciativa.
+                              <p style="margin:0 0 28px;font-size:15px;color:#4b5563;line-height:1.6;">
+                                Tu cuenta en Habisite Design Challenge fue creada. A continuación encontrás
+                                tus credenciales de acceso. Guardálas en un lugar seguro.
                               </p>
 
-                              <!-- Data box -->
+                              <!-- Credentials box -->
                               <table width="100%%" cellpadding="0" cellspacing="0"
-                                     style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:24px;">
+                                     style="background:#fff8f5;border:2px solid #E85520;border-radius:10px;margin-bottom:28px;">
                                 <tr>
-                                  <td style="padding:20px 24px;">
-                                    <p style="margin:0 0 12px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">
-                                      Datos registrados
+                                  <td style="padding:24px 28px;">
+                                    <p style="margin:0 0 14px;font-size:11px;font-weight:700;color:#E85520;text-transform:uppercase;letter-spacing:.08em;">
+                                      Tus credenciales
                                     </p>
-                                    %s
+                                    <table width="100%%" cellpadding="0" cellspacing="0">
+                                      <tr>
+                                        <td style="padding:8px 0;border-bottom:1px solid #fde8de;">
+                                          <p style="margin:0;font-size:12px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Usuario</p>
+                                          <p style="margin:4px 0 0;font-size:18px;font-weight:700;color:#111827;letter-spacing:.06em;">%s</p>
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td style="padding:8px 0 0;">
+                                          <p style="margin:0;font-size:12px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Contraseña</p>
+                                          <p style="margin:4px 0 0;font-size:18px;font-weight:700;color:#111827;letter-spacing:.1em;font-family:monospace;">%s</p>
+                                        </td>
+                                      </tr>
+                                    </table>
                                   </td>
                                 </tr>
                               </table>
 
-                              <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
-                                En los próximos días te contactaremos con más información sobre las
-                                etapas del concurso. Mientras tanto, si tenés alguna consulta podés
-                                responder este correo.
+                              <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;background:#f9fafb;padding:14px 16px;border-radius:8px;border-left:3px solid #d1d5db;">
+                                <strong style="color:#374151;">Importante:</strong> Tu usuario es tu número de DNI.
+                                Podés cambiar tus datos de perfil una vez que ingreses al sistema.
                               </p>
 
                               <p style="margin:0;font-size:15px;color:#4b5563;">
-                                ¡Mucho éxito!<br/>
+                                ¡Mucho éxito en el concurso!<br/>
                                 <strong style="color:#111827;">El equipo de Habisite</strong>
                               </p>
                             </td>
@@ -110,9 +120,9 @@ public class EmailServiceImpl implements EmailService {
 
                           <!-- Footer -->
                           <tr>
-                            <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+                            <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
                               <p style="margin:0;font-size:12px;color:#9ca3af;">
-                                Este correo fue enviado automáticamente. Por favor no lo reenvíes.
+                                No compartas estas credenciales. Si creés que tu cuenta fue comprometida, contactá a la organización.
                               </p>
                             </td>
                           </tr>
@@ -125,16 +135,69 @@ public class EmailServiceImpl implements EmailService {
                 </html>
                 """.formatted(
                 p.getNombres(),
-                filasDatos(p)
+                p.getDni(),
+                plainPassword
         );
     }
 
-    private String filasDatos(Postulante p) {
-        return fila("Nombre completo", p.getNombres() + " " + p.getApellidos())
-             + fila("DNI",             p.getDni())
-             + fila("Universidad",     p.getUniversidad())
-             + fila("Especialidad",    p.getEspecialidad())
-             + fila("Correo",          p.getCorreoElectronico());
+    @Override
+    @Async
+    public void notificarTicketSoporte(SoporteTicket ticket) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+
+            helper.setFrom(mailFrom, "Habisite Challenge");
+            helper.setTo(mailFrom); // se envía al mismo remitente (admin)
+            helper.setSubject("🎫 Nuevo ticket de soporte — Habisite");
+            helper.setText(construirHtmlTicket(ticket), true);
+
+            mailSender.send(mensaje);
+            log.info("Notificación de ticket #{} enviada al admin.", ticket.getId());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Error enviando notificación de ticket #{}: {}", ticket.getId(), e.getMessage());
+        }
+    }
+
+    private String construirHtmlTicket(SoporteTicket t) {
+        String dni = t.getDni() != null && !t.getDni().isBlank() ? t.getDni() : "No informado";
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',system-ui,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+                    <tr><td align="center">
+                      <table width="520" cellpadding="0" cellspacing="0"
+                             style="background:#ffffff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;">
+                        <tr>
+                          <td style="background:#E85520;padding:28px 40px;">
+                            <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Nuevo ticket de soporte</h1>
+                            <p style="margin:4px 0 0;color:#fff;opacity:.85;font-size:13px;">Habisite Design Challenge</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:32px 40px;">
+                            %s
+                            %s
+                            <p style="margin:20px 0 0;font-size:14px;font-weight:600;color:#374151;">Mensaje:</p>
+                            <p style="margin:6px 0 0;font-size:14px;color:#4b5563;line-height:1.6;background:#f8fafc;padding:14px;border-radius:8px;">%s</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 40px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">Ticket #%d · Revisá el panel de Admin para marcarlo como resuelto.</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """.formatted(
+                fila("Nombre", t.getNombre()),
+                fila("DNI", dni),
+                t.getMensaje(),
+                t.getId()
+        );
     }
 
     private String fila(String label, String valor) {

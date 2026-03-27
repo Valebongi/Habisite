@@ -1,282 +1,349 @@
-// TODO: reemplazar con autenticación JWT real
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonPage,
   IonContent,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonItem,
-  IonLabel,
   IonInput,
   IonButton,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonText,
-  useIonToast,
+  IonSpinner,
+  IonTextarea,
+  IonModal,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import { api } from '../services/api';
 
-const LoginPage: React.FC = () => {
-  const history = useHistory();
-  const [presentToast] = useIonToast();
+const ORANGE = '#E85520';
+const DARK   = '#0d0e10';
 
-  // Estado Admin
-  const [adminUser, setAdminUser] = useState('');
-  const [adminPass, setAdminPass] = useState('');
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [adminError, setAdminError] = useState('');
-
-  // Estado Jurado
-  const [juradoNombre, setJuradoNombre] = useState('');
-  const [juradoPass, setJuradoPass] = useState('');
-  const [juradoLoading, setJuradoLoading] = useState(false);
-  const [juradoError, setJuradoError] = useState('');
-
-  // Estado Postulante
-  const [dni, setDni] = useState('');
-  const [postulanteLoading, setPostulanteLoading] = useState(false);
-  const [postulanteError, setPostulanteError] = useState('');
-
-  // ── Credenciales desde .env (VITE_ADMIN_USER, VITE_ADMIN_PASS, VITE_JURADO_PASS)
-  const ADMIN_USER = import.meta.env.VITE_ADMIN_USER ?? 'admin';
-  const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS ?? 'habisite2025';
-  const JURADO_PASS = import.meta.env.VITE_JURADO_PASS ?? 'jurado2025';
-
-  // ── Login Admin ────────────────────────────────────────────────────────────
-  const handleAdminLogin = () => {
-    setAdminError('');
-    if (adminUser === ADMIN_USER && adminPass === ADMIN_PASS) {
-      setAdminLoading(true);
-      sessionStorage.setItem('admin_ok', 'true');
-      history.push('/admin');
-    } else {
-      setAdminError('Usuario o contraseña incorrectos.');
-    }
-  };
-
-  // ── Login Jurado ───────────────────────────────────────────────────────────
-  const handleJuradoLogin = () => {
-    setJuradoError('');
-    if (!juradoNombre.trim()) {
-      setJuradoError('Ingresa tu nombre.');
-      return;
-    }
-    if (juradoPass === JURADO_PASS) {
-      setJuradoLoading(true);
-      sessionStorage.setItem('jurado_nombre', juradoNombre.trim());
-      history.push('/jurado');
-    } else {
-      setJuradoError('Contraseña incorrecta.');
-    }
-  };
-
-  // ── Login Postulante ───────────────────────────────────────────────────────
-  const handlePostulanteLogin = async () => {
-    setPostulanteError('');
-    if (!dni.trim()) {
-      setPostulanteError('Ingresa tu DNI.');
-      return;
-    }
-    setPostulanteLoading(true);
-    try {
-      const postulante = await api.postulantes.buscarPorDni(dni.trim());
-      sessionStorage.setItem('postulante_data', JSON.stringify(postulante));
-      history.push('/postulante');
-    } catch {
-      setPostulanteError('DNI no encontrado. ¿Ya te registraste?');
-    } finally {
-      setPostulanteLoading(false);
-    }
-  };
-
-  // ── Toast de bienvenida (opcional) ────────────────────────────────────────
-  const showWelcome = () => {
-    presentToast({
-      message: 'Bienvenido al Habisite Design Challenge',
-      duration: 2000,
-      color: 'primary',
-      position: 'top',
-    });
-  };
-
-  React.useEffect(() => {
-    showWelcome();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+// ─── Hook de ancho de pantalla ────────────────────────────────────────────────
+const useWindowWidth = () => {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
   }, []);
+  return width;
+};
+
+// ─── Modal de soporte ─────────────────────────────────────────────────────────
+const ModalSoporte: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const [nombre, setNombre]   = useState('');
+  const [dni, setDni]         = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [error, setError]     = useState('');
+
+  const reset = () => {
+    setNombre(''); setDni(''); setMensaje('');
+    setLoading(false); setEnviado(false); setError('');
+  };
+
+  const handleEnviar = async () => {
+    setError('');
+    if (!nombre.trim() || !mensaje.trim()) {
+      setError('Completá tu nombre y el motivo.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.soporte.crearTicket({ nombre: nombre.trim(), dni: dni.trim() || undefined, mensaje: mensaje.trim() });
+      setEnviado(true);
+    } catch {
+      setError('No se pudo enviar la solicitud. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => { reset(); onClose(); };
 
   return (
-    <IonPage>
-      <IonContent fullscreen style={{ '--background': '#f4f5f7' }}>
-        {/* Encabezado de marca */}
-        <div
-          style={{
-            textAlign: 'center',
-            padding: '48px 16px 24px',
-            background: 'linear-gradient(135deg, #E85520 0%, #ff7043 100%)',
-            color: '#fff',
-          }}
-        >
-          <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.5px' }}>
-            Habisite
-          </h1>
-          <p style={{ margin: '6px 0 0', opacity: 0.9, fontSize: '1rem' }}>
-            Design Challenge — Panel de acceso
+    <IonModal isOpen={isOpen} onDidDismiss={handleClose} style={{ '--border-radius': '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
+        {/* Header */}
+        <div style={{ background: DARK, padding: '24px 24px 20px', position: 'relative' }}>
+          <button onClick={handleClose} style={{
+            position: 'absolute', top: 16, right: 16,
+            background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem',
+            cursor: 'pointer', lineHeight: 1, padding: 4,
+          }}>×</button>
+          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>
+            Solicitar acceso
+          </h2>
+          <p style={{ margin: '4px 0 0', color: '#ffffff88', fontSize: '0.82rem' }}>
+            Te responderemos a la brevedad
           </p>
         </div>
 
-        <IonGrid style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
-          <IonRow>
-            {/* ── Card Admin ── */}
-            <IonCol size="12" sizeMd="4">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle style={{ color: '#E85520' }}>Administrador</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <IonItem lines="full">
-                    <IonLabel position="stacked">Usuario</IonLabel>
-                    <IonInput
-                      value={adminUser}
-                      onIonInput={(e) => setAdminUser(e.detail.value ?? '')}
-                      placeholder="admin"
-                      type="text"
-                      autocomplete="username"
-                    />
-                  </IonItem>
-                  <IonItem lines="full" style={{ marginBottom: 8 }}>
-                    <IonLabel position="stacked">Contraseña</IonLabel>
-                    <IonInput
-                      value={adminPass}
-                      onIonInput={(e) => setAdminPass(e.detail.value ?? '')}
-                      placeholder="••••••••"
-                      type="password"
-                      autocomplete="current-password"
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-                    />
-                  </IonItem>
-                  {adminError && (
-                    <IonText color="danger">
-                      <p style={{ fontSize: '0.85rem', margin: '4px 0 8px' }}>{adminError}</p>
-                    </IonText>
-                  )}
-                  <IonButton
-                    expand="block"
-                    color="primary"
-                    onClick={handleAdminLogin}
-                    disabled={adminLoading}
-                    style={{ marginTop: 8 }}
-                  >
-                    {adminLoading ? 'Ingresando…' : 'Ingresar como Admin'}
-                  </IonButton>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-
-            {/* ── Card Jurado ── */}
-            <IonCol size="12" sizeMd="4">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle style={{ color: '#E85520' }}>Jurado</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <IonItem lines="full">
-                    <IonLabel position="stacked">Tu nombre</IonLabel>
-                    <IonInput
-                      value={juradoNombre}
-                      onIonInput={(e) => setJuradoNombre(e.detail.value ?? '')}
-                      placeholder="Ej. María García"
-                      type="text"
-                    />
-                  </IonItem>
-                  <IonItem lines="full" style={{ marginBottom: 8 }}>
-                    <IonLabel position="stacked">Contraseña</IonLabel>
-                    <IonInput
-                      value={juradoPass}
-                      onIonInput={(e) => setJuradoPass(e.detail.value ?? '')}
-                      placeholder="••••••••"
-                      type="password"
-                      onKeyDown={(e) => e.key === 'Enter' && handleJuradoLogin()}
-                    />
-                  </IonItem>
-                  {juradoError && (
-                    <IonText color="danger">
-                      <p style={{ fontSize: '0.85rem', margin: '4px 0 8px' }}>{juradoError}</p>
-                    </IonText>
-                  )}
-                  <IonButton
-                    expand="block"
-                    color="primary"
-                    onClick={handleJuradoLogin}
-                    disabled={juradoLoading}
-                    style={{ marginTop: 8 }}
-                  >
-                    {juradoLoading ? 'Ingresando…' : 'Ingresar como Jurado'}
-                  </IonButton>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-
-            {/* ── Card Postulante ── */}
-            <IonCol size="12" sizeMd="4">
-              <IonCard>
-                <IonCardHeader>
-                  <IonCardTitle style={{ color: '#E85520' }}>Postulante</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <IonItem lines="full" style={{ marginBottom: 8 }}>
-                    <IonLabel position="stacked">Tu DNI</IonLabel>
-                    <IonInput
-                      value={dni}
-                      onIonInput={(e) => setDni(e.detail.value ?? '')}
-                      placeholder="12345678"
-                      type="text"
-                      maxlength={8}
-                      onKeyDown={(e) => e.key === 'Enter' && handlePostulanteLogin()}
-                    />
-                  </IonItem>
-                  {postulanteError && (
-                    <IonText color="danger">
-                      <p style={{ fontSize: '0.85rem', margin: '4px 0 8px' }}>{postulanteError}</p>
-                    </IonText>
-                  )}
-                  <IonButton
-                    expand="block"
-                    color="primary"
-                    onClick={handlePostulanteLogin}
-                    disabled={postulanteLoading}
-                    style={{ marginTop: 8 }}
-                  >
-                    {postulanteLoading ? 'Buscando…' : 'Ingresar con DNI'}
-                  </IonButton>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
-          {/* Enlace a registro */}
-          <IonRow>
-            <IonCol style={{ textAlign: 'center', padding: '16px 0 32px' }}>
-              <IonText color="medium">
-                <span>¿Aún no te registraste? </span>
-              </IonText>
-              <IonButton
-                fill="clear"
-                color="primary"
-                routerLink="/registro"
-                style={{ '--padding-start': '4px', '--padding-end': '4px' }}
-              >
-                Regístrate aquí
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+          {enviado ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: '#dcfce7', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 16px', fontSize: '1.6rem',
+              }}>✓</div>
+              <p style={{ fontWeight: 700, color: DARK, fontSize: '1rem', margin: '0 0 8px' }}>
+                ¡Solicitud enviada!
+              </p>
+              <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
+                El equipo de Habisite revisará tu caso y te otorgará acceso pronto.
+              </p>
+              <IonButton expand="block" onClick={handleClose} style={{ marginTop: 32, '--background': ORANGE, '--border-radius': '10px' }}>
+                Cerrar
               </IonButton>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
+            </div>
+          ) : (
+            <>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Nombre completo <span style={{ color: ORANGE }}>*</span></label>
+                <div style={styles.inputWrapper}>
+                  <IonInput value={nombre} onIonInput={e => setNombre(e.detail.value ?? '')} placeholder="Ej. María García" type="text" style={styles.input} />
+                </div>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>DNI <span style={{ color: '#9ca3af', fontWeight: 400 }}>(opcional)</span></label>
+                <div style={styles.inputWrapper}>
+                  <IonInput value={dni} onIonInput={e => setDni(e.detail.value ?? '')} placeholder="12345678" type="text" maxlength={8} style={styles.input} />
+                </div>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>¿Por qué no podés ingresar? <span style={{ color: ORANGE }}>*</span></label>
+                <div style={{ ...styles.inputWrapper, borderRadius: 10 }}>
+                  <IonTextarea
+                    value={mensaje}
+                    onIonInput={e => setMensaje(e.detail.value ?? '')}
+                    placeholder="Contanos qué está pasando con tu acceso…"
+                    rows={4}
+                    style={{ '--padding-start': '14px', '--padding-end': '14px', '--padding-top': '12px', '--padding-bottom': '12px', '--background': 'transparent' } as React.CSSProperties}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <p style={{ fontSize: '0.83rem', color: '#dc2626', background: '#fef2f2', padding: '10px 12px', borderRadius: 8, margin: '0 0 12px' }}>
+                  {error}
+                </p>
+              )}
+
+              <IonButton expand="block" onClick={handleEnviar} disabled={loading}
+                style={{ '--background': ORANGE, '--border-radius': '10px', height: 48 }}>
+                {loading ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Enviando…</> : 'Enviar solicitud'}
+              </IonButton>
+            </>
+          )}
+        </div>
+      </div>
+    </IonModal>
+  );
+};
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+const LoginPage: React.FC = () => {
+  const history   = useHistory();
+  const width     = useWindowWidth();
+  const isDesktop = width >= 768;
+
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword]     = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const [showSoporte, setShowSoporte] = useState(false);
+
+  const handleLogin = async () => {
+    setError('');
+    if (!identifier.trim()) { setError('Ingresá tu DNI o usuario.'); return; }
+    if (!password.trim()) { setError('Ingresá tu contraseña.'); return; }
+
+    setLoading(true);
+    try {
+      const res = await api.auth.login({ username: identifier.trim(), password: password.trim() });
+
+      if (res.rol === 'ADMIN') {
+        sessionStorage.setItem('admin_ok', 'true');
+        history.replace('/admin/dashboard');
+      } else if (res.rol === 'JURADO') {
+        sessionStorage.setItem('jurado_nombre', res.nombre);
+        history.replace('/jurado');
+      } else {
+        sessionStorage.setItem('postulante_data', JSON.stringify(res.postulante));
+        history.replace('/postulante/perfil');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al iniciar sesión.';
+      setError(msg.replace(/^Error \d+:\s*/, ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Form reutilizable ──────────────────────────────────────────────────────
+  const form = (
+    <div style={{ width: '100%', maxWidth: isDesktop ? 380 : 440 }}>
+      <div style={{ marginBottom: isDesktop ? 36 : 28 }}>
+        <h1 style={{ fontSize: isDesktop ? '2rem' : '1.6rem', fontWeight: 700, color: DARK, margin: 0 }}>
+          Bienvenido
+        </h1>
+        <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '6px 0 0' }}>
+          Ingresá con tu usuario (DNI o nombre de usuario) y contraseña
+        </p>
+      </div>
+
+      {/* DNI / Usuario */}
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>DNI o usuario</label>
+        <div style={styles.inputWrapper}>
+          <IonInput
+            value={identifier}
+            onIonInput={e => { setIdentifier(e.detail.value ?? ''); setError(''); }}
+            placeholder="Ej. 12345678 o admin"
+            type="text"
+            autocomplete="username"
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            style={styles.input}
+          />
+        </div>
+      </div>
+
+      {/* Contraseña */}
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>Contraseña</label>
+        <div style={styles.inputWrapper}>
+          <IonInput
+            value={password}
+            onIonInput={e => { setPassword(e.detail.value ?? ''); setError(''); }}
+            placeholder="••••••••"
+            type="password"
+            autocomplete="current-password"
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+            style={styles.input}
+          />
+        </div>
+      </div>
+
+      {error && (
+        <IonText color="danger">
+          <p style={{ fontSize: '0.83rem', margin: '0 0 12px', padding: '10px 12px', background: '#fef2f2', borderRadius: 8, color: '#dc2626' }}>
+            {error}
+          </p>
+        </IonText>
+      )}
+
+      <IonButton expand="block" onClick={handleLogin} disabled={loading} style={styles.submitBtn}>
+        {loading ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Ingresando…</> : 'Ingresar'}
+      </IonButton>
+
+      {/* Link de soporte */}
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <button onClick={() => setShowSoporte(true)} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: '0.82rem', color: '#6b7280', textDecoration: 'underline',
+          textDecorationStyle: 'dotted', padding: 0,
+        }}>
+          ¿No podés ingresar? Solicitá acceso
+        </button>
+      </div>
+
+      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#d1d5db', marginTop: 16 }}>
+        Los accesos son gestionados por la organización.
+      </p>
+
+      <ModalSoporte isOpen={showSoporte} onClose={() => setShowSoporte(false)} />
+    </div>
+  );
+
+  // ── Vista mobile ───────────────────────────────────────────────────────────
+  if (!isDesktop) {
+    return (
+      <IonPage>
+        <IonContent fullscreen style={{ '--background': '#f4f5f7' }}>
+          <div style={{ background: `linear-gradient(135deg, ${DARK} 0%, #2a1208 100%)`, padding: '40px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 16, right: 24, width: 80, height: 80, border: `1.5px solid ${ORANGE}44`, transform: 'rotate(45deg)' }} />
+            <div style={{ position: 'absolute', bottom: -20, right: 60, width: 50, height: 50, border: '1.5px solid #ffffff22', transform: 'rotate(22deg)' }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', letterSpacing: '0.15em', display: 'block' }}>HABISITE</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 500, color: ORANGE, letterSpacing: '0.25em' }}>DESIGN CHALLENGE 2026</span>
+              <p style={{ marginTop: 16, fontSize: '1rem', fontWeight: 600, color: '#fff', lineHeight: 1.4, opacity: 0.9 }}>
+                "Diseñá el espacio<br />que el futuro necesita."
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 24px 40px' }}>
+            {form}
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
+  // ── Vista desktop — split diagonal ─────────────────────────────────────────
+  return (
+    <IonPage>
+      <IonContent fullscreen scrollY={false}>
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', background: '#f4f5f7' }}>
+
+          {/* Panel izquierdo oscuro */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, width: '72%', height: '100%',
+            background: `linear-gradient(145deg, ${DARK} 0%, #1a1c1f 40%, #2a1208 100%)`,
+            clipPath: 'polygon(0 0, 68% 0, 54% 100%, 0 100%)',
+            zIndex: 1, overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg, ${ORANGE}22 0%, transparent 50%)`, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 100px 48px 48px', zIndex: 2 }}>
+              <div>
+                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', letterSpacing: '0.15em', display: 'block' }}>HABISITE</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 500, color: ORANGE, letterSpacing: '0.25em', textTransform: 'uppercase' }}>DESIGN CHALLENGE</span>
+              </div>
+              <div style={{ position: 'absolute', top: '18%', left: '32%', width: 180, height: 180, border: `1.5px solid ${ORANGE}44`, transform: 'rotate(45deg)' }} />
+              <div style={{ position: 'absolute', top: '28%', left: '18%', width: 90, height: 90, border: '1.5px solid #ffffff22', transform: 'rotate(22deg)' }} />
+              <div style={{ position: 'absolute', bottom: '20%', left: '26%', width: 130, height: 130, border: `1.5px solid ${ORANGE}33`, transform: 'rotate(-15deg)' }} />
+              <div style={{ maxWidth: '75%' }}>
+                <p style={{ fontSize: '0.75rem', color: ORANGE, fontWeight: 600, letterSpacing: '0.2em', marginBottom: 10 }}>2026</p>
+                <p style={{ fontSize: '1.45rem', fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 16 }}>
+                  "Diseñá el espacio<br />que el futuro necesita."
+                </p>
+                <div style={{ width: 40, height: 2, background: ORANGE, marginBottom: 12 }} />
+                <p style={{ fontSize: '0.72rem', color: '#ffffff77', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                  Arquitectura · Interiores · Paisajismo
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Panel derecho */}
+          <div style={{ marginLeft: '46%', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 40px', zIndex: 2 }}>
+            {form}
+          </div>
+        </div>
       </IonContent>
     </IonPage>
   );
+};
+
+// ─── Estilos compartidos ──────────────────────────────────────────────────────
+const styles: Record<string, React.CSSProperties> = {
+  inputGroup: { marginBottom: 20 },
+  label: {
+    display: 'block', fontSize: '0.78rem', fontWeight: 600,
+    color: '#374151', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase',
+  },
+  inputWrapper: { background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' },
+  input: {
+    '--padding-start': '14px', '--padding-end': '14px',
+    '--padding-top': '12px', '--padding-bottom': '12px',
+    '--background': 'transparent', '--color': DARK, fontSize: '0.95rem',
+  } as React.CSSProperties,
+  submitBtn: {
+    '--background': ORANGE, '--background-activated': '#cc4b1c',
+    '--border-radius': '10px', '--box-shadow': `0 4px 14px ${ORANGE}44`,
+    height: 48, fontSize: '0.95rem', fontWeight: 600, marginTop: 8,
+  } as React.CSSProperties,
 };
 
 export default LoginPage;

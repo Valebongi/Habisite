@@ -9,8 +9,10 @@ import com.imb.habisite.model.Postulante;
 import com.imb.habisite.repository.PostulanteRepository;
 import com.imb.habisite.service.EmailService;
 import com.imb.habisite.service.PostulanteService;
+import com.imb.habisite.util.PasswordGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PostulanteServiceImpl implements PostulanteService {
+
+    private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
 
     private final PostulanteRepository repository;
     private final PostulanteMapper mapper;
@@ -37,10 +41,14 @@ public class PostulanteServiceImpl implements PostulanteService {
             throw new DuplicateResourceException("Ya existe un postulante con el correo: " + request.getCorreoElectronico());
         }
 
-        Postulante saved = repository.save(mapper.toEntity(request));
+        String plainPassword = PasswordGenerator.generate();
+        Postulante entity = mapper.toEntity(request);
+        entity.setPasswordHash(ENCODER.encode(plainPassword));
+
+        Postulante saved = repository.save(entity);
         log.info("Postulante registrado con ID: {}", saved.getId());
 
-        emailService.enviarConfirmacionPostulacion(saved);
+        emailService.enviarCredenciales(saved, plainPassword);
 
         return mapper.toResponseDTO(saved);
     }
@@ -104,6 +112,20 @@ public class PostulanteServiceImpl implements PostulanteService {
         Postulante updated = repository.save(existente);
         log.info("Postulante actualizado con ID: {}", updated.getId());
         return mapper.toResponseDTO(updated);
+    }
+
+    @Override
+    @Transactional
+    public void regenerarClave(Long id) {
+        Postulante p = repository.findById(id)
+                .orElseThrow(() -> new PostulanteNotFoundException("Postulante no encontrado con ID: " + id));
+
+        String plainPassword = PasswordGenerator.generate();
+        p.setPasswordHash(ENCODER.encode(plainPassword));
+        repository.save(p);
+
+        emailService.enviarCredenciales(p, plainPassword);
+        log.info("Clave regenerada y enviada por email para postulante ID: {}", id);
     }
 
     @Override

@@ -67,6 +67,16 @@ public class PostulanteController {
     }
 
     /**
+     * POST /api/v1/postulantes/{id}/regenerar-clave
+     * Genera una nueva contraseña y la envía por email al postulante.
+     */
+    @PostMapping("/{id}/regenerar-clave")
+    public ResponseEntity<Void> regenerarClave(@PathVariable Long id) {
+        service.regenerarClave(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * DELETE /api/v1/postulantes/{id}
      * Elimina un postulante.
      */

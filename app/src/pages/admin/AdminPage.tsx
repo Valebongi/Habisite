@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { IonPage, IonContent, IonSpinner, useIonToast } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
-import { api, AdminStats, Postulante, Evaluacion } from '../../services/api';
+import {
+  api, AdminStats, Postulante, Evaluacion,
+  SoporteTicket, Resolucion,
+} from '../../services/api';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
 
 // ─── Paleta ───────────────────────────────────────────────────────────────────
 const C = {
@@ -12,6 +19,8 @@ const C = {
   bg:      '#f4f5f7',
   white:   '#ffffff',
 } as const;
+
+const CHART_COLORS = ['#E85520', '#3dc2ff', '#2dd36f', '#ffc409', '#eb445a', '#92949c', '#6a64f1', '#f97316'];
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 interface AreaItem {
@@ -58,6 +67,8 @@ const MENU: MenuItem[] = [
     ],
   },
   { id: 'estadisticas',  icon: '📊', label: 'Estadísticas' },
+  { id: 'entregas',      icon: '📦', label: 'Entregas' },
+  { id: 'soporte',       icon: '🎫', label: 'Soporte' },
   { id: 'jurado',        icon: '🏛', label: 'Jurado' },
   { id: 'configuracion', icon: '⚙', label: 'Configuración' },
 ];
@@ -114,7 +125,6 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
     <div>
       <OrangeBar label="Dashboard" />
 
-      {/* Stat cards */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
         <StatCard value={stats?.totalPostulantes ?? '—'} label="Total postulantes" sub="inscriptos al concurso" />
         <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" sub="realizadas por el jurado" />
@@ -122,7 +132,6 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
         <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" sub="representadas" />
       </div>
 
-      {/* Estado del sitio */}
       <OrangeBar label="Estado del sitio" />
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
         <StatCard value={publicadas}  label="Secciones publicadas"   sub={`de ${AREAS.length} totales`} />
@@ -130,7 +139,6 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
         <StatCard value={sinAsignar}  label="Sin responsable"        sub="requieren asignación" />
       </div>
 
-      {/* Áreas críticas */}
       <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
         <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 16 }}>Áreas sin responsable asignado</div>
         {AREAS.filter(a => a.responsable === 'Sin asignar').map(a => (
@@ -144,7 +152,6 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
         ))}
       </div>
 
-      {/* Últimos postulantes */}
       <OrangeBar label="Últimos registros" />
       <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
         {postulantes.length === 0
@@ -170,6 +177,7 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
 const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; reload: () => void }> = ({ postulantes, loading, reload }) => {
   const [q, setQ] = useState('');
   const [filtroEsp, setFiltroEsp] = useState('');
+  const [regenerando, setRegenerando] = useState<number | null>(null);
   const especialidades = [...new Set(postulantes.map(p => p.especialidad))].sort();
   const filtrados = postulantes.filter(p => {
     const s = q.toLowerCase();
@@ -185,19 +193,25 @@ const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; re
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
   };
 
+  const handleRegenerarClave = async (id: number) => {
+    setRegenerando(id);
+    try { await api.postulantes.regenerarClave(id); }
+    catch { /* silencioso */ }
+    finally { setRegenerando(null); }
+  };
+
   return (
     <div>
       <OrangeBar
         label={`Postulantes (${filtrados.length})`}
         action={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={reload}   style={btnOutlineWhite}>↻ Actualizar</button>
+            <button onClick={reload}    style={btnOutlineWhite}>↻ Actualizar</button>
             <button onClick={exportCSV} style={btnOutlineWhite}>↓ CSV</button>
           </div>
         }
       />
 
-      {/* Filtros */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <input
           value={q} onChange={e => setQ(e.target.value)}
@@ -219,16 +233,16 @@ const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; re
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ background: '#f9fafb' }}>
-                    {['#', 'Nombre', 'DNI', 'Universidad', 'Especialidad', 'Correo', 'Registrado'].map(h => (
+                    {['#', 'Nombre', 'DNI', 'Universidad', 'Especialidad', 'Correo', 'Registrado', 'Acciones'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtrados.length === 0
-                    ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin resultados</td></tr>
+                    ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin resultados</td></tr>
                     : filtrados.map(p => (
-                        <tr key={p.id} style={{ borderBottom: `1px solid #f3f4f6`, cursor: 'default' }}
+                        <tr key={p.id} style={{ borderBottom: `1px solid #f3f4f6` }}
                             onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
                             onMouseLeave={e => (e.currentTarget.style.background = '')}>
                           <td style={{ padding: '12px 16px', color: C.gray }}>{p.id}</td>
@@ -240,6 +254,15 @@ const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; re
                           </td>
                           <td style={{ padding: '12px 16px', color: C.gray }}>{p.correoElectronico}</td>
                           <td style={{ padding: '12px 16px', whiteSpace: 'nowrap', color: C.gray }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <button
+                              onClick={() => handleRegenerarClave(p.id)}
+                              disabled={regenerando === p.id}
+                              style={{ ...btnSm, whiteSpace: 'nowrap', opacity: regenerando === p.id ? 0.5 : 1 }}
+                            >
+                              {regenerando === p.id ? '…' : '🔑 Clave'}
+                            </button>
+                          </td>
                         </tr>
                       ))
                   }
@@ -273,11 +296,10 @@ const SecEvaluaciones: React.FC<{ evaluaciones: Evaluacion[]; loading: boolean; 
           <StatCard value={promedio} label="Puntaje promedio" sub="del jurado" />
           <StatCard value={evaluaciones.length} label="Evaluaciones totales" />
           <StatCard value={Object.keys(porJurado).length} label="Jurados activos" />
-          <StatCard value={Math.max(...evaluaciones.map(e => e.puntaje))} label="Puntaje más alto" sub={`/ 10 puntos`} />
+          <StatCard value={Math.max(...evaluaciones.map(e => e.puntaje))} label="Puntaje más alto" sub="/ 10 puntos" />
         </div>
       )}
 
-      {/* Resumen por jurado */}
       {Object.keys(porJurado).length > 0 && (
         <>
           <OrangeBar label="Actividad por jurado" />
@@ -295,7 +317,6 @@ const SecEvaluaciones: React.FC<{ evaluaciones: Evaluacion[]; loading: boolean; 
         </>
       )}
 
-      {/* Lista completa */}
       <OrangeBar label="Detalle de evaluaciones" />
       {loading
         ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
@@ -411,48 +432,311 @@ const SecAreasSitio: React.FC = () => {
   );
 };
 
-const SecEstadisticas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats, postulantes, evaluaciones }) => (
-  <div>
-    <OrangeBar label="Estadísticas del concurso" />
+const SecEstadisticas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats }) => {
+  const espData = stats
+    ? Object.entries(stats.porEspecialidad).map(([name, value]) => ({ name, value: Number(value) }))
+    : [];
+  const univData = stats
+    ? Object.entries(stats.porUniversidad).map(([name, value]) => ({ name, value: Number(value) }))
+    : [];
+  const resolucionesPie = stats
+    ? [
+        { name: 'Pendientes', value: Number(stats.resolucionesPendientes) },
+        { name: 'Aprobadas',  value: Number(stats.resolucionesAprobadas)  },
+        { name: 'Rechazadas', value: Number(stats.resolucionesRechazadas) },
+      ].filter(d => d.value > 0)
+    : [];
+  const PIE_COLORS = ['#ffc409', '#2dd36f', '#eb445a'];
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-        <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Postulantes por especialidad</div>
-        <ChartBox label="Implementar con Chart.js — datos listos en stats.porEspecialidad" />
-        {stats && (
-          <div style={{ marginTop: 16 }}>
-            {Object.entries(stats.porEspecialidad).sort(([, a], [, b]) => b - a).map(([esp, count]) => (
-              <div key={esp} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: '0.8rem' }}>
-                <span>{esp}</span>
-                <strong style={{ color: C.orange }}>{count}</strong>
-              </div>
-            ))}
-          </div>
-        )}
+  return (
+    <div>
+      <OrangeBar label="Estadísticas del concurso" />
+
+      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        <StatCard value={stats?.totalPostulantes ?? '—'}  label="Total postulantes" />
+        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" />
+        <StatCard value={stats?.totalResoluciones ?? '—'} label="Entregas" />
+        <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" />
       </div>
 
-      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-        <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Ranking de universidades</div>
-        <ChartBox label="Implementar con Chart.js — datos listos en stats.porUniversidad" />
-        {stats && (
-          <div style={{ marginTop: 16 }}>
-            {Object.entries(stats.porUniversidad).sort(([, a], [, b]) => b - a).slice(0, 8).map(([univ, count]) => (
-              <div key={univ} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: '0.8rem' }}>
-                <span>{univ}</span>
-                <strong style={{ color: C.orange }}>{count}</strong>
-              </div>
-            ))}
+      {resolucionesPie.length > 0 && (
+        <>
+          <OrangeBar label="Entregas por estado" />
+          <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={resolucionesPie} dataKey="value" nameKey="name"
+                  cx="50%" cy="50%" outerRadius={80}
+                  label={({ percent }: { percent?: number }) => percent != null ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
+                >
+                  {resolucionesPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Legend iconSize={10} wrapperStyle={{ fontSize: '0.8rem' }} />
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        )}
+        </>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Postulantes por especialidad</div>
+          {espData.length === 0
+            ? <ChartBox label="Sin datos aún" />
+            : (
+              <ResponsiveContainer width="100%" height={Math.max(160, espData.length * 36)}>
+                <BarChart data={espData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10 }}
+                    tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 13) + '…' : v} />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
+                    {espData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </div>
+
+        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Ranking de universidades</div>
+          {univData.length === 0
+            ? <ChartBox label="Sin datos aún" />
+            : (
+              <ResponsiveContainer width="100%" height={Math.max(160, univData.length * 36)}>
+                <BarChart data={univData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10 }}
+                    tickFormatter={(v: string) => v.length > 16 ? v.slice(0, 15) + '…' : v} />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
+                    {univData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </div>
       </div>
     </div>
+  );
+};
 
-    <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-      <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Distribución de puntajes del jurado</div>
-      <ChartBox label="Implementar con Chart.js — datos en evaluaciones" height={200} />
+// ─── Sección Entregas ─────────────────────────────────────────────────────────
+const estadoEntregaColor: Record<string, string> = {
+  PENDIENTE: '#ffc409',
+  APROBADA:  '#2dd36f',
+  RECHAZADA: '#eb445a',
+};
+
+const SecEntregas: React.FC = () => {
+  const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroEstado, setFiltroEstado] = useState('');
+  const [saving, setSaving] = useState<number | null>(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try { setResoluciones(await api.resoluciones.listarTodas()); }
+    catch { /* silencioso */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const cambiarEstado = async (id: number, estado: string) => {
+    setSaving(id);
+    try {
+      await api.resoluciones.cambiarEstado(id, estado);
+      setResoluciones(prev => prev.map(r => r.id === id ? { ...r, estado: estado as Resolucion['estado'] } : r));
+    } catch { /* silencioso */ }
+    finally { setSaving(null); }
+  };
+
+  const filtradas = filtroEstado ? resoluciones.filter(r => r.estado === filtroEstado) : resoluciones;
+  const pendientes = resoluciones.filter(r => r.estado === 'PENDIENTE').length;
+
+  return (
+    <div>
+      <OrangeBar
+        label={`Entregas (${filtradas.length})`}
+        action={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select
+              value={filtroEstado}
+              onChange={e => setFiltroEstado(e.target.value)}
+              style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: '0.75rem', color: '#fff', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
+            >
+              <option value="">Todos</option>
+              <option value="PENDIENTE">Pendientes</option>
+              <option value="APROBADA">Aprobadas</option>
+              <option value="RECHAZADA">Rechazadas</option>
+            </select>
+            <button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>
+          </div>
+        }
+      />
+
+      {pendientes > 0 && (
+        <div style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
+            <strong>{pendientes}</strong> entrega{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de revisión
+          </span>
+        </div>
+      )}
+
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : filtradas.length === 0
+          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              No hay entregas{filtroEstado ? ` con estado "${filtroEstado}"` : ''}
+            </div>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filtradas.map(r => (
+                <div key={r.id} style={{ background: C.white, borderRadius: 10, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{r.titulo}</span>
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
+                        background: `${estadoEntregaColor[r.estado]}22`,
+                        color: estadoEntregaColor[r.estado],
+                      }}>
+                        {r.estado}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
+                      {new Date(r.creadoEn).toLocaleDateString('es-AR')}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: C.gray, marginBottom: 6 }}>
+                    <strong style={{ color: C.dark }}>{r.postulanteNombre}</strong> · {r.concursoTitulo}
+                  </div>
+                  {r.descripcion && (
+                    <div style={{ fontSize: '0.82rem', color: '#555', marginBottom: 8, lineHeight: 1.4 }}>{r.descripcion}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {r.tieneArchivo && (
+                      <a href={`/api/v1/resoluciones/${r.id}/archivo`} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: '0.8rem', color: C.orange, textDecoration: 'none' }}>
+                        ↓ Descargar archivo
+                      </a>
+                    )}
+                    {r.urlExterno && (
+                      <a href={r.urlExterno} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: '0.8rem', color: '#3dc2ff', textDecoration: 'none' }}>
+                        Ver enlace externo
+                      </a>
+                    )}
+                    {r.estado === 'PENDIENTE' && (
+                      <>
+                        <button onClick={() => cambiarEstado(r.id, 'APROBADA')} disabled={saving === r.id}
+                          style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
+                          {saving === r.id ? '…' : '✓ Aprobar'}
+                        </button>
+                        <button onClick={() => cambiarEstado(r.id, 'RECHAZADA')} disabled={saving === r.id}
+                          style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>
+                          ✗ Rechazar
+                        </button>
+                      </>
+                    )}
+                    {r.estado !== 'PENDIENTE' && (
+                      <button onClick={() => cambiarEstado(r.id, 'PENDIENTE')}
+                        style={{ ...btnSm, marginLeft: 'auto' }}>
+                        Restablecer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+      }
     </div>
-  </div>
-);
+  );
+};
+
+// ─── Sección Soporte ──────────────────────────────────────────────────────────
+const SecSoporte: React.FC = () => {
+  const [tickets, setTickets] = useState<SoporteTicket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try { setTickets(await api.soporte.listarTickets()); }
+    catch { /* silencioso */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const resolver = async (id: number) => {
+    try { await api.soporte.resolverTicket(id); cargar(); }
+    catch { /* silencioso */ }
+  };
+
+  const pendientes = tickets.filter(t => !t.resuelto).length;
+
+  return (
+    <div>
+      <OrangeBar
+        label={`Soporte (${tickets.length})`}
+        action={<button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>}
+      />
+
+      {pendientes > 0 && (
+        <div style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
+            <strong>{pendientes}</strong> ticket{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de resolución
+          </span>
+        </div>
+      )}
+
+      {loading
+        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
+        : tickets.length === 0
+          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              No hay tickets de soporte
+            </div>
+          : (
+            <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              {tickets.map(t => (
+                <div key={t.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, opacity: t.resuelto ? 0.65 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.nombre}</span>
+                      {t.dni && <span style={{ fontSize: '0.75rem', color: C.gray }}>DNI: {t.dni}</span>}
+                      <span style={{
+                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
+                        background: t.resuelto ? '#f0fdf4' : '#fff7ed',
+                        color: t.resuelto ? '#16a34a' : '#92400e',
+                      }}>
+                        {t.resuelto ? 'Resuelto' : 'Pendiente'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
+                      {new Date(t.creadoEn).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 8px', lineHeight: 1.5 }}>{t.mensaje}</p>
+                  {!t.resuelto && (
+                    <button onClick={() => resolver(t.id)} style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
+                      ✓ Marcar como resuelto
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+      }
+    </div>
+  );
+};
 
 const SecJurado: React.FC<{ evaluaciones: Evaluacion[] }> = ({ evaluaciones }) => {
   const porJurado: Record<string, { count: number; total: number; max: number; min: number }> = {};
@@ -534,19 +818,16 @@ const AdminPage: React.FC = () => {
   const history  = useHistory();
   const [presentToast] = useIonToast();
 
-  // UI
   const [sidebarOpen, setSidebarOpen]     = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [expanded, setExpanded]           = useState<Set<string>>(new Set(['areas']));
 
-  // Data
-  const [stats, setStats]             = useState<AdminStats | null>(null);
-  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
+  const [stats, setStats]               = useState<AdminStats | null>(null);
+  const [postulantes, setPostulantes]   = useState<Postulante[]>([]);
   const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
   const [loadingP, setLoadingP] = useState(false);
   const [loadingE, setLoadingE] = useState(false);
 
-  // ── Auth guard
   useEffect(() => {
     if (!sessionStorage.getItem('admin_ok')) { history.replace('/login'); return; }
     loadStats();
@@ -583,22 +864,23 @@ const AdminPage: React.FC = () => {
 
   const logout = () => { sessionStorage.removeItem('admin_ok'); history.replace('/login'); };
 
-  // Título de la sección activa
   const allItems = MENU.flatMap(m => m.sub ? [m, ...m.sub] : [m]);
   const pageTitle = allItems.find(m => m.id === activeSection)?.label ?? 'Dashboard';
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':          return <SecDashboard stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
-      case 'postulantes':        return <SecPostulantes postulantes={postulantes} loading={loadingP} reload={loadPostulantes} />;
-      case 'evaluaciones':       return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
-      case 'areas-sitio':        return <SecAreasSitio />;
-      case 'areas-publicaciones':return <SecPlaceholder titulo="Publicaciones" desc="Gestión de publicaciones — conectar con API de CMS" />;
-      case 'areas-recursos':     return <SecPlaceholder titulo="Imágenes y Recursos" desc="Gestión de archivos e imágenes — conectar con almacenamiento" />;
-      case 'estadisticas':       return <SecEstadisticas stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
-      case 'jurado':             return <SecJurado evaluaciones={evaluaciones} />;
-      case 'configuracion':      return <SecPlaceholder titulo="Configuración" desc="Parámetros del concurso, fechas límite, accesos — por implementar" />;
-      default:                   return null;
+      case 'dashboard':           return <SecDashboard stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
+      case 'postulantes':         return <SecPostulantes postulantes={postulantes} loading={loadingP} reload={loadPostulantes} />;
+      case 'evaluaciones':        return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
+      case 'areas-sitio':         return <SecAreasSitio />;
+      case 'areas-publicaciones': return <SecPlaceholder titulo="Publicaciones" desc="Gestión de publicaciones — conectar con API de CMS" />;
+      case 'areas-recursos':      return <SecPlaceholder titulo="Imágenes y Recursos" desc="Gestión de archivos e imágenes — conectar con almacenamiento" />;
+      case 'estadisticas':        return <SecEstadisticas stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
+      case 'entregas':            return <SecEntregas />;
+      case 'soporte':             return <SecSoporte />;
+      case 'jurado':              return <SecJurado evaluaciones={evaluaciones} />;
+      case 'configuracion':       return <SecPlaceholder titulo="Configuración" desc="Parámetros del concurso, fechas límite, accesos — por implementar" />;
+      default:                    return null;
     }
   };
 
@@ -619,7 +901,6 @@ const AdminPage: React.FC = () => {
             transition: 'width 0.25s ease, min-width 0.25s ease',
             flexShrink: 0,
           }}>
-            {/* Encabezado con toggle integrado */}
             <div style={{
               padding: sidebarOpen ? '1.25rem 1rem 1.25rem 1.25rem' : '1rem 0',
               borderBottom: '1px solid #1f2937',
@@ -647,7 +928,6 @@ const AdminPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Navegación */}
             {sidebarOpen && (
               <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
                 {MENU.map(item => {
@@ -674,7 +954,6 @@ const AdminPage: React.FC = () => {
                           <span style={{ fontSize: '0.6rem', transition: 'transform 0.2s', display: 'inline-block', transform: expanded.has(item.id) ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
                         )}
                       </button>
-                      {/* Submenú */}
                       {item.sub && expanded.has(item.id) && (
                         <div style={{ background: '#0d1420' }}>
                           {item.sub.map(sub => (
@@ -701,7 +980,6 @@ const AdminPage: React.FC = () => {
               </nav>
             )}
 
-            {/* Footer */}
             {sidebarOpen && (
               <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #1f2937', flexShrink: 0 }}>
                 <button onClick={logout} style={{ width: '100%', padding: '0.6rem', background: 'transparent', border: '1px solid #374151', color: '#9ca3af', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer' }}>
@@ -713,7 +991,6 @@ const AdminPage: React.FC = () => {
 
           {/* ─── Contenido principal ──────────────────────────────────────── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
-            {/* Topbar */}
             <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{pageTitle}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -723,11 +1000,11 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Scroll area */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
               {renderContent()}
             </div>
           </div>
+
         </div>
       </IonContent>
     </IonPage>

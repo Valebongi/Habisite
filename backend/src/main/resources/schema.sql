@@ -7,7 +7,53 @@ CREATE TABLE IF NOT EXISTS postulante (
     universidad         VARCHAR(150)    NOT NULL,
     correo_electronico  VARCHAR(150)    NOT NULL UNIQUE,
     especialidad        VARCHAR(100)    NOT NULL,
+    password_hash       VARCHAR(255),
     creado_en           TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+-- Migración segura: agrega la columna si la tabla ya existe sin ella
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+
+CREATE TABLE IF NOT EXISTS usuario (
+    id              BIGSERIAL       PRIMARY KEY,
+    nombre          VARCHAR(100)    NOT NULL,
+    username        VARCHAR(50)     NOT NULL UNIQUE,
+    password_hash   VARCHAR(255)    NOT NULL,
+    rol             VARCHAR(20)     NOT NULL CHECK (rol IN ('ADMIN', 'JURADO')),
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS concurso (
+    id              BIGSERIAL       PRIMARY KEY,
+    titulo          VARCHAR(200)    NOT NULL,
+    descripcion     TEXT            NOT NULL,
+    bases           TEXT,
+    fecha_inicio    TIMESTAMPTZ     NOT NULL,
+    fecha_fin       TIMESTAMPTZ     NOT NULL,
+    estado          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVO' CHECK (estado IN ('ACTIVO','CERRADO','PROXIMO')),
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS resolucion (
+    id              BIGSERIAL       PRIMARY KEY,
+    postulante_id   BIGINT          NOT NULL REFERENCES postulante(id) ON DELETE CASCADE,
+    concurso_id     BIGINT          NOT NULL REFERENCES concurso(id) ON DELETE CASCADE,
+    titulo          VARCHAR(200)    NOT NULL,
+    descripcion     TEXT,
+    archivo_nombre  VARCHAR(255),
+    archivo_datos   BYTEA,
+    url_externo     VARCHAR(500),
+    estado          VARCHAR(20)     NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE','APROBADA','RECHAZADA')),
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    UNIQUE (postulante_id, concurso_id)
+);
+
+CREATE TABLE IF NOT EXISTS soporte_ticket (
+    id          BIGSERIAL       PRIMARY KEY,
+    nombre      VARCHAR(150)    NOT NULL,
+    dni         VARCHAR(20),
+    mensaje     TEXT            NOT NULL,
+    resuelto    BOOLEAN         NOT NULL DEFAULT FALSE,
+    creado_en   TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS evaluacion (

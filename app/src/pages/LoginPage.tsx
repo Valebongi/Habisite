@@ -230,7 +230,7 @@ const LoginPage: React.FC = () => {
         <h1 style={{ fontSize: isDesktop ? '2rem' : '1.6rem', fontWeight: 700, color: DARK, margin: 0 }}>
           Bienvenido
         </h1>
-        <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '6px 0 0' }}>
+        <p style={{ fontSize: '0.9rem', color: '#374151', margin: '6px 0 0' }}>
           Ingresá con tu usuario (DNI o nombre de usuario) y contraseña
         </p>
       </div>
@@ -287,7 +287,7 @@ const LoginPage: React.FC = () => {
         }}>
           {rememberMe && <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 800, lineHeight: 1 }}>✓</span>}
         </div>
-        <span style={{ fontSize: '0.85rem', color: '#4b5563', userSelect: 'none' }}>Recordarme en este dispositivo</span>
+        <span style={{ fontSize: '0.85rem', color: '#1f2937', userSelect: 'none' }}>Recordarme en este dispositivo</span>
       </div>
 
       <IonButton expand="block" onClick={handleLogin} disabled={loading} style={styles.submitBtn}>
@@ -298,7 +298,7 @@ const LoginPage: React.FC = () => {
       <div style={{ textAlign: 'center', marginTop: 20 }}>
         <button onClick={() => { setShowRecuperar(r => !r); setShowSoporte(false); }} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: '0.82rem', color: '#6b7280', textDecoration: 'underline',
+          fontSize: '0.82rem', color: '#374151', textDecoration: 'underline',
           textDecorationStyle: 'dotted', padding: 0,
         }}>
           ¿Olvidaste tu contraseña?
@@ -330,7 +330,7 @@ const LoginPage: React.FC = () => {
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button onClick={() => { setShowSoporte(true); setShowRecuperar(false); }} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: '0.82rem', color: '#6b7280', textDecoration: 'underline',
+          fontSize: '0.82rem', color: '#374151', textDecoration: 'underline',
           textDecorationStyle: 'dotted', padding: 0,
         }}>
           ¿No podés ingresar? Solicitá acceso
@@ -346,14 +346,14 @@ const LoginPage: React.FC = () => {
           setShowToast(true);
         }} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: '0.78rem', color: '#9ca3af', textDecoration: 'underline',
+          fontSize: '0.78rem', color: '#6b7280', textDecoration: 'underline',
           textDecorationStyle: 'dotted', padding: 0,
         }}>
           Ver tutorial al ingresar
         </button>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#d1d5db', marginTop: 16 }}>
+      <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#9ca3af', marginTop: 16 }}>
         Los accesos son gestionados por la organización.
       </p>
 

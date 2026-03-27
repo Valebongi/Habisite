@@ -481,7 +481,7 @@ const PostulantePage: React.FC = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem('postulante_data');
-    history.replace('/login');
+    window.location.replace('/login');
   };
 
   return (

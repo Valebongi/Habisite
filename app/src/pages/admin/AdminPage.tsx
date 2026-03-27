@@ -785,7 +785,7 @@ const AdminPage: React.FC = () => {
 
   const handleLogout = () => {
     sessionStorage.removeItem('admin_ok');
-    history.replace('/login');
+    window.location.replace('/login');
   };
 
   return (

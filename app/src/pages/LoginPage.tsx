@@ -41,10 +41,15 @@ const LoginPage: React.FC = () => {
   const [postulanteLoading, setPostulanteLoading] = useState(false);
   const [postulanteError, setPostulanteError] = useState('');
 
+  // ── Credenciales desde .env (VITE_ADMIN_USER, VITE_ADMIN_PASS, VITE_JURADO_PASS)
+  const ADMIN_USER = import.meta.env.VITE_ADMIN_USER ?? 'admin';
+  const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS ?? 'habisite2025';
+  const JURADO_PASS = import.meta.env.VITE_JURADO_PASS ?? 'jurado2025';
+
   // ── Login Admin ────────────────────────────────────────────────────────────
   const handleAdminLogin = () => {
     setAdminError('');
-    if (adminUser === 'admin' && adminPass === 'habisite2025') {
+    if (adminUser === ADMIN_USER && adminPass === ADMIN_PASS) {
       setAdminLoading(true);
       sessionStorage.setItem('admin_ok', 'true');
       history.push('/admin');
@@ -60,7 +65,7 @@ const LoginPage: React.FC = () => {
       setJuradoError('Ingresa tu nombre.');
       return;
     }
-    if (juradoPass === 'jurado2025') {
+    if (juradoPass === JURADO_PASS) {
       setJuradoLoading(true);
       sessionStorage.setItem('jurado_nombre', juradoNombre.trim());
       history.push('/jurado');

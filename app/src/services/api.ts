@@ -1,7 +1,7 @@
 // Servicio API — Habisite Design Challenge
 // TODO: reemplazar con autenticación JWT real
 
-const BASE_URL = 'https://api.habisite.com/api/v1';
+const BASE_URL = `${import.meta.env.VITE_API_URL ?? 'https://api.habisite.com/api'}/v1`;
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 

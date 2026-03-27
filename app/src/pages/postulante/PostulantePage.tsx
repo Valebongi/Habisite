@@ -5,10 +5,11 @@ import {
   IonRouterOutlet, IonButton, IonButtons, IonCard, IonCardContent,
   IonCardHeader, IonCardTitle, IonList, IonItem, IonInput, IonSelect,
   IonSelectOption, IonText, IonSpinner, IonToast, IonBadge, IonChip,
-  IonTextarea,
+  IonTextarea, IonModal,
 } from '@ionic/react';
 import {
   personOutline, trophyOutline, cloudUploadOutline,
+  checkmarkCircleOutline,
 } from 'ionicons/icons';
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import { api, Postulante, PostulanteRequest, Concurso, Resolucion } from '../../services/api';
@@ -58,6 +59,107 @@ const formatFecha = (fecha: string) =>
 
 const estadoBadgeColor = (e: string) =>
   e === 'APROBADA' ? 'success' : e === 'RECHAZADA' ? 'danger' : 'warning';
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+const ONBOARDING_KEY = 'habisite_onboarding_done';
+
+const SLIDES = [
+  {
+    emoji: '🏆',
+    titulo: '¡Bienvenido a Habisite!',
+    descripcion: 'Estás participando en el Design Challenge 2026. Esta app es tu espacio personal para gestionar tu postulación de principio a fin.',
+  },
+  {
+    emoji: '📋',
+    titulo: 'Explorá los concursos',
+    descripcion: 'En la pestaña Concursos encontrás todos los desafíos activos, sus bases completas y las fechas de cierre. ¡No te pierdas ninguno!',
+  },
+  {
+    emoji: '📤',
+    titulo: 'Subí tu propuesta',
+    descripcion: 'Cuando tengas tu proyecto listo, cargalo desde Mis Entregas. Podés adjuntar un archivo PDF/ZIP o pegar un enlace de Google Drive.',
+  },
+  {
+    emoji: '✅',
+    titulo: '¡Todo listo!',
+    descripcion: 'Nuestro equipo revisará tu entrega y te notificaremos por email. Si tenés algún problema, usá el formulario de soporte en la pantalla de inicio.',
+  },
+];
+
+const OnboardingModal: React.FC = () => {
+  const [open, setOpen] = useState(!localStorage.getItem(ONBOARDING_KEY));
+  const [slide, setSlide] = useState(0);
+  const current = SLIDES[slide];
+  const esUltimo = slide === SLIDES.length - 1;
+
+  const cerrar = () => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setOpen(false);
+  };
+
+  return (
+    <IonModal isOpen={open} onDidDismiss={cerrar} backdropDismiss={false}
+      style={{ '--border-radius': '20px', '--max-height': '85vh', '--height': 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+
+        {/* Header degradado */}
+        <div style={{ background: 'linear-gradient(135deg, #0d0e10 0%, #2a1208 100%)', padding: '32px 24px 28px', textAlign: 'center', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 12, right: 12 }}>
+            <IonButton fill="clear" size="small" onClick={cerrar}
+              style={{ '--color': '#ffffff55', fontSize: '0.75rem' }}>
+              Saltar
+            </IonButton>
+          </div>
+          <div style={{ fontSize: '3.5rem', lineHeight: 1, marginBottom: 16 }}>{current.emoji}</div>
+          <h2 style={{ margin: 0, color: '#fff', fontWeight: 800, fontSize: '1.3rem', lineHeight: 1.3 }}>
+            {current.titulo}
+          </h2>
+        </div>
+
+        {/* Cuerpo */}
+        <div style={{ flex: 1, padding: '28px 24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fff' }}>
+          <p style={{ margin: 0, color: '#374151', fontSize: '1rem', lineHeight: 1.7, textAlign: 'center' }}>
+            {current.descripcion}
+          </p>
+
+          {/* Puntos de progreso */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, margin: '24px 0' }}>
+            {SLIDES.map((_, i) => (
+              <div key={i} style={{
+                width: i === slide ? 24 : 8, height: 8, borderRadius: 4,
+                background: i === slide ? ORANGE : '#e5e7eb',
+                transition: 'width 0.25s ease',
+              }} />
+            ))}
+          </div>
+
+          {/* Botones */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            {slide > 0 && (
+              <IonButton expand="block" fill="outline" color="medium" onClick={() => setSlide(s => s - 1)} style={{ flex: 1 }}>
+                Atrás
+              </IonButton>
+            )}
+            {!esUltimo ? (
+              <IonButton expand="block" onClick={() => setSlide(s => s + 1)}
+                style={{ flex: 1, '--background': ORANGE }}>
+                Siguiente
+              </IonButton>
+            ) : (
+              <IonButton expand="block" onClick={cerrar}
+                style={{ flex: 1, '--background': ORANGE }}>
+                <IonIcon icon={checkmarkCircleOutline} slot="start" />
+                ¡Empezar!
+              </IonButton>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </IonModal>
+  );
+};
 
 // ─── Header compartido ────────────────────────────────────────────────────────
 const PostulanteHeader: React.FC<{ titulo: string }> = ({ titulo }) => (
@@ -138,6 +240,7 @@ const PerfilTab: React.FC = () => {
 
   return (
     <IonPage>
+      <OnboardingModal />
       <PostulanteHeader titulo={`Hola, ${postulante.nombres}`} />
       <IonContent style={{ '--background': '#f4f5f7' }}>
         {/* Banner de perfil */}

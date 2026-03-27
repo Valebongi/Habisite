@@ -9,7 +9,8 @@ import {
 } from '@ionic/react';
 import {
   personOutline, trophyOutline, cloudUploadOutline,
-  checkmarkCircleOutline,
+  checkmarkCircleOutline, colorPaletteOutline, bulbOutline,
+  documentOutline, linkOutline,
 } from 'ionicons/icons';
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import { api, Postulante, PostulanteRequest, Concurso, Resolucion } from '../../services/api';
@@ -68,7 +69,7 @@ const TOUR_STEPS = [
   {
     path: '/postulante/perfil',
     tabIndex: 0,
-    emoji: '👤',
+    icon: personOutline,
     seccion: 'Tu Perfil',
     descripcion: 'Acá están tus datos de inscripción: nombre, DNI, carrera y contacto. Tocá "Editar" cuando quieras actualizarlos.',
     detalle: 'Tu DNI es tu usuario de ingreso — no se puede cambiar.',
@@ -76,7 +77,7 @@ const TOUR_STEPS = [
   {
     path: '/postulante/concursos',
     tabIndex: 1,
-    emoji: '🏆',
+    icon: trophyOutline,
     seccion: 'Concursos',
     descripcion: 'Explorá todos los desafíos activos. Cada tarjeta muestra el estado del concurso, las fechas y cuántos días quedan.',
     detalle: 'Tocá "Ver bases del concurso" para leer las reglas completas antes de postularte.',
@@ -84,7 +85,7 @@ const TOUR_STEPS = [
   {
     path: '/postulante/entregas',
     tabIndex: 2,
-    emoji: '📤',
+    icon: cloudUploadOutline,
     seccion: 'Mis Entregas',
     descripcion: 'Cuando tengas tu proyecto listo, usá el botón "Nueva entrega". Podés subir un archivo (PDF, ZIP, imagen) o pegar un link de Google Drive.',
     detalle: 'Una vez enviada, el jurado la revisará y verás el estado aquí mismo: Pendiente, Aprobada o Rechazada.',
@@ -123,7 +124,7 @@ const OnboardingTour: React.FC = () => {
         <div style={{ position: 'absolute', top: 40, right: 60, width: 120, height: 120, border: `1.5px solid ${ORANGE}33`, borderRadius: 8, transform: 'rotate(20deg)' }} />
         <div style={{ position: 'absolute', bottom: 80, left: 40, width: 80, height: 80, border: `1.5px solid ${ORANGE}22`, borderRadius: 6, transform: 'rotate(-15deg)' }} />
 
-        <div style={{ fontSize: '4rem', marginBottom: 20 }}>🎨</div>
+        <IonIcon icon={colorPaletteOutline} style={{ fontSize: '4rem', color: ORANGE, marginBottom: 20, display: 'block' }} />
         <p style={{ margin: '0 0 6px', color: ORANGE, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
           Design Challenge 2026
         </p>
@@ -176,7 +177,9 @@ const OnboardingTour: React.FC = () => {
 
         {/* Encabezado */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <span style={{ fontSize: '1.6rem' }}>{current.emoji}</span>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: `${ORANGE}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <IonIcon icon={current.icon} style={{ fontSize: '1.3rem', color: ORANGE }} />
+          </div>
           <div>
             <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sección {step + 1} de {TOUR_STEPS.length}</p>
             <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#111827' }}>{current.seccion}</h3>
@@ -184,8 +187,9 @@ const OnboardingTour: React.FC = () => {
         </div>
 
         <p style={{ margin: '0 0 8px', color: '#374151', lineHeight: 1.6, fontSize: '0.93rem' }}>{current.descripcion}</p>
-        <p style={{ margin: '0 0 18px', color: '#6b7280', lineHeight: 1.5, fontSize: '0.82rem', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${ORANGE}55` }}>
-          💡 {current.detalle}
+        <p style={{ margin: '0 0 18px', color: '#6b7280', lineHeight: 1.5, fontSize: '0.82rem', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${ORANGE}55`, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+          <IonIcon icon={bulbOutline} style={{ fontSize: '1rem', color: ORANGE, flexShrink: 0, marginTop: 1 }} />
+          {current.detalle}
         </p>
 
         {/* Botones */}
@@ -552,7 +556,7 @@ const EntregasTab: React.FC = () => {
                   <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.zip,.dwg" style={{ display: 'none' }} onChange={e => setArchivo(e.target.files?.[0] ?? null)} />
                   <div onClick={() => fileInputRef.current?.click()} style={{ border: `2px dashed ${archivo ? ORANGE : '#d1d5db'}`, borderRadius: 10, padding: '20px', textAlign: 'center', cursor: 'pointer', background: archivo ? '#fff7f5' : '#fafafa' }}>
                     {archivo
-                      ? <p style={{ margin: 0, color: ORANGE, fontWeight: 600, fontSize: '0.9rem' }}>📄 {archivo.name}</p>
+                      ? <p style={{ margin: 0, color: ORANGE, fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><IonIcon icon={documentOutline} />{archivo.name}</p>
                       : <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem' }}>Tocá para seleccionar un archivo</p>
                     }
                   </div>
@@ -599,14 +603,14 @@ const EntregasTab: React.FC = () => {
                 <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
                   {r.tieneArchivo && (
                     <a href={`/api/v1/resoluciones/${r.id}/archivo`} target="_blank" rel="noreferrer"
-                      style={{ fontSize: '0.78rem', color: ORANGE, textDecoration: 'none', fontWeight: 600 }}>
-                      📄 {r.archivoNombre}
+                      style={{ fontSize: '0.78rem', color: ORANGE, textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <IonIcon icon={documentOutline} style={{ fontSize: '0.9rem' }} />{r.archivoNombre}
                     </a>
                   )}
                   {r.urlExterno && (
                     <a href={r.urlExterno} target="_blank" rel="noreferrer"
-                      style={{ fontSize: '0.78rem', color: ORANGE, textDecoration: 'none', fontWeight: 600 }}>
-                      🔗 Ver enlace
+                      style={{ fontSize: '0.78rem', color: ORANGE, textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <IonIcon icon={linkOutline} style={{ fontSize: '0.9rem' }} />Ver enlace
                     </a>
                   )}
                 </div>

@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { IonPage, IonContent, IonSpinner, useIonToast } from '@ionic/react';
+import { IonPage, IonContent, IonSpinner, IonIcon, useIonToast } from '@ionic/react';
+import { AdminMainTour, AdminSectionTour, onboardingPending, sectionTourPending } from './AdminOnboarding';
+import {
+  gridOutline, peopleOutline, starOutline, clipboardOutline,
+  barChartOutline, documentTextOutline, helpCircleOutline,
+  ribbonOutline, settingsOutline,
+} from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import {
   api, AdminStats, Postulante, Evaluacion,
@@ -55,22 +61,22 @@ const AREAS: AreaItem[] = [
 
 // ─── Menú lateral ─────────────────────────────────────────────────────────────
 const MENU: MenuItem[] = [
-  { id: 'dashboard',    icon: '▣', label: 'Dashboard' },
-  { id: 'postulantes',  icon: '👥', label: 'Postulantes' },
-  { id: 'evaluaciones', icon: '⭐', label: 'Evaluaciones' },
+  { id: 'dashboard',    icon: gridOutline,         label: 'Dashboard' },
+  { id: 'postulantes',  icon: peopleOutline,        label: 'Postulantes' },
+  { id: 'evaluaciones', icon: starOutline,           label: 'Evaluaciones' },
   {
-    id: 'areas', icon: '📋', label: 'Relevamiento de Áreas',
+    id: 'areas', icon: clipboardOutline, label: 'Relevamiento de Áreas',
     sub: [
       { id: 'areas-sitio',         label: 'Secciones del sitio' },
       { id: 'areas-publicaciones', label: 'Publicaciones' },
       { id: 'areas-recursos',      label: 'Imágenes y recursos' },
     ],
   },
-  { id: 'estadisticas',  icon: '📊', label: 'Estadísticas' },
-  { id: 'entregas',      icon: '📦', label: 'Entregas' },
-  { id: 'soporte',       icon: '🎫', label: 'Soporte' },
-  { id: 'jurado',        icon: '🏛', label: 'Jurado' },
-  { id: 'configuracion', icon: '⚙', label: 'Configuración' },
+  { id: 'estadisticas',  icon: barChartOutline,      label: 'Estadísticas' },
+  { id: 'entregas',      icon: documentTextOutline,  label: 'Entregas' },
+  { id: 'soporte',       icon: helpCircleOutline,    label: 'Soporte' },
+  { id: 'jurado',        icon: ribbonOutline,        label: 'Jurado' },
+  { id: 'configuracion', icon: settingsOutline,      label: 'Configuración' },
 ];
 
 // ─── Helpers de UI ────────────────────────────────────────────────────────────
@@ -205,14 +211,14 @@ const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; re
       <OrangeBar
         label={`Postulantes (${filtrados.length})`}
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div id="tour-postulantes-actions" style={{ display: 'flex', gap: 8 }}>
             <button onClick={reload}    style={btnOutlineWhite}>↻ Actualizar</button>
             <button onClick={exportCSV} style={btnOutlineWhite}>↓ CSV</button>
           </div>
         }
       />
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div id="tour-postulantes-filter" style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <input
           value={q} onChange={e => setQ(e.target.value)}
           placeholder="Buscar nombre, DNI, universidad…"
@@ -382,7 +388,7 @@ const SecAreasSitio: React.FC = () => {
         <StatCard value={pend} label="Pendientes"  sub="sin contenido" />
       </div>
 
-      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+      <div id="tour-areas-table" style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
@@ -567,6 +573,7 @@ const SecEntregas: React.FC = () => {
         action={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <select
+              id="tour-entregas-filter"
               value={filtroEstado}
               onChange={e => setFiltroEstado(e.target.value)}
               style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: '0.75rem', color: '#fff', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
@@ -690,7 +697,7 @@ const SecSoporte: React.FC = () => {
       />
 
       {pendientes > 0 && (
-        <div style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+        <div id="tour-soporte-alert" style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
           <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
             <strong>{pendientes}</strong> ticket{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de resolución
           </span>
@@ -821,6 +828,8 @@ const AdminPage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen]     = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [expanded, setExpanded]           = useState<Set<string>>(new Set(['areas']));
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [sectionTour, setSectionTour] = useState<string | null>(null);
 
   const [stats, setStats]               = useState<AdminStats | null>(null);
   const [postulantes, setPostulantes]   = useState<Postulante[]>([]);
@@ -830,6 +839,7 @@ const AdminPage: React.FC = () => {
 
   useEffect(() => {
     if (!sessionStorage.getItem('admin_ok')) { history.replace('/login'); return; }
+    if (onboardingPending()) setShowOnboarding(true);
     loadStats();
     loadPostulantes();
     loadEvaluaciones();
@@ -854,7 +864,10 @@ const AdminPage: React.FC = () => {
     finally { setLoadingE(false); }
   }, []);
 
-  const navigate = (id: string) => setActiveSection(id);
+  const navigate = (id: string) => {
+    setActiveSection(id);
+    if (sectionTourPending(id)) setSectionTour(id);
+  };
 
   const toggleExpand = (id: string) => setExpanded(prev => {
     const next = new Set(prev);
@@ -890,7 +903,7 @@ const AdminPage: React.FC = () => {
         <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.dark }}>
 
           {/* ─── Sidebar ──────────────────────────────────────────────────── */}
-          <aside style={{
+          <aside id="admin-sidebar" style={{
             width: sidebarOpen ? 260 : 52,
             minWidth: sidebarOpen ? 260 : 52,
             background: C.dark,
@@ -929,7 +942,7 @@ const AdminPage: React.FC = () => {
             </div>
 
             {sidebarOpen && (
-              <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
+              <nav id="admin-nav" className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
                 {MENU.map(item => {
                   const isActive = activeSection === item.id || (item.sub?.some(s => s.id === activeSection));
                   return (
@@ -947,7 +960,7 @@ const AdminPage: React.FC = () => {
                         }}
                       >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ fontSize: '1rem', width: 20, textAlign: 'center' }}>{item.icon}</span>
+                          <IonIcon icon={item.icon} style={{ fontSize: '1.1rem', flexShrink: 0 }} />
                           {item.label}
                         </span>
                         {item.sub && (
@@ -991,7 +1004,7 @@ const AdminPage: React.FC = () => {
 
           {/* ─── Contenido principal ──────────────────────────────────────── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
-            <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div id="admin-topbar" style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{pageTitle}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <button onClick={loadStats} style={{ ...btnSm, fontSize: '0.75rem', color: C.gray }}>↻ Sync</button>
@@ -1000,12 +1013,24 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+            <div id="admin-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
               {renderContent()}
             </div>
           </div>
 
         </div>
+        {showOnboarding && (
+          <AdminMainTour
+            onNavigate={(section) => setActiveSection(section)}
+            onFinish={() => setShowOnboarding(false)}
+          />
+        )}
+        {sectionTour && (
+          <AdminSectionTour
+            section={sectionTour}
+            onFinish={() => setSectionTour(null)}
+          />
+        )}
       </IonContent>
     </IonPage>
   );

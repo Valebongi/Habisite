@@ -42,6 +42,9 @@ const CODIGOS_PAIS = [
   { label: '+34 (España)', value: '+34' },
 ];
 
+// ─── Cambiar a true cuando se abra la inscripción ─────────────────────────────
+const REGISTRO_ABIERTO = false;
+
 const RegistroPage: React.FC = () => {
   const history = useHistory();
 
@@ -123,6 +126,25 @@ const RegistroPage: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen style={{ '--background': '#f4f5f7' }}>
+
+        {!REGISTRO_ABIERTO ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', padding: '32px 24px', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff3e0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, fontSize: '2rem' }}>
+              🔒
+            </div>
+            <h2 style={{ margin: '0 0 12px', fontSize: '1.4rem', fontWeight: 700, color: '#111827' }}>
+              Inscripción no disponible aún
+            </h2>
+            <p style={{ margin: '0 0 24px', fontSize: '1rem', color: '#6b7280', maxWidth: 380, lineHeight: 1.6 }}>
+              Las inscripciones al Habisite Design Challenge 2026 abrirán próximamente.
+              Pronto podrás completar tu postulación desde aquí.
+            </p>
+            <IonButton fill="outline" color="medium" routerLink="/login">
+              Volver al inicio
+            </IonButton>
+          </div>
+        ) : (
+        <>
         {/* Subtítulo decorativo */}
         <div style={{ textAlign: 'center', padding: '20px 16px 4px' }}>
           <IonText color="medium">
@@ -287,6 +309,8 @@ const RegistroPage: React.FC = () => {
           color={toastColor}
           position="top"
         />
+        </>
+        )}
       </IonContent>
     </IonPage>
   );

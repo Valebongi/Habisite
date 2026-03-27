@@ -5,7 +5,7 @@ import {
   IonRouterOutlet, IonButton, IonButtons, IonCard, IonCardContent,
   IonCardHeader, IonCardTitle, IonList, IonItem, IonInput, IonSelect,
   IonSelectOption, IonText, IonSpinner, IonToast, IonBadge, IonChip,
-  IonTextarea, IonModal,
+  IonTextarea,
 } from '@ionic/react';
 import {
   personOutline, trophyOutline, cloudUploadOutline,
@@ -60,104 +60,149 @@ const formatFecha = (fecha: string) =>
 const estadoBadgeColor = (e: string) =>
   e === 'APROBADA' ? 'success' : e === 'RECHAZADA' ? 'danger' : 'warning';
 
-// ─── Onboarding ───────────────────────────────────────────────────────────────
+// ─── Onboarding Tour ──────────────────────────────────────────────────────────
 
 const ONBOARDING_KEY = 'habisite_onboarding_done';
 
-const SLIDES = [
+const TOUR_STEPS = [
   {
+    path: '/postulante/perfil',
+    tabIndex: 0,
+    emoji: '👤',
+    seccion: 'Tu Perfil',
+    descripcion: 'Acá están tus datos de inscripción: nombre, DNI, carrera y contacto. Tocá "Editar" cuando quieras actualizarlos.',
+    detalle: 'Tu DNI es tu usuario de ingreso — no se puede cambiar.',
+  },
+  {
+    path: '/postulante/concursos',
+    tabIndex: 1,
     emoji: '🏆',
-    titulo: '¡Bienvenido a Habisite!',
-    descripcion: 'Estás participando en el Design Challenge 2026. Esta app es tu espacio personal para gestionar tu postulación de principio a fin.',
+    seccion: 'Concursos',
+    descripcion: 'Explorá todos los desafíos activos. Cada tarjeta muestra el estado del concurso, las fechas y cuántos días quedan.',
+    detalle: 'Tocá "Ver bases del concurso" para leer las reglas completas antes de postularte.',
   },
   {
-    emoji: '📋',
-    titulo: 'Explorá los concursos',
-    descripcion: 'En la pestaña Concursos encontrás todos los desafíos activos, sus bases completas y las fechas de cierre. ¡No te pierdas ninguno!',
-  },
-  {
+    path: '/postulante/entregas',
+    tabIndex: 2,
     emoji: '📤',
-    titulo: 'Subí tu propuesta',
-    descripcion: 'Cuando tengas tu proyecto listo, cargalo desde Mis Entregas. Podés adjuntar un archivo PDF/ZIP o pegar un enlace de Google Drive.',
-  },
-  {
-    emoji: '✅',
-    titulo: '¡Todo listo!',
-    descripcion: 'Nuestro equipo revisará tu entrega y te notificaremos por email. Si tenés algún problema, usá el formulario de soporte en la pantalla de inicio.',
+    seccion: 'Mis Entregas',
+    descripcion: 'Cuando tengas tu proyecto listo, usá el botón "Nueva entrega". Podés subir un archivo (PDF, ZIP, imagen) o pegar un link de Google Drive.',
+    detalle: 'Una vez enviada, el jurado la revisará y verás el estado aquí mismo: Pendiente, Aprobada o Rechazada.',
   },
 ];
 
-const OnboardingModal: React.FC = () => {
-  const [open, setOpen] = useState(!localStorage.getItem(ONBOARDING_KEY));
-  const [slide, setSlide] = useState(0);
-  const current = SLIDES[slide];
-  const esUltimo = slide === SLIDES.length - 1;
+// Posición horizontal del indicador por tab (3 tabs iguales)
+const TAB_LEFT = ['16.6%', '50%', '83.3%'];
 
-  const cerrar = () => {
-    localStorage.setItem(ONBOARDING_KEY, '1');
-    setOpen(false);
+const OnboardingTour: React.FC = () => {
+  const history = useHistory();
+  const [step, setStep] = useState<number>(-1); // -1 = pantalla de bienvenida
+  const [visible, setVisible] = useState(!localStorage.getItem(ONBOARDING_KEY));
+
+  useEffect(() => {
+    if (!visible || step < 0) return;
+    history.replace(TOUR_STEPS[step].path);
+  }, [step, visible, history]);
+
+  const siguiente = () => {
+    if (step < TOUR_STEPS.length - 1) setStep(s => s + 1);
+    else finalizar();
   };
 
-  return (
-    <IonModal isOpen={open} onDidDismiss={cerrar} backdropDismiss={false}
-      style={{ '--border-radius': '20px', '--max-height': '85vh', '--height': 'auto' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+  const finalizar = () => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setVisible(false);
+  };
 
-        {/* Header degradado */}
-        <div style={{ background: 'linear-gradient(135deg, #0d0e10 0%, #2a1208 100%)', padding: '32px 24px 28px', textAlign: 'center', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 12, right: 12 }}>
-            <IonButton fill="clear" size="small" onClick={cerrar}
-              style={{ '--color': '#ffffff55', fontSize: '0.75rem' }}>
-              Saltar
-            </IonButton>
-          </div>
-          <div style={{ fontSize: '3.5rem', lineHeight: 1, marginBottom: 16 }}>{current.emoji}</div>
-          <h2 style={{ margin: 0, color: '#fff', fontWeight: 800, fontSize: '1.3rem', lineHeight: 1.3 }}>
-            {current.titulo}
-          </h2>
-        </div>
+  if (!visible) return null;
 
-        {/* Cuerpo */}
-        <div style={{ flex: 1, padding: '28px 24px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#fff' }}>
-          <p style={{ margin: 0, color: '#374151', fontSize: '1rem', lineHeight: 1.7, textAlign: 'center' }}>
-            {current.descripcion}
-          </p>
+  // ── Pantalla de bienvenida ────────────────────────────────────────────────
+  if (step === -1) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'linear-gradient(135deg, #0d0e10 0%, #2a1208 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px' }}>
+        <div style={{ position: 'absolute', top: 40, right: 60, width: 120, height: 120, border: `1.5px solid ${ORANGE}33`, borderRadius: 8, transform: 'rotate(20deg)' }} />
+        <div style={{ position: 'absolute', bottom: 80, left: 40, width: 80, height: 80, border: `1.5px solid ${ORANGE}22`, borderRadius: 6, transform: 'rotate(-15deg)' }} />
 
-          {/* Puntos de progreso */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, margin: '24px 0' }}>
-            {SLIDES.map((_, i) => (
-              <div key={i} style={{
-                width: i === slide ? 24 : 8, height: 8, borderRadius: 4,
-                background: i === slide ? ORANGE : '#e5e7eb',
-                transition: 'width 0.25s ease',
-              }} />
-            ))}
-          </div>
+        <div style={{ fontSize: '4rem', marginBottom: 20 }}>🎨</div>
+        <p style={{ margin: '0 0 6px', color: ORANGE, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+          Design Challenge 2026
+        </p>
+        <h1 style={{ margin: '0 0 16px', color: '#fff', fontWeight: 800, fontSize: '1.7rem', textAlign: 'center', lineHeight: 1.2 }}>
+          ¡Bienvenido a Habisite!
+        </h1>
+        <p style={{ margin: '0 0 48px', color: '#ffffff88', textAlign: 'center', fontSize: '1rem', lineHeight: 1.65 }}>
+          Te mostramos en 3 pasos cómo usar la app para gestionar tu postulación sin problemas.
+        </p>
 
-          {/* Botones */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            {slide > 0 && (
-              <IonButton expand="block" fill="outline" color="medium" onClick={() => setSlide(s => s - 1)} style={{ flex: 1 }}>
-                Atrás
-              </IonButton>
-            )}
-            {!esUltimo ? (
-              <IonButton expand="block" onClick={() => setSlide(s => s + 1)}
-                style={{ flex: 1, '--background': ORANGE }}>
-                Siguiente
-              </IonButton>
-            ) : (
-              <IonButton expand="block" onClick={cerrar}
-                style={{ flex: 1, '--background': ORANGE }}>
-                <IonIcon icon={checkmarkCircleOutline} slot="start" />
-                ¡Empezar!
-              </IonButton>
-            )}
-          </div>
-        </div>
-
+        <IonButton expand="block" onClick={() => setStep(0)}
+          style={{ width: '100%', '--background': ORANGE, '--border-radius': '12px', '--padding-top': '14px', '--padding-bottom': '14px', fontWeight: 700 }}>
+          Ver el tour →
+        </IonButton>
+        <IonButton expand="block" fill="clear" onClick={finalizar}
+          style={{ width: '100%', '--color': '#ffffff44', marginTop: 4 }}>
+          Saltar
+        </IonButton>
       </div>
-    </IonModal>
+    );
+  }
+
+  // ── Overlay contextual por sección ───────────────────────────────────────
+  const current = TOUR_STEPS[step];
+  const esUltimo = step === TOUR_STEPS.length - 1;
+
+  return (
+    <>
+      {/* Dim overlay — no cubre la tab bar */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 56, zIndex: 9997, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+
+      {/* Indicador sobre el tab activo */}
+      <div style={{ position: 'fixed', bottom: 58, left: TAB_LEFT[current.tabIndex], transform: 'translateX(-50%)', zIndex: 9999, pointerEvents: 'none' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${ORANGE}`, background: `${ORANGE}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: ORANGE }} />
+        </div>
+        {/* flecha abajo */}
+        <div style={{ width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: `7px solid ${ORANGE}`, margin: '0 auto' }} />
+      </div>
+
+      {/* Card explicativa */}
+      <div style={{ position: 'fixed', bottom: 56 + 16, left: 12, right: 12, zIndex: 9998, background: '#fff', borderRadius: 18, padding: '22px 20px 18px', boxShadow: '0 -2px 40px rgba(0,0,0,0.25)' }}>
+
+        {/* Barra de progreso */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+          {TOUR_STEPS.map((_, i) => (
+            <div key={i} style={{ height: 4, borderRadius: 2, flex: i === step ? 3 : 1, background: i <= step ? ORANGE : '#e5e7eb', transition: 'flex 0.3s ease, background 0.3s ease' }} />
+          ))}
+        </div>
+
+        {/* Encabezado */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: '1.6rem' }}>{current.emoji}</span>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sección {step + 1} de {TOUR_STEPS.length}</p>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#111827' }}>{current.seccion}</h3>
+          </div>
+        </div>
+
+        <p style={{ margin: '0 0 8px', color: '#374151', lineHeight: 1.6, fontSize: '0.93rem' }}>{current.descripcion}</p>
+        <p style={{ margin: '0 0 18px', color: '#6b7280', lineHeight: 1.5, fontSize: '0.82rem', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${ORANGE}55` }}>
+          💡 {current.detalle}
+        </p>
+
+        {/* Botones */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {step > 0 && (
+            <IonButton fill="outline" color="medium" onClick={() => setStep(s => s - 1)} style={{ flex: 1 }}>
+              ← Atrás
+            </IonButton>
+          )}
+          <IonButton onClick={siguiente} style={{ flex: 2, '--background': ORANGE }}>
+            {esUltimo
+              ? <><IonIcon icon={checkmarkCircleOutline} slot="start" /> ¡Entendido!</>
+              : 'Siguiente →'}
+          </IonButton>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -240,7 +285,6 @@ const PerfilTab: React.FC = () => {
 
   return (
     <IonPage>
-      <OnboardingModal />
       <PostulanteHeader titulo={`Hola, ${postulante.nombres}`} />
       <IonContent style={{ '--background': '#f4f5f7' }}>
         {/* Banner de perfil */}
@@ -580,6 +624,8 @@ const EntregasTab: React.FC = () => {
 
 // ─── PostulantePage — solo IonTabs, sin IonPage propio ────────────────────────
 const PostulantePage: React.FC = () => (
+  <>
+  <OnboardingTour />
   <IonTabs>
     <IonRouterOutlet>
       <Route exact path="/postulante/perfil" component={PerfilTab} />
@@ -603,6 +649,7 @@ const PostulantePage: React.FC = () => (
       </IonTabButton>
     </IonTabBar>
   </IonTabs>
+  </>
 );
 
 export default PostulantePage;

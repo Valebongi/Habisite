@@ -8,6 +8,7 @@ import {
   IonSpinner,
   IonTextarea,
   IonModal,
+  IonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import { api } from '../services/api';
@@ -154,6 +155,8 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
   const [showSoporte, setShowSoporte] = useState(false);
+  const [showToast, setShowToast]   = useState(false);
+  const [toastMsg, setToastMsg]     = useState('');
 
   const handleLogin = async () => {
     setError('');
@@ -166,7 +169,7 @@ const LoginPage: React.FC = () => {
 
       if (res.rol === 'ADMIN') {
         sessionStorage.setItem('admin_ok', 'true');
-        history.replace('/admin/dashboard');
+        history.replace('/admin');
       } else if (res.rol === 'JURADO') {
         sessionStorage.setItem('jurado_nombre', res.nombre);
         history.replace('/jurado');
@@ -249,11 +252,28 @@ const LoginPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Recordar tutorial */}
+      <div style={{ textAlign: 'center', marginTop: 10 }}>
+        <button onClick={() => {
+          localStorage.removeItem('habisite_onboarding_v2');
+          setError('');
+          setToastMsg('El tutorial se mostrará al ingresar.');
+          setShowToast(true);
+        }} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: '0.78rem', color: '#9ca3af', textDecoration: 'underline',
+          textDecorationStyle: 'dotted', padding: 0,
+        }}>
+          Ver tutorial al ingresar
+        </button>
+      </div>
+
       <p style={{ textAlign: 'center', fontSize: '0.72rem', color: '#d1d5db', marginTop: 16 }}>
         Los accesos son gestionados por la organización.
       </p>
 
       <ModalSoporte isOpen={showSoporte} onClose={() => setShowSoporte(false)} />
+      <IonToast isOpen={showToast} onDidDismiss={() => setShowToast(false)} message={toastMsg} duration={2500} position="top" color="medium" />
     </div>
   );
 

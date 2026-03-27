@@ -44,6 +44,7 @@ import {
   closeCircleOutline,
   downloadOutline,
   keyOutline,
+  checkmarkCircleOutline,
 } from 'ionicons/icons';
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import {
@@ -58,6 +59,164 @@ import {
   SoporteTicket,
   Resolucion,
 } from '../../services/api';
+
+// ─── Onboarding Tour Admin ────────────────────────────────────────────────────
+
+const ADMIN_ONBOARDING_KEY = 'habisite_admin_onboarding_done';
+const ORANGE = '#E85520';
+
+const ADMIN_TOUR_STEPS = [
+  {
+    path: '/admin/dashboard',
+    tabIndex: 0,
+    emoji: '📊',
+    seccion: 'Dashboard',
+    descripcion: 'Vista general del concurso en tiempo real: postulantes registrados, evaluaciones, entregas y su estado. Los gráficos muestran la distribución por especialidad y universidad.',
+    detalle: 'Los números se actualizan cada vez que entrás a esta pestaña.',
+  },
+  {
+    path: '/admin/postulantes',
+    tabIndex: 1,
+    emoji: '👥',
+    seccion: 'Postulantes',
+    descripcion: 'Listado completo de inscriptos. Buscá por nombre, DNI o universidad. Si un postulante olvidó su contraseña, usá "Regenerar clave" para enviarle una nueva por email.',
+    detalle: 'El DNI es el usuario de ingreso del postulante — no se puede cambiar.',
+  },
+  {
+    path: '/admin/evaluaciones',
+    tabIndex: 2,
+    emoji: '⭐',
+    seccion: 'Evaluaciones del Jurado',
+    descripcion: 'Acá ves todos los puntajes (1–10) asignados por cada jurado a cada postulante, junto con sus comentarios y la fecha de evaluación.',
+    detalle: 'Los jurados evalúan desde su propio panel. Vos solo tenés visibilidad.',
+  },
+  {
+    path: '/admin/entregas',
+    tabIndex: 3,
+    emoji: '📁',
+    seccion: 'Entregas',
+    descripcion: 'Revisá las propuestas enviadas por los postulantes. Podés aprobar o rechazar cada entrega, filtrar por estado y descargar los archivos adjuntos.',
+    detalle: 'Las entregas "Pendientes" están esperando tu revisión — aparecen resaltadas.',
+  },
+  {
+    path: '/admin/soporte',
+    tabIndex: 4,
+    emoji: '🎫',
+    seccion: 'Soporte',
+    descripcion: 'Cuando un postulante tiene un problema y llena el formulario de soporte, el ticket aparece aquí. Revisalo y marcálo como resuelto una vez atendido.',
+    detalle: 'También recibís un email en growthimbar@gmail.com por cada ticket nuevo.',
+  },
+];
+
+const TAB_LEFT_ADMIN = ['10%', '30%', '50%', '70%', '90%'];
+
+const OnboardingAdminTour: React.FC = () => {
+  const history = useHistory();
+  const [step, setStep] = useState<number>(-1);
+  const [visible, setVisible] = useState(!localStorage.getItem(ADMIN_ONBOARDING_KEY));
+
+  useEffect(() => {
+    if (!visible || step < 0) return;
+    history.replace(ADMIN_TOUR_STEPS[step].path);
+  }, [step, visible, history]);
+
+  const siguiente = () => {
+    if (step < ADMIN_TOUR_STEPS.length - 1) setStep(s => s + 1);
+    else finalizar();
+  };
+
+  const finalizar = () => {
+    localStorage.setItem(ADMIN_ONBOARDING_KEY, '1');
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+
+  // ── Pantalla de bienvenida ────────────────────────────────────────────────
+  if (step === -1) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'linear-gradient(135deg, #0d0e10 0%, #2a1208 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px' }}>
+        <div style={{ position: 'absolute', top: 40, right: 60, width: 120, height: 120, border: `1.5px solid ${ORANGE}33`, borderRadius: 8, transform: 'rotate(20deg)' }} />
+        <div style={{ position: 'absolute', bottom: 80, left: 40, width: 80, height: 80, border: `1.5px solid ${ORANGE}22`, borderRadius: 6, transform: 'rotate(-15deg)' }} />
+
+        <div style={{ fontSize: '4rem', marginBottom: 20 }}>🛠️</div>
+        <p style={{ margin: '0 0 6px', color: ORANGE, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+          Panel de Administración
+        </p>
+        <h1 style={{ margin: '0 0 16px', color: '#fff', fontWeight: 800, fontSize: '1.7rem', textAlign: 'center', lineHeight: 1.2 }}>
+          ¡Bienvenido, Admin!
+        </h1>
+        <p style={{ margin: '0 0 48px', color: '#ffffff88', textAlign: 'center', fontSize: '1rem', lineHeight: 1.65 }}>
+          Te mostramos en 5 pasos qué hace cada sección del panel para que puedas gestionar el concurso sin problemas.
+        </p>
+        <IonButton expand="block" onClick={() => setStep(0)}
+          style={{ width: '100%', '--background': ORANGE, '--border-radius': '12px', '--padding-top': '14px', '--padding-bottom': '14px', fontWeight: 700 }}>
+          Ver el tour →
+        </IonButton>
+        <IonButton expand="block" fill="clear" onClick={finalizar}
+          style={{ width: '100%', '--color': '#ffffff44', marginTop: 4 }}>
+          Saltar
+        </IonButton>
+      </div>
+    );
+  }
+
+  // ── Overlay contextual por sección ───────────────────────────────────────
+  const current = ADMIN_TOUR_STEPS[step];
+  const esUltimo = step === ADMIN_TOUR_STEPS.length - 1;
+
+  return (
+    <>
+      {/* Dim overlay — no cubre la tab bar */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 56, zIndex: 9997, background: 'rgba(0,0,0,0.55)', pointerEvents: 'none' }} />
+
+      {/* Indicador sobre el tab activo */}
+      <div style={{ position: 'fixed', bottom: 58, left: TAB_LEFT_ADMIN[current.tabIndex], transform: 'translateX(-50%)', zIndex: 9999, pointerEvents: 'none' }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: `2.5px solid ${ORANGE}`, background: `${ORANGE}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 9, height: 9, borderRadius: '50%', background: ORANGE }} />
+        </div>
+        <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `6px solid ${ORANGE}`, margin: '0 auto' }} />
+      </div>
+
+      {/* Card explicativa */}
+      <div style={{ position: 'fixed', bottom: 56 + 16, left: 12, right: 12, zIndex: 9998, background: '#fff', borderRadius: 18, padding: '22px 20px 18px', boxShadow: '0 -2px 40px rgba(0,0,0,0.25)' }}>
+
+        {/* Barra de progreso */}
+        <div style={{ display: 'flex', gap: 5, marginBottom: 18 }}>
+          {ADMIN_TOUR_STEPS.map((_, i) => (
+            <div key={i} style={{ height: 4, borderRadius: 2, flex: i === step ? 3 : 1, background: i <= step ? ORANGE : '#e5e7eb', transition: 'flex 0.3s ease, background 0.3s ease' }} />
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: '1.6rem' }}>{current.emoji}</span>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sección {step + 1} de {ADMIN_TOUR_STEPS.length}</p>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#111827' }}>{current.seccion}</h3>
+          </div>
+        </div>
+
+        <p style={{ margin: '0 0 8px', color: '#374151', lineHeight: 1.6, fontSize: '0.93rem' }}>{current.descripcion}</p>
+        <p style={{ margin: '0 0 18px', color: '#6b7280', lineHeight: 1.5, fontSize: '0.82rem', background: '#f8fafc', padding: '8px 12px', borderRadius: 8, borderLeft: `3px solid ${ORANGE}55` }}>
+          💡 {current.detalle}
+        </p>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          {step > 0 && (
+            <IonButton fill="outline" color="medium" onClick={() => setStep(s => s - 1)} style={{ flex: 1 }}>
+              ← Atrás
+            </IonButton>
+          )}
+          <IonButton onClick={siguiente} style={{ flex: 2, '--background': ORANGE }}>
+            {esUltimo
+              ? <><IonIcon icon={checkmarkCircleOutline} slot="start" /> ¡Entendido!</>
+              : 'Siguiente →'}
+          </IonButton>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ─── Logout y guard ───────────────────────────────────────────────────────────
 const handleAdminLogout = () => {
@@ -818,6 +977,8 @@ const SoporteTab: React.FC = () => {
 
 // ─── AdminPage — solo IonTabs, sin IonPage propio ─────────────────────────────
 const AdminPage: React.FC = () => (
+  <>
+  <OnboardingAdminTour />
   <IonTabs>
     <IonRouterOutlet>
       <Route exact path="/admin/dashboard" component={DashboardTab} />
@@ -851,6 +1012,7 @@ const AdminPage: React.FC = () => (
           </IonTabButton>
         </IonTabBar>
       </IonTabs>
+  </>
 );
 
 export default AdminPage;

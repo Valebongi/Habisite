@@ -20,5 +20,8 @@ public interface PostulanteService {
     /** Genera una nueva contraseña y la envía por email al postulante. */
     void regenerarClave(Long id);
 
+    /** Recupera la clave buscando por DNI — no expone si el DNI existe. */
+    void recuperarClavePorDni(String dni);
+
     void eliminar(Long id);
 }

@@ -130,6 +130,19 @@ public class PostulanteServiceImpl implements PostulanteService {
 
     @Override
     @Transactional
+    public void recuperarClavePorDni(String dni) {
+        repository.findByDni(dni.trim()).ifPresent(p -> {
+            String plainPassword = PasswordGenerator.generate();
+            p.setPasswordHash(ENCODER.encode(plainPassword));
+            repository.save(p);
+            emailService.enviarCredenciales(p, plainPassword);
+            log.info("Clave recuperada y enviada por email para DNI: {}", dni);
+        });
+        // Si el DNI no existe, no se expone — respuesta siempre 200
+    }
+
+    @Override
+    @Transactional
     public void eliminar(Long id) {
         log.debug("Eliminando postulante con ID: {}", id);
         if (!repository.existsById(id)) {

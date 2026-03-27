@@ -148,6 +148,13 @@ export const api = {
     regenerarClave: (id: number) =>
       req<void>(`/postulantes/${id}/regenerar-clave`, { method: 'POST' }),
 
+    /** Recupera contraseña por DNI — siempre devuelve 200 */
+    recuperarClave: (dni: string) =>
+      req<void>('/postulantes/recuperar-clave', {
+        method: 'POST',
+        body: JSON.stringify({ dni }),
+      }),
+
     /** Elimina un postulante por ID */
     eliminar: (id: number) =>
       req<void>(`/postulantes/${id}`, { method: 'DELETE' }),

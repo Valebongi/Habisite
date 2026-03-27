@@ -77,6 +77,18 @@ public class PostulanteController {
     }
 
     /**
+     * POST /api/v1/postulantes/recuperar-clave
+     * Envía una nueva contraseña al email del DNI indicado.
+     * Siempre responde 200 para no exponer si el DNI existe.
+     */
+    @PostMapping("/recuperar-clave")
+    public ResponseEntity<Void> recuperarClave(@RequestBody java.util.Map<String, String> body) {
+        String dni = body.getOrDefault("dni", "").trim();
+        if (!dni.isBlank()) service.recuperarClavePorDni(dni);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * DELETE /api/v1/postulantes/{id}
      * Elimina un postulante.
      */

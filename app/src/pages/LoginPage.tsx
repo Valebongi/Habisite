@@ -155,9 +155,26 @@ const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
-  const [showSoporte, setShowSoporte] = useState(false);
-  const [showToast, setShowToast]   = useState(false);
-  const [toastMsg, setToastMsg]     = useState('');
+  const [showSoporte, setShowSoporte]       = useState(false);
+  const [showRecuperar, setShowRecuperar]   = useState(false);
+  const [dniRecuperar, setDniRecuperar]     = useState('');
+  const [enviandoClave, setEnviandoClave]   = useState(false);
+  const [showToast, setShowToast]           = useState(false);
+  const [toastMsg, setToastMsg]             = useState('');
+
+  const handleRecuperar = async () => {
+    if (!dniRecuperar.trim()) return;
+    setEnviandoClave(true);
+    try {
+      await api.postulantes.recuperarClave(dniRecuperar.trim());
+    } finally {
+      setEnviandoClave(false);
+      setDniRecuperar('');
+      setShowRecuperar(false);
+      setToastMsg('Si tu DNI está registrado, recibirás tus credenciales por email.');
+      setShowToast(true);
+    }
+  };
 
   // Auto-login si hay sesión guardada en localStorage (se omite si viene de un logout explícito)
   useEffect(() => {
@@ -277,9 +294,41 @@ const LoginPage: React.FC = () => {
         {loading ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Ingresando…</> : 'Ingresar'}
       </IonButton>
 
-      {/* Link de soporte */}
+      {/* Recuperar contraseña */}
       <div style={{ textAlign: 'center', marginTop: 20 }}>
-        <button onClick={() => setShowSoporte(true)} style={{
+        <button onClick={() => { setShowRecuperar(r => !r); setShowSoporte(false); }} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: '0.82rem', color: '#6b7280', textDecoration: 'underline',
+          textDecorationStyle: 'dotted', padding: 0,
+        }}>
+          ¿Olvidaste tu contraseña?
+        </button>
+      </div>
+
+      {showRecuperar && (
+        <div style={{ marginTop: 12, background: '#f8fafc', borderRadius: 12, padding: '16px', border: '1px solid #e5e7eb' }}>
+          <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#374151' }}>
+            Ingresá tu DNI y te enviamos una nueva contraseña al email registrado.
+          </p>
+          <div style={styles.inputWrapper}>
+            <IonInput
+              value={dniRecuperar}
+              onIonInput={e => setDniRecuperar(e.detail.value ?? '')}
+              placeholder="Tu número de DNI"
+              type="text"
+              style={styles.input}
+            />
+          </div>
+          <IonButton expand="block" onClick={handleRecuperar} disabled={enviandoClave}
+            style={{ marginTop: 10, '--background': ORANGE, '--border-radius': '8px' }}>
+            {enviandoClave ? <IonSpinner name="crescent" /> : 'Enviar nueva contraseña'}
+          </IonButton>
+        </div>
+      )}
+
+      {/* Link de soporte */}
+      <div style={{ textAlign: 'center', marginTop: 12 }}>
+        <button onClick={() => { setShowSoporte(true); setShowRecuperar(false); }} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           fontSize: '0.82rem', color: '#6b7280', textDecoration: 'underline',
           textDecorationStyle: 'dotted', padding: 0,

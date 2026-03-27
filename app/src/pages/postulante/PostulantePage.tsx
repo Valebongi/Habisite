@@ -62,7 +62,7 @@ const estadoBadgeColor = (e: string) =>
 
 // ─── Onboarding Tour ──────────────────────────────────────────────────────────
 
-const ONBOARDING_KEY = 'habisite_onboarding_done';
+const ONBOARDING_KEY = 'habisite_onboarding_v2';
 
 const TOUR_STEPS = [
   {

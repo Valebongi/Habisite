@@ -44,7 +44,10 @@ const JuradoHeader: React.FC<{ titulo?: string }> = ({ titulo }) => (
     <IonToolbar color="primary">
       <IonTitle>{titulo ?? `Hola, ${juradoNombre()}`}</IonTitle>
       <IonButtons slot="end">
-        <IonButton color="light" fill="clear" onClick={handleLogout}>Salir</IonButton>
+        <IonButton fill="outline" onClick={handleLogout}
+          style={{ '--color': '#fff', '--border-color': 'rgba(255,255,255,0.5)', '--border-width': '1.5px', fontSize: '0.82rem', fontWeight: 600 }}>
+          Salir
+        </IonButton>
       </IonButtons>
     </IonToolbar>
   </IonHeader>

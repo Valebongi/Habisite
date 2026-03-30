@@ -4,12 +4,12 @@ import { AdminMainTour, AdminSectionTour, onboardingPending, sectionTourPending 
 import {
   gridOutline, peopleOutline, starOutline, clipboardOutline,
   barChartOutline, documentTextOutline, helpCircleOutline,
-  ribbonOutline, settingsOutline,
+  ribbonOutline, settingsOutline, mailOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import {
   api, AdminStats, Postulante, Evaluacion,
-  SoporteTicket, Resolucion,
+  SoporteTicket, Resolucion, CampanaInfoRequest,
 } from '../../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -63,6 +63,7 @@ const AREAS: AreaItem[] = [
 const MENU: MenuItem[] = [
   { id: 'dashboard',    icon: gridOutline,         label: 'Dashboard' },
   { id: 'postulantes',  icon: peopleOutline,        label: 'Postulantes' },
+  { id: 'campanas',     icon: mailOutline,           label: 'Campanas' },
   { id: 'evaluaciones', icon: starOutline,           label: 'Evaluaciones' },
   {
     id: 'areas', icon: clipboardOutline, label: 'Relevamiento de Áreas',
@@ -136,6 +137,13 @@ const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante
         <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" sub="realizadas por el jurado" />
         <StatCard value={promPuntaje} label="Puntaje promedio" sub="sobre 10 puntos" />
         <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" sub="representadas" />
+      </div>
+
+      <OrangeBar label="Campanas de comunicacion" />
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" sub="postulantes notificados" />
+        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" sub="inscripcion oficial" />
+        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(1)}%` : '—'} label="Tasa confirmacion" sub="interes real" />
       </div>
 
       <OrangeBar label="Estado del sitio" />
@@ -797,6 +805,183 @@ const SecJurado: React.FC<{ evaluaciones: Evaluacion[] }> = ({ evaluaciones }) =
   );
 };
 
+// ─── Sección Campañas ─────────────────────────────────────────────────────────
+const SecCampanas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; reload: () => void; reloadStats: () => void }> = ({ stats, postulantes, reload, reloadStats }) => {
+  const [webinarUrl, setWebinarUrl] = useState('');
+  const [webinarFecha, setWebinarFecha] = useState('');
+  const [canalUrl, setCanalUrl] = useState('');
+  const [canalNombre, setCanalNombre] = useState('WhatsApp');
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
+
+  const formValido = webinarUrl.trim() && webinarFecha && canalUrl.trim();
+
+  const enviarInfo = async () => {
+    if (!formValido) return;
+    const pendientes = postulantes.filter(p => !p.infoEnviadaEn).length;
+    if (!confirm(`Se enviaran emails a ${pendientes} postulante${pendientes !== 1 ? 's' : ''}. ¿Continuar?`)) return;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const data: CampanaInfoRequest = {
+        webinarUrl: webinarUrl.trim(),
+        webinarFecha: new Date(webinarFecha).toISOString(),
+        canalUrl: canalUrl.trim(),
+        canalNombre,
+      };
+      const res = await api.campanas.enviarInfoConcurso(data);
+      setResultado({ msg: `${res.emailsEnviados} emails enviados, ${res.emailsOmitidos} omitidos.`, tipo: 'ok' });
+      reload();
+      reloadStats();
+    } catch {
+      setResultado({ msg: 'Error al enviar la campaña.', tipo: 'err' });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const enviar2da = async () => {
+    const noConf = postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length;
+    if (!confirm(`Se enviaran ${noConf} recordatorio${noConf !== 1 ? 's' : ''}. ¿Continuar?`)) return;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const res = await api.campanas.enviarSegundaConvocatoria();
+      setResultado({ msg: `${res.emailsEnviados} recordatorios enviados.`, tipo: 'ok' });
+      reload();
+      reloadStats();
+    } catch {
+      setResultado({ msg: 'Error al enviar recordatorios.', tipo: 'err' });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const badgeEstado = (p: Postulante) => {
+    if (p.confirmadoEn) return { label: 'Confirmado', bg: '#f0fdf4', color: '#16a34a' };
+    if (p.recordatorioEnviadoEn) return { label: 'Recordatorio enviado', bg: '#fff7ed', color: '#92400e' };
+    if (p.infoEnviadaEn) return { label: 'Info enviada', bg: '#eff6ff', color: '#1e40af' };
+    return { label: 'Pendiente', bg: '#f3f4f6', color: C.gray };
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
+    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
+  };
+
+  return (
+    <div>
+      <OrangeBar label="Campanas de comunicacion" />
+
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" sub="postulantes notificados" />
+        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" sub="inscripcion oficial" />
+        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(1)}%` : '—'} label="Tasa confirmacion" sub="interes real" />
+        <StatCard value={stats?.totalRecordatorioEnviado ?? '—'} label="Recordatorios" sub="2da convocatoria" />
+      </div>
+
+      {/* Resultado */}
+      {resultado && (
+        <div style={{
+          background: resultado.tipo === 'ok' ? '#f0fdf4' : '#fef2f2',
+          borderLeft: `4px solid ${resultado.tipo === 'ok' ? '#16a34a' : '#dc2626'}`,
+          padding: '10px 16px', borderRadius: 8, marginBottom: 16,
+        }}>
+          <span style={{ fontSize: '0.875rem', color: resultado.tipo === 'ok' ? '#166534' : '#991b1b' }}>
+            {resultado.msg}
+          </span>
+        </div>
+      )}
+
+      {/* Formulario Paso 2 */}
+      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>Paso 2 — Enviar informacion del concurso</div>
+        <p style={{ fontSize: '0.8rem', color: C.gray, margin: '0 0 16px' }}>
+          Envia un email con info detallada + link de confirmacion a todos los postulantes que aun no lo recibieron.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>URL del Webinar</label>
+            <input value={webinarUrl} onChange={e => setWebinarUrl(e.target.value)} placeholder="https://meet.google.com/..." style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>Fecha del Webinar</label>
+            <input type="datetime-local" value={webinarFecha} onChange={e => setWebinarFecha(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>URL del Canal</label>
+            <input value={canalUrl} onChange={e => setCanalUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>Canal</label>
+            <select value={canalNombre} onChange={e => setCanalNombre(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Telegram">Telegram</option>
+              <option value="Discord">Discord</option>
+              <option value="Slack">Slack</option>
+            </select>
+          </div>
+        </div>
+
+        <button onClick={enviarInfo} disabled={enviando || !formValido}
+          style={{ ...btnAction, opacity: (enviando || !formValido) ? 0.5 : 1 }}>
+          {enviando ? 'Enviando...' : `Enviar info del concurso (${postulantes.filter(p => !p.infoEnviadaEn).length} pendientes)`}
+        </button>
+      </div>
+
+      {/* Paso 3 */}
+      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>Paso 3 — Segunda convocatoria</div>
+        <p style={{ fontSize: '0.8rem', color: C.gray, margin: '0 0 16px' }}>
+          Envia un recordatorio de ultima oportunidad a quienes recibieron la info pero no confirmaron su participacion.
+        </p>
+        <button onClick={enviar2da} disabled={enviando}
+          style={{ ...btnAction, background: '#92400e', opacity: enviando ? 0.5 : 1 }}>
+          {enviando ? 'Enviando...' : `Enviar 2da convocatoria (${postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length} no confirmados)`}
+        </button>
+      </div>
+
+      {/* Tabla de status */}
+      <OrangeBar label="Estado por postulante" />
+      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                {['Nombre', 'Email', 'Info enviada', 'Confirmado', 'Recordatorio', 'Estado'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {postulantes.length === 0
+                ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin postulantes</td></tr>
+                : postulantes.map(p => {
+                    const b = badgeEstado(p);
+                    return (
+                      <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
+                        <td style={{ padding: '12px 16px', color: C.gray }}>{p.correoElectronico}</td>
+                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.infoEnviadaEn ? new Date(p.infoEnviadaEn).toLocaleDateString('es-AR') : '—'}</td>
+                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.confirmadoEn ? new Date(p.confirmadoEn).toLocaleDateString('es-AR') : '—'}</td>
+                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.recordatorioEnviadoEn ? new Date(p.recordatorioEnviadoEn).toLocaleDateString('es-AR') : '—'}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ background: b.bg, color: b.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{b.label}</span>
+                        </td>
+                      </tr>
+                    );
+                  })
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SecPlaceholder: React.FC<{ titulo: string; desc: string }> = ({ titulo, desc }) => (
   <div>
     <OrangeBar label={titulo} />
@@ -818,6 +1003,12 @@ const btnOutlineWhite: React.CSSProperties = {
 const btnSm: React.CSSProperties = {
   padding: '5px 16px', background: 'transparent', border: `1px solid ${C.border}`,
   borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer', color: C.dark,
+};
+
+const btnAction: React.CSSProperties = {
+  padding: '10px 28px', background: C.orange, border: 'none', borderRadius: 999,
+  fontSize: '0.82rem', fontWeight: 700, color: '#fff', cursor: 'pointer',
+  letterSpacing: '0.03em',
 };
 
 // ─── AdminPage principal ───────────────────────────────────────────────────────
@@ -884,6 +1075,7 @@ const AdminPage: React.FC = () => {
     switch (activeSection) {
       case 'dashboard':           return <SecDashboard stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
       case 'postulantes':         return <SecPostulantes postulantes={postulantes} loading={loadingP} reload={loadPostulantes} />;
+      case 'campanas':            return <SecCampanas stats={stats} postulantes={postulantes} reload={loadPostulantes} reloadStats={loadStats} />;
       case 'evaluaciones':        return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
       case 'areas-sitio':         return <SecAreasSitio />;
       case 'areas-publicaciones': return <SecPlaceholder titulo="Publicaciones" desc="Gestión de publicaciones — conectar con API de CMS" />;

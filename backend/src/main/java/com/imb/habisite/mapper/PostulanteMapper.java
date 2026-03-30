@@ -31,6 +31,9 @@ public class PostulanteMapper {
                 .correoElectronico(entity.getCorreoElectronico())
                 .especialidad(entity.getEspecialidad())
                 .creadoEn(entity.getCreadoEn())
+                .infoEnviadaEn(entity.getInfoEnviadaEn())
+                .confirmadoEn(entity.getConfirmadoEn())
+                .recordatorioEnviadoEn(entity.getRecordatorioEnviadoEn())
                 .build();
     }
 }

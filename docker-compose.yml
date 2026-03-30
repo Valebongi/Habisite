@@ -1,0 +1,62 @@
+services:
+
+  # ── Base de datos ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: habisite_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: habisite
+      POSTGRES_USER: habisite_user
+      POSTGRES_PASSWORD: habisite_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - habisite_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habisite_user -d habisite"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Spring Boot ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: habisite_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://habisite_user:habisite_pass@postgres:5432/habisite
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_FROM: noreply@habisite.com
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Frontend Vite + nginx ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080/api
+        VITE_ADMIN_USER: admin
+        VITE_ADMIN_PASS: habisite2025
+        VITE_JURADO_PASS: jurado2025
+    container_name: habisite_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  habisite_pgdata:
+    driver: local

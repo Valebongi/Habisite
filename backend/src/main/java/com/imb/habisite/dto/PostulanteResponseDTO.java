@@ -20,4 +20,7 @@ public class PostulanteResponseDTO {
     private String correoElectronico;
     private String especialidad;
     private OffsetDateTime creadoEn;
+    private OffsetDateTime infoEnviadaEn;
+    private OffsetDateTime confirmadoEn;
+    private OffsetDateTime recordatorioEnviadoEn;
 }

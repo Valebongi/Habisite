@@ -37,6 +37,18 @@ public class Concurso {
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 
+    @Column(name = "webinar_url", length = 500)
+    private String webinarUrl;
+
+    @Column(name = "webinar_fecha")
+    private OffsetDateTime webinarFecha;
+
+    @Column(name = "canal_url", length = 500)
+    private String canalUrl;
+
+    @Column(name = "canal_nombre", length = 50)
+    private String canalNombre;
+
     @PrePersist
     void prePersist() {
         if (creadoEn == null) creadoEn = OffsetDateTime.now();

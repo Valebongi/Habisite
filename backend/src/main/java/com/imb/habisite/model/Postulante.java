@@ -45,6 +45,18 @@ public class Postulante {
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 
+    @Column(name = "token_confirmacion", length = 36, unique = true)
+    private String tokenConfirmacion;
+
+    @Column(name = "info_enviada_en")
+    private OffsetDateTime infoEnviadaEn;
+
+    @Column(name = "confirmado_en")
+    private OffsetDateTime confirmadoEn;
+
+    @Column(name = "recordatorio_enviado_en")
+    private OffsetDateTime recordatorioEnviadoEn;
+
     @PrePersist
     private void prePersist() {
         this.creadoEn = OffsetDateTime.now();

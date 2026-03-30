@@ -1,0 +1,16 @@
+package com.imb.habisite.service;
+
+import com.imb.habisite.dto.CampanaInfoRequestDTO;
+import com.imb.habisite.dto.CampanaResultDTO;
+
+public interface CampanaService {
+
+    /** Paso 2: envía info del concurso a todos los postulantes que no la recibieron aún. */
+    CampanaResultDTO enviarInfoConcurso(CampanaInfoRequestDTO request);
+
+    /** Paso 3: envía recordatorio a quienes recibieron info pero no confirmaron. */
+    CampanaResultDTO enviarSegundaConvocatoria();
+
+    /** Confirmación: el postulante clickea el link del email. */
+    void confirmarParticipacion(String token);
+}

@@ -1,8 +1,12 @@
 package com.imb.habisite.service.impl;
 
+import com.imb.habisite.model.Concurso;
 import com.imb.habisite.model.Postulante;
 import com.imb.habisite.model.SoporteTicket;
 import com.imb.habisite.service.EmailService;
+
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import jakarta.mail.internet.MimeMessage;
@@ -234,6 +238,384 @@ public class EmailServiceImpl implements EmailService {
                 t.getId()
         );
     }
+
+    // ── Paso 2a: Info detallada del concurso + link de confirmación ────────────
+
+    @Override
+    @Async
+    public void enviarInfoConcurso(Postulante postulante, Concurso concurso, String confirmacionUrl) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+
+            helper.setFrom(mailFrom, "Habisite Challenge");
+            helper.setTo(postulante.getCorreoElectronico());
+            helper.setSubject("Informacion detallada del concurso — Habisite Design Challenge");
+            helper.setText(construirHtmlInfoConcurso(postulante, concurso, confirmacionUrl), true);
+
+            mailSender.send(mensaje);
+            log.info("Email de info concurso enviado a: {}", postulante.getCorreoElectronico());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Error enviando info concurso a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
+        }
+    }
+
+    private String construirHtmlInfoConcurso(Postulante p, Concurso c, String url) {
+        var dtf = DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", new Locale("es", "AR"));
+        String fechaInicio = c.getFechaInicio().format(dtf);
+        String fechaFin = c.getFechaFin().format(dtf);
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+                <body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',system-ui,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+                    <tr><td align="center">
+                      <table width="560" cellpadding="0" cellspacing="0"
+                             style="background:#ffffff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;">
+
+                        <!-- Header -->
+                        <tr>
+                          <td style="background:linear-gradient(135deg,#0d0e10 0%%,#2a1208 100%%);padding:32px 40px;text-align:center;">
+                            <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
+                            <p style="margin:0;font-size:11px;font-weight:600;color:#E85520;letter-spacing:.22em;text-transform:uppercase;">
+                              Concurso de innovacion arquitectonica
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Body -->
+                        <tr>
+                          <td style="padding:36px 40px 28px;">
+                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
+                              Hola, %s
+                            </p>
+                            <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
+                              Te escribimos porque te registraste en el concurso <strong>%s</strong>.
+                              Queremos compartirte la informacion completa para que puedas participar.
+                            </p>
+
+                            <!-- Info del concurso -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:24px;">
+                              <tr>
+                                <td style="padding:20px 24px;">
+                                  <p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;">
+                                    Detalles del concurso
+                                  </p>
+                                  %s
+                                  %s
+                                  %s
+                                </td>
+                              </tr>
+                            </table>
+
+                            <!-- Descripcion -->
+                            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;">
+                              Objetivos y vision
+                            </p>
+                            <p style="margin:0 0 24px;font-size:14px;color:#4b5563;line-height:1.7;background:#f8fafc;padding:16px;border-radius:8px;">
+                              %s
+                            </p>
+
+                            <!-- Recompensa -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#fff8f5;border:2px solid #E85520;border-radius:10px;margin-bottom:28px;">
+                              <tr>
+                                <td style="padding:20px 24px;">
+                                  <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#E85520;text-transform:uppercase;letter-spacing:.08em;">
+                                    Recompensa economica y profesional
+                                  </p>
+                                  <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
+                                    Los participantes seleccionados obtendran visibilidad profesional, reconocimiento
+                                    en la industria y premios economicos. Los detalles completos se encuentran en las
+                                    bases y condiciones del concurso.
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <!-- CTA -->
+                            <table width="100%%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td align="center" style="padding:8px 0 24px;">
+                                  <p style="margin:0 0 14px;font-size:15px;color:#374151;font-weight:600;">
+                                    Para confirmar tu participacion oficial, hace click en el siguiente boton:
+                                  </p>
+                                  <a href="%s"
+                                     style="display:inline-block;background:#E85520;color:#ffffff;padding:14px 36px;border-radius:999px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:.03em;">
+                                    Confirmar mi participacion
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.5;">
+                              Si no te registraste en este concurso, podes ignorar este correo.
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">
+                              Habisite Design Challenge · Este correo fue enviado automaticamente.
+                            </p>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """.formatted(
+                p.getNombres(),
+                c.getTitulo(),
+                fila("Concurso", c.getTitulo()),
+                fila("Periodo", fechaInicio + " — " + fechaFin),
+                fila("Estado", c.getEstado()),
+                c.getDescripcion(),
+                url
+        );
+    }
+
+    // ── Paso 2b: Confirmación exitosa + webinar + canal ─────────────────────
+
+    @Override
+    @Async
+    public void enviarConfirmacionExitosa(Postulante postulante, Concurso concurso) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+
+            helper.setFrom(mailFrom, "Habisite Challenge");
+            helper.setTo(postulante.getCorreoElectronico());
+            helper.setSubject("Inscripcion oficial confirmada — Habisite Design Challenge");
+            helper.setText(construirHtmlConfirmacion(postulante, concurso), true);
+
+            mailSender.send(mensaje);
+            log.info("Email de confirmacion exitosa enviado a: {}", postulante.getCorreoElectronico());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Error enviando confirmacion a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
+        }
+    }
+
+    private String construirHtmlConfirmacion(Postulante p, Concurso c) {
+        var dtf = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM yyyy, HH:mm 'hs'", new Locale("es", "AR"));
+        String fechaWebinar = c.getWebinarFecha() != null ? c.getWebinarFecha().format(dtf) : "A confirmar";
+        String canalNombre = c.getCanalNombre() != null && !c.getCanalNombre().isBlank() ? c.getCanalNombre() : "Canal";
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+                <body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',system-ui,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+                    <tr><td align="center">
+                      <table width="560" cellpadding="0" cellspacing="0"
+                             style="background:#ffffff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;">
+
+                        <!-- Header -->
+                        <tr>
+                          <td style="background:linear-gradient(135deg,#0d0e10 0%%,#2a1208 100%%);padding:32px 40px;text-align:center;">
+                            <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
+                            <p style="margin:0;font-size:11px;font-weight:600;color:#E85520;letter-spacing:.22em;text-transform:uppercase;">
+                              Inscripcion confirmada
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Body -->
+                        <tr>
+                          <td style="padding:36px 40px 28px;">
+                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#16a34a;">
+                              Tu participacion fue confirmada
+                            </p>
+                            <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
+                              <strong>%s</strong>, ya estas oficialmente inscripto/a en el <strong>%s</strong>.
+                              A continuacion te compartimos informacion importante sobre los proximos pasos.
+                            </p>
+
+                            <!-- Webinar -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:20px;">
+                              <tr>
+                                <td style="padding:20px 24px;">
+                                  <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:.08em;">
+                                    Reunion explicativa — Webinar
+                                  </p>
+                                  %s
+                                  <a href="%s"
+                                     style="display:inline-block;margin-top:12px;background:#1e40af;color:#ffffff;padding:10px 28px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">
+                                    Unirme al Webinar
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <!-- Canal -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-bottom:24px;">
+                              <tr>
+                                <td style="padding:20px 24px;">
+                                  <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.08em;">
+                                    Canal de comunicacion — %s
+                                  </p>
+                                  <p style="margin:0 0 12px;font-size:14px;color:#374151;line-height:1.5;">
+                                    Unite al canal oficial donde compartiremos novedades, material de apoyo y
+                                    podras hacer consultas en tiempo real.
+                                  </p>
+                                  <a href="%s"
+                                     style="display:inline-block;background:#16a34a;color:#ffffff;padding:10px 28px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">
+                                    Unirme al %s
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0;font-size:15px;color:#4b5563;line-height:1.6;">
+                              Ante cualquier consulta podes responder este correo.<br/><br/>
+                              <strong style="color:#111827;">El equipo de Habisite</strong>
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">
+                              Habisite Design Challenge · Este correo fue enviado automaticamente.
+                            </p>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """.formatted(
+                p.getNombres(),
+                c.getTitulo(),
+                fila("Fecha", fechaWebinar),
+                c.getWebinarUrl() != null ? c.getWebinarUrl() : "#",
+                canalNombre,
+                c.getCanalUrl() != null ? c.getCanalUrl() : "#",
+                canalNombre
+        );
+    }
+
+    // ── Paso 3: Segunda convocatoria (recordatorio) ─────────────────────────
+
+    @Override
+    @Async
+    public void enviarSegundaConvocatoria(Postulante postulante, Concurso concurso, String confirmacionUrl) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+
+            helper.setFrom(mailFrom, "Habisite Challenge");
+            helper.setTo(postulante.getCorreoElectronico());
+            helper.setSubject("Ultima oportunidad — Confirma tu participacion en Habisite");
+            helper.setText(construirHtmlSegundaConvocatoria(postulante, concurso, confirmacionUrl), true);
+
+            mailSender.send(mensaje);
+            log.info("Email de 2da convocatoria enviado a: {}", postulante.getCorreoElectronico());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Error enviando 2da convocatoria a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
+        }
+    }
+
+    private String construirHtmlSegundaConvocatoria(Postulante p, Concurso c, String url) {
+        var dtf = DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", new Locale("es", "AR"));
+        String fechaFin = c.getFechaFin().format(dtf);
+
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
+                <body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',system-ui,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+                    <tr><td align="center">
+                      <table width="560" cellpadding="0" cellspacing="0"
+                             style="background:#ffffff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;">
+
+                        <!-- Header urgente -->
+                        <tr>
+                          <td style="background:linear-gradient(135deg,#7f1d1d 0%%,#E85520 100%%);padding:32px 40px;text-align:center;">
+                            <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
+                            <p style="margin:0;font-size:11px;font-weight:600;color:#fbbf24;letter-spacing:.22em;text-transform:uppercase;">
+                              Ultima oportunidad
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Body -->
+                        <tr>
+                          <td style="padding:36px 40px 28px;">
+                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
+                              %s, todavia no confirmaste tu participacion
+                            </p>
+                            <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
+                              Te registraste en el <strong>%s</strong> pero aun no confirmaste tu inscripcion oficial.
+                              Las inscripciones cierran el <strong>%s</strong>.
+                            </p>
+
+                            <!-- Alerta -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#fff7ed;border-left:4px solid #E85520;border-radius:4px;margin-bottom:24px;">
+                              <tr>
+                                <td style="padding:16px 20px;">
+                                  <p style="margin:0;font-size:14px;color:#92400e;line-height:1.5;">
+                                    <strong>Esta es tu ultima oportunidad</strong> para confirmar tu participacion.
+                                    Si no confirmas antes del cierre, no podras participar del concurso.
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <!-- CTA -->
+                            <table width="100%%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td align="center" style="padding:8px 0 24px;">
+                                  <a href="%s"
+                                     style="display:inline-block;background:#E85520;color:#ffffff;padding:16px 40px;border-radius:999px;text-decoration:none;font-weight:800;font-size:16px;letter-spacing:.03em;">
+                                    Confirmar mi participacion ahora
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0;font-size:14px;color:#6b7280;line-height:1.5;">
+                              Si ya no deseas participar, simplemente ignora este correo.<br/>
+                              Ante cualquier consulta podes responder este email.
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">
+                              Habisite Design Challenge · 2da convocatoria.
+                            </p>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """.formatted(
+                p.getNombres(),
+                c.getTitulo(),
+                fechaFin,
+                url
+        );
+    }
+
+    // ── Helper ───────────────────────────────────────────────────────────────
 
     private String fila(String label, String valor) {
         return """

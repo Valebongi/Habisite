@@ -31,6 +31,11 @@ public class AdminController {
         var porUniversidad = postulantes.stream()
                 .collect(Collectors.groupingBy(p -> p.getUniversidad(), Collectors.counting()));
 
+        long infoEnviada = postulanteRepository.countByInfoEnviadaEnIsNotNull();
+        long confirmados = postulanteRepository.countByConfirmadoEnIsNotNull();
+        long noConfirmados = postulanteRepository.countByInfoEnviadaEnIsNotNullAndConfirmadoEnIsNull();
+        double pctConfirmacion = infoEnviada > 0 ? (confirmados * 100.0 / infoEnviada) : 0;
+
         return AdminStatsDTO.builder()
                 .totalPostulantes(postulantes.size())
                 .totalEvaluaciones(evaluaciones.size())
@@ -40,6 +45,11 @@ public class AdminController {
                 .resolucionesRechazadas(resolucionRepository.countByEstado("RECHAZADA"))
                 .porEspecialidad(porEspecialidad)
                 .porUniversidad(porUniversidad)
+                .totalInfoEnviada(infoEnviada)
+                .totalConfirmados(confirmados)
+                .totalNoConfirmados(noConfirmados)
+                .totalRecordatorioEnviado(postulanteRepository.countByRecordatorioEnviadoEnIsNotNull())
+                .porcentajeConfirmacion(pctConfirmacion)
                 .build();
     }
 }

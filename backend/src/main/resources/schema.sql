@@ -65,3 +65,14 @@ CREATE TABLE IF NOT EXISTS evaluacion (
     evaluado_en     TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     UNIQUE (postulante_id, jurado_nombre)
 );
+
+-- ── Campañas de comunicación ─────────────────────────────────────────────────
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS token_confirmacion       VARCHAR(36) UNIQUE;
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS info_enviada_en          TIMESTAMPTZ;
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS confirmado_en            TIMESTAMPTZ;
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS recordatorio_enviado_en  TIMESTAMPTZ;
+
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_url    VARCHAR(500);
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_fecha  TIMESTAMPTZ;
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS canal_url      VARCHAR(500);
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS canal_nombre   VARCHAR(50);

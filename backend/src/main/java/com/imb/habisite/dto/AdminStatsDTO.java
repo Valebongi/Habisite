@@ -19,4 +19,11 @@ public class AdminStatsDTO {
     private long resolucionesRechazadas;
     private Map<String, Long> porEspecialidad;
     private Map<String, Long> porUniversidad;
+
+    // Campañas de comunicación
+    private long totalInfoEnviada;
+    private long totalConfirmados;
+    private long totalNoConfirmados;
+    private long totalRecordatorioEnviado;
+    private double porcentajeConfirmacion;
 }

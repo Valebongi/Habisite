@@ -15,6 +15,9 @@ export interface Postulante {
   correoElectronico: string;
   especialidad: string;
   creadoEn: string;
+  infoEnviadaEn: string | null;
+  confirmadoEn: string | null;
+  recordatorioEnviadoEn: string | null;
 }
 
 export interface PostulanteRequest {
@@ -53,6 +56,29 @@ export interface AdminStats {
   resolucionesRechazadas: number;
   porEspecialidad: Record<string, number>;
   porUniversidad: Record<string, number>;
+  totalInfoEnviada: number;
+  totalConfirmados: number;
+  totalNoConfirmados: number;
+  totalRecordatorioEnviado: number;
+  porcentajeConfirmacion: number;
+}
+
+export interface CampanaInfoRequest {
+  webinarUrl: string;
+  webinarFecha: string;
+  canalUrl: string;
+  canalNombre: string;
+}
+
+export interface CampanaResult {
+  emailsEnviados: number;
+  emailsOmitidos: number;
+  mensaje: string;
+}
+
+export interface ConfirmacionResult {
+  confirmado: boolean;
+  mensaje: string;
 }
 
 export interface Concurso {
@@ -209,6 +235,21 @@ export const api = {
 
     cambiarEstado: (id: number, estado: string) =>
       req<Resolucion>(`/resoluciones/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
+  },
+
+  campanas: {
+    enviarInfoConcurso: (data: CampanaInfoRequest) =>
+      req<CampanaResult>('/admin/campanas/info-concurso', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    enviarSegundaConvocatoria: () =>
+      req<CampanaResult>('/admin/campanas/segunda-convocatoria', { method: 'POST' }),
+  },
+
+  confirmacion: {
+    confirmar: (token: string) =>
+      req<ConfirmacionResult>(`/confirmacion?token=${token}`),
   },
 
   soporte: {

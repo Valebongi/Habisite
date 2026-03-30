@@ -10,6 +10,7 @@ import { useHistory } from 'react-router-dom';
 import {
   api, AdminStats, Postulante, Evaluacion,
   SoporteTicket, Resolucion, CampanaInfoRequest,
+  Concurso, UsuarioInfo, PublicacionInfo, RecursoInfo,
 } from '../../services/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -982,6 +983,444 @@ const SecCampanas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[
   );
 };
 
+// ─── Sección Configuración ────────────────────────────────────────────────────
+const SecConfiguracion: React.FC = () => {
+  const [concursos, setConcursos] = useState<Concurso[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editConcurso, setEditConcurso] = useState<Concurso | null>(null);
+  const [nuevoUser, setNuevoUser] = useState({ nombre: '', username: '', password: '', rol: 'JURADO' });
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cs, us] = await Promise.all([api.concursos.listar(), api.usuarios.listar()]);
+      setConcursos(cs);
+      setUsuarios(us);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const guardarConcurso = async () => {
+    if (!editConcurso) return;
+    try {
+      await fetch(`${(import.meta.env.VITE_API_URL || 'https://api.habisite.com/api')}/v1/concursos/${editConcurso.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editConcurso),
+      });
+      setMsg({ text: 'Concurso actualizado.', ok: true });
+      setEditConcurso(null);
+      cargar();
+    } catch { setMsg({ text: 'Error al guardar.', ok: false }); }
+  };
+
+  const crearUsuario = async () => {
+    if (!nuevoUser.nombre || !nuevoUser.username || !nuevoUser.password) return;
+    try {
+      await api.usuarios.crear(nuevoUser);
+      setMsg({ text: 'Usuario creado.', ok: true });
+      setNuevoUser({ nombre: '', username: '', password: '', rol: 'JURADO' });
+      setShowNewUser(false);
+      cargar();
+    } catch (e: unknown) {
+      setMsg({ text: e instanceof Error ? e.message : 'Error al crear.', ok: false });
+    }
+  };
+
+  const eliminarUsuario = async (id: number, nombre: string) => {
+    if (!confirm(`Eliminar usuario "${nombre}"?`)) return;
+    try { await api.usuarios.eliminar(id); cargar(); }
+    catch { setMsg({ text: 'Error al eliminar.', ok: false }); }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
+    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>;
+
+  return (
+    <div>
+      {msg && (
+        <div style={{ background: msg.ok ? '#f0fdf4' : '#fef2f2', borderLeft: `4px solid ${msg.ok ? '#16a34a' : '#dc2626'}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: '0.875rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
+          <button onClick={() => setMsg(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>x</button>
+        </div>
+      )}
+
+      {/* Concurso activo */}
+      <OrangeBar label="Concurso activo" />
+      {concursos.map(c => (
+        <div key={c.id} style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
+          {editConcurso?.id === c.id ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Titulo</label>
+                <input value={editConcurso.titulo} onChange={e => setEditConcurso({ ...editConcurso, titulo: e.target.value })} style={inputStyle} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Descripcion</label>
+                <textarea value={editConcurso.descripcion} onChange={e => setEditConcurso({ ...editConcurso, descripcion: e.target.value })}
+                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Bases y condiciones</label>
+                <textarea value={editConcurso.bases ?? ''} onChange={e => setEditConcurso({ ...editConcurso, bases: e.target.value })}
+                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Inicio</label>
+                  <input type="datetime-local" value={editConcurso.fechaInicio?.slice(0, 16)} onChange={e => setEditConcurso({ ...editConcurso, fechaInicio: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Fin</label>
+                  <input type="datetime-local" value={editConcurso.fechaFin?.slice(0, 16)} onChange={e => setEditConcurso({ ...editConcurso, fechaFin: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Estado</label>
+                  <select value={editConcurso.estado} onChange={e => setEditConcurso({ ...editConcurso, estado: e.target.value as Concurso['estado'] })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                    <option value="ACTIVO">ACTIVO</option>
+                    <option value="PROXIMO">PROXIMO</option>
+                    <option value="CERRADO">CERRADO</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={guardarConcurso} style={btnAction}>Guardar</button>
+                <button onClick={() => setEditConcurso(null)} style={btnSm}>Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{c.titulo}</div>
+                  <div style={{ fontSize: '0.8rem', color: C.gray, marginTop: 2 }}>
+                    {new Date(c.fechaInicio).toLocaleDateString('es-AR')} — {new Date(c.fechaFin).toLocaleDateString('es-AR')}
+                  </div>
+                </div>
+                <span style={{
+                  padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
+                  background: c.estado === 'ACTIVO' ? '#f0fdf4' : c.estado === 'PROXIMO' ? '#fff7ed' : '#f3f4f6',
+                  color: c.estado === 'ACTIVO' ? '#16a34a' : c.estado === 'PROXIMO' ? '#92400e' : C.gray,
+                }}>{c.estado}</span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, margin: '0 0 12px' }}>{c.descripcion}</p>
+              <button onClick={() => setEditConcurso(c)} style={btnSm}>Editar concurso</button>
+            </>
+          )}
+        </div>
+      ))}
+
+      {/* Usuarios */}
+      <OrangeBar label={`Usuarios del sistema (${usuarios.length})`} action={
+        <button onClick={() => setShowNewUser(!showNewUser)} style={btnOutlineWhite}>{showNewUser ? 'Cancelar' : '+ Nuevo'}</button>
+      } />
+
+      {showNewUser && (
+        <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Nombre</label>
+              <input value={nuevoUser.nombre} onChange={e => setNuevoUser({ ...nuevoUser, nombre: e.target.value })} placeholder="Juan Perez" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Username</label>
+              <input value={nuevoUser.username} onChange={e => setNuevoUser({ ...nuevoUser, username: e.target.value })} placeholder="juanperez" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Contrasena</label>
+              <input type="password" value={nuevoUser.password} onChange={e => setNuevoUser({ ...nuevoUser, password: e.target.value })} placeholder="********" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Rol</label>
+              <select value={nuevoUser.rol} onChange={e => setNuevoUser({ ...nuevoUser, rol: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="JURADO">Jurado</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={crearUsuario} style={btnAction}>Crear usuario</button>
+        </div>
+      )}
+
+      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <thead>
+            <tr style={{ background: '#f9fafb' }}>
+              {['Nombre', 'Username', 'Rol', 'Creado', 'Acciones'].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}` }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {usuarios.map(u => (
+              <tr key={u.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{u.nombre}</td>
+                <td style={{ padding: '12px 16px', color: C.gray }}>{u.username}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: u.rol === 'ADMIN' ? '#fff3ee' : '#eff6ff', color: u.rol === 'ADMIN' ? C.orange : '#1e40af' }}>{u.rol}</span>
+                </td>
+                <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{new Date(u.creadoEn).toLocaleDateString('es-AR')}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <button onClick={() => eliminarUsuario(u.id, u.nombre)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ─── Sección Publicaciones ───────────────────────────────────────────────────
+const SecPublicaciones: React.FC = () => {
+  const [pubs, setPubs] = useState<PublicacionInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState({ titulo: '', contenido: '', autor: 'Admin', publicado: false });
+
+  const cargar = useCallback(() => {
+    setLoading(true);
+    return api.publicaciones.listar().then(setPubs).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const resetForm = () => { setForm({ titulo: '', contenido: '', autor: 'Admin', publicado: false }); setEditId(null); setShowForm(false); };
+
+  const guardar = async () => {
+    if (!form.titulo.trim() || !form.contenido.trim()) return;
+    try {
+      if (editId) await api.publicaciones.actualizar(editId, form);
+      else await api.publicaciones.crear(form);
+      resetForm();
+      cargar();
+    } catch { /* silent */ }
+  };
+
+  const editar = (p: PublicacionInfo) => {
+    setForm({ titulo: p.titulo, contenido: p.contenido, autor: p.autor, publicado: p.publicado });
+    setEditId(p.id);
+    setShowForm(true);
+  };
+
+  const eliminar = async (id: number) => {
+    if (!confirm('Eliminar esta publicacion?')) return;
+    await api.publicaciones.eliminar(id);
+    cargar();
+  };
+
+  const togglePublicado = async (p: PublicacionInfo) => {
+    await api.publicaciones.actualizar(p.id, { publicado: !p.publicado });
+    cargar();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
+    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
+  };
+
+  return (
+    <div>
+      <OrangeBar label={`Publicaciones (${pubs.length})`} action={
+        <button onClick={() => { resetForm(); setShowForm(!showForm); }} style={btnOutlineWhite}>
+          {showForm ? 'Cancelar' : '+ Nueva'}
+        </button>
+      } />
+
+      {showForm && (
+        <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Titulo</label>
+              <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} style={inputStyle} placeholder="Titulo de la publicacion" />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Contenido</label>
+              <textarea value={form.contenido} onChange={e => setForm({ ...form, contenido: e.target.value })}
+                style={{ ...inputStyle, minHeight: 120, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Escribe el contenido..." />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Autor</label>
+                <input value={form.autor} onChange={e => setForm({ ...form, autor: e.target.value })} style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'end', gap: 8, paddingBottom: 4 }}>
+                <label style={{ fontSize: '0.85rem', color: C.gray, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.publicado} onChange={e => setForm({ ...form, publicado: e.target.checked })} />
+                  Publicar ahora
+                </label>
+              </div>
+            </div>
+            <button onClick={guardar} style={btnAction}>{editId ? 'Actualizar' : 'Crear publicacion'}</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {pubs.length === 0 ? (
+            <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              No hay publicaciones. Crea la primera con el boton "+ Nueva".
+            </div>
+          ) : pubs.map(p => (
+            <div key={p.id} style={{ background: C.white, borderRadius: 10, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{p.titulo}</span>
+                  <span style={{
+                    padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
+                    background: p.publicado ? '#f0fdf4' : '#f3f4f6',
+                    color: p.publicado ? '#16a34a' : C.gray,
+                    cursor: 'pointer',
+                  }} onClick={() => togglePublicado(p)}>
+                    {p.publicado ? 'Publicado' : 'Borrador'}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: C.gray }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, margin: '0 0 8px', whiteSpace: 'pre-line' }}>{p.contenido.length > 200 ? p.contenido.slice(0, 200) + '...' : p.contenido}</p>
+              <div style={{ fontSize: '0.75rem', color: C.gray, marginBottom: 8 }}>Por {p.autor}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => editar(p)} style={btnSm}>Editar</button>
+                <button onClick={() => eliminar(p.id)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Sección Imágenes y Recursos ─────────────────────────────────────────────
+const SecRecursos: React.FC = () => {
+  const [recursos, setRecursos] = useState<RecursoInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [archivo, setArchivo] = useState<File | null>(null);
+
+  const cargar = useCallback(() => {
+    setLoading(true);
+    return api.recursos.listar().then(setRecursos).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const subir = async () => {
+    if (!archivo) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('archivo', archivo);
+      if (nombre.trim()) fd.append('nombre', nombre.trim());
+      if (descripcion.trim()) fd.append('descripcion', descripcion.trim());
+      fd.append('tipo', archivo.type.startsWith('image/') ? 'imagen' : 'documento');
+      await api.recursos.subir(fd);
+      setArchivo(null); setNombre(''); setDescripcion('');
+      cargar();
+    } catch { /* silent */ }
+    finally { setUploading(false); }
+  };
+
+  const eliminar = async (id: number) => {
+    if (!confirm('Eliminar este recurso?')) return;
+    await api.recursos.eliminar(id);
+    cargar();
+  };
+
+  const formatSize = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`;
+
+  return (
+    <div>
+      <OrangeBar label={`Imagenes y Recursos (${recursos.length})`} />
+
+      {/* Upload */}
+      <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 12 }}>Subir archivo</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Nombre (opcional)</label>
+            <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del recurso"
+              style={{ padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Descripcion (opcional)</label>
+            <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Breve descripcion"
+              style={{ padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <div style={{
+          border: `2px dashed ${archivo ? C.orange : C.border}`, borderRadius: 10, padding: '20px 16px',
+          textAlign: 'center', cursor: 'pointer', marginBottom: 12, background: archivo ? '#fff8f5' : '#f9fafb',
+          transition: 'all 0.15s',
+        }}
+          onClick={() => document.getElementById('recurso-file')?.click()}
+        >
+          <input id="recurso-file" type="file" accept="image/*,.pdf,.zip,.dwg,.doc,.docx" style={{ display: 'none' }}
+            onChange={e => setArchivo(e.target.files?.[0] ?? null)} />
+          {archivo ? (
+            <div style={{ fontSize: '0.85rem', color: C.orange, fontWeight: 600 }}>{archivo.name} ({formatSize(archivo.size)})</div>
+          ) : (
+            <div style={{ fontSize: '0.85rem', color: C.gray }}>Click para seleccionar un archivo (imagen, PDF, ZIP, DWG...)</div>
+          )}
+        </div>
+        <button onClick={subir} disabled={!archivo || uploading} style={{ ...btnAction, opacity: (!archivo || uploading) ? 0.5 : 1 }}>
+          {uploading ? 'Subiendo...' : 'Subir recurso'}
+        </button>
+      </div>
+
+      {/* Lista */}
+      {loading ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div> : (
+        recursos.length === 0 ? (
+          <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+            No hay recursos subidos aun.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+            {recursos.map(r => (
+              <div key={r.id} style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+                {r.contentType?.startsWith('image/') ? (
+                  <div style={{ height: 140, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <img src={api.recursos.archivoUrl(r.id)} alt={r.nombre} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />
+                  </div>
+                ) : (
+                  <div style={{ height: 140, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '2rem', color: C.gray }}>📄</span>
+                  </div>
+                )}
+                <div style={{ padding: '12px 14px' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nombre}</div>
+                  {r.descripcion && <div style={{ fontSize: '0.75rem', color: C.gray, marginBottom: 4 }}>{r.descripcion}</div>}
+                  <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: 8 }}>
+                    {formatSize(r.tamanio)} · {new Date(r.creadoEn).toLocaleDateString('es-AR')}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <a href={api.recursos.archivoUrl(r.id)} target="_blank" rel="noreferrer" style={{ ...btnSm, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>Ver</a>
+                    <button onClick={() => eliminar(r.id)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
 const SecPlaceholder: React.FC<{ titulo: string; desc: string }> = ({ titulo, desc }) => (
   <div>
     <OrangeBar label={titulo} />
@@ -1078,13 +1517,13 @@ const AdminPage: React.FC = () => {
       case 'campanas':            return <SecCampanas stats={stats} postulantes={postulantes} reload={loadPostulantes} reloadStats={loadStats} />;
       case 'evaluaciones':        return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
       case 'areas-sitio':         return <SecAreasSitio />;
-      case 'areas-publicaciones': return <SecPlaceholder titulo="Publicaciones" desc="Gestión de publicaciones — conectar con API de CMS" />;
-      case 'areas-recursos':      return <SecPlaceholder titulo="Imágenes y Recursos" desc="Gestión de archivos e imágenes — conectar con almacenamiento" />;
+      case 'areas-publicaciones': return <SecPublicaciones />;
+      case 'areas-recursos':      return <SecRecursos />;
       case 'estadisticas':        return <SecEstadisticas stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
       case 'entregas':            return <SecEntregas />;
       case 'soporte':             return <SecSoporte />;
       case 'jurado':              return <SecJurado evaluaciones={evaluaciones} />;
-      case 'configuracion':       return <SecPlaceholder titulo="Configuración" desc="Parámetros del concurso, fechas límite, accesos — por implementar" />;
+      case 'configuracion':       return <SecConfiguracion />;
       default:                    return null;
     }
   };

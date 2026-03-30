@@ -41,6 +41,20 @@ public class ConcursoController {
         return ResponseEntity.ok(toDTO(concursoRepo.save(c)));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ConcursoResponseDTO> actualizar(
+            @PathVariable long id, @RequestBody ConcursoResponseDTO dto) {
+        return concursoRepo.findById(id).map(c -> {
+            if (dto.getTitulo() != null)      c.setTitulo(dto.getTitulo());
+            if (dto.getDescripcion() != null)  c.setDescripcion(dto.getDescripcion());
+            if (dto.getBases() != null)        c.setBases(dto.getBases());
+            if (dto.getFechaInicio() != null)  c.setFechaInicio(dto.getFechaInicio());
+            if (dto.getFechaFin() != null)     c.setFechaFin(dto.getFechaFin());
+            if (dto.getEstado() != null)       c.setEstado(dto.getEstado());
+            return ResponseEntity.ok(toDTO(concursoRepo.save(c)));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @PatchMapping("/{id}/estado")
     public ResponseEntity<ConcursoResponseDTO> cambiarEstado(
             @PathVariable long id, @RequestParam String estado) {

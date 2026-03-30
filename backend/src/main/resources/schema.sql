@@ -76,3 +76,26 @@ ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_url    VARCHAR(500);
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_fecha  TIMESTAMPTZ;
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS canal_url      VARCHAR(500);
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS canal_nombre   VARCHAR(50);
+
+-- ── Publicaciones ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS publicacion (
+    id          BIGSERIAL       PRIMARY KEY,
+    titulo      VARCHAR(200)    NOT NULL,
+    contenido   TEXT            NOT NULL,
+    autor       VARCHAR(100)    NOT NULL DEFAULT 'Admin',
+    publicado   BOOLEAN         NOT NULL DEFAULT FALSE,
+    creado_en   TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- ── Recursos / Imágenes ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS recurso (
+    id              BIGSERIAL       PRIMARY KEY,
+    nombre          VARCHAR(200)    NOT NULL,
+    descripcion     VARCHAR(500),
+    tipo            VARCHAR(50)     NOT NULL DEFAULT 'imagen',
+    archivo_nombre  VARCHAR(255)    NOT NULL,
+    archivo_datos   BYTEA           NOT NULL,
+    content_type    VARCHAR(100),
+    tamanio         BIGINT,
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);

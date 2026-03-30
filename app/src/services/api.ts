@@ -252,6 +252,36 @@ export const api = {
       req<ConfirmacionResult>(`/confirmacion?token=${token}`),
   },
 
+  usuarios: {
+    listar: () => req<UsuarioInfo[]>('/admin/usuarios'),
+    crear: (data: { nombre: string; username: string; password: string; rol: string }) =>
+      req<UsuarioInfo>('/admin/usuarios', { method: 'POST', body: JSON.stringify(data) }),
+    actualizar: (id: number, data: Record<string, string>) =>
+      req<UsuarioInfo>(`/admin/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    eliminar: (id: number) =>
+      req<void>(`/admin/usuarios/${id}`, { method: 'DELETE' }),
+  },
+
+  publicaciones: {
+    listar: () => req<PublicacionInfo[]>('/admin/publicaciones'),
+    crear: (data: { titulo: string; contenido: string; autor?: string; publicado?: boolean }) =>
+      req<PublicacionInfo>('/admin/publicaciones', { method: 'POST', body: JSON.stringify(data) }),
+    actualizar: (id: number, data: Record<string, unknown>) =>
+      req<PublicacionInfo>(`/admin/publicaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    eliminar: (id: number) =>
+      req<void>(`/admin/publicaciones/${id}`, { method: 'DELETE' }),
+  },
+
+  recursos: {
+    listar: () => req<RecursoInfo[]>('/admin/recursos'),
+    subir: (formData: FormData) =>
+      fetch(`${BASE_URL.replace('/v1', '')}/v1/admin/recursos`, { method: 'POST', body: formData })
+        .then(async r => { if (!r.ok) throw new Error(`Error ${r.status}`); return r.json() as Promise<RecursoInfo>; }),
+    eliminar: (id: number) =>
+      req<void>(`/admin/recursos/${id}`, { method: 'DELETE' }),
+    archivoUrl: (id: number) => `${BASE_URL.replace('/v1', '')}/v1/admin/recursos/${id}/archivo`,
+  },
+
   soporte: {
     /** Crea un ticket de soporte desde el login */
     crearTicket: (data: { nombre: string; dni?: string; mensaje: string }) =>
@@ -275,5 +305,33 @@ export interface SoporteTicket {
   dni: string | null;
   mensaje: string;
   resuelto: boolean;
+  creadoEn: string;
+}
+
+export interface UsuarioInfo {
+  id: number;
+  nombre: string;
+  username: string;
+  rol: string;
+  creadoEn: string;
+}
+
+export interface PublicacionInfo {
+  id: number;
+  titulo: string;
+  contenido: string;
+  autor: string;
+  publicado: boolean;
+  creadoEn: string;
+}
+
+export interface RecursoInfo {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  tipo: string;
+  archivoNombre: string;
+  contentType: string;
+  tamanio: number;
   creadoEn: string;
 }

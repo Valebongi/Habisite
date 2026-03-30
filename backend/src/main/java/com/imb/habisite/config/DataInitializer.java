@@ -48,14 +48,31 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedPostulantePrueba() {
-        postulanteRepository.findByDni("12345678").ifPresent(p -> {
+        String testDni = "12345678";
+        String testPassword = "Test2026!";
+
+        var opt = postulanteRepository.findByDni(testDni);
+        if (opt.isPresent()) {
+            Postulante p = opt.get();
             if (p.getPasswordHash() == null) {
-                String testPassword = "Test2026!";
                 p.setPasswordHash(ENCODER.encode(testPassword));
                 postulanteRepository.save(p);
-                log.info("Postulante prueba DNI 12345678 — clave seteada: {}", testPassword);
+                log.info("Postulante prueba DNI {} — clave seteada.", testDni);
             }
-        });
+        } else {
+            Postulante p = Postulante.builder()
+                    .nombres("Postulante")
+                    .apellidos("Demo")
+                    .dni(testDni)
+                    .celular("+5491100000000")
+                    .universidad("Universidad de Prueba")
+                    .correoElectronico("demo@habisite.com")
+                    .especialidad("Arquitectura")
+                    .passwordHash(ENCODER.encode(testPassword))
+                    .build();
+            postulanteRepository.save(p);
+            log.info("Postulante prueba DNI {} creado con clave: {}", testDni, testPassword);
+        }
     }
 
     private void seedConcurso() {

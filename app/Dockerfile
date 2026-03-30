@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG VITE_API_URL=http://localhost:8080/api
+ARG VITE_API_URL
 ARG VITE_ADMIN_USER=admin
 ARG VITE_ADMIN_PASS=habisite2025
 ARG VITE_JURADO_PASS=jurado2025

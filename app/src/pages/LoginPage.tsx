@@ -341,7 +341,7 @@ const LoginPage: React.FC = () => {
       {/* Recordar tutorial */}
       <div style={{ textAlign: 'center', marginTop: 10 }}>
         <button onClick={() => {
-          localStorage.removeItem('habisite_onboarding_v2');
+          localStorage.removeItem('habisite_onboarding_v3');
           setError('');
           setToastMsg('El tutorial se mostrará al ingresar.');
           setShowToast(true);

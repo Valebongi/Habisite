@@ -250,6 +250,10 @@ export const api = {
   confirmacion: {
     confirmar: (token: string) =>
       req<ConfirmacionResult>(`/confirmacion?token=${token}`),
+    verificar: (token: string) =>
+      req<ConfirmacionResult>(`/confirmacion/verificar?token=${token}`),
+    confirmarConDatos: (body: { token: string; dni: string; celular: string; especialidad: string }) =>
+      req<ConfirmacionResult>('/confirmacion', { method: 'POST', body: JSON.stringify(body) }),
   },
 
   usuarios: {

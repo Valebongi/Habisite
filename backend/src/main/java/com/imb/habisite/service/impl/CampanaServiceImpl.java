@@ -115,6 +115,44 @@ public class CampanaServiceImpl implements CampanaService {
         log.info("Postulante {} confirmo su participacion.", postulante.getDni());
     }
 
+    @Override
+    @Transactional
+    public void confirmarConDatos(String token, String dni, String celular, String especialidad) {
+        Postulante postulante = postulanteRepository.findByTokenConfirmacion(token)
+                .orElseThrow(() -> new IllegalArgumentException("Token de confirmacion invalido o expirado."));
+
+        if (postulante.getConfirmadoEn() != null) {
+            log.info("Postulante {} ya estaba confirmado.", postulante.getDni());
+            return;
+        }
+
+        // Actualizar datos duros
+        postulante.setDni(dni.trim());
+        postulante.setCelular(celular.trim());
+        postulante.setEspecialidad(especialidad.trim());
+        postulante.setConfirmadoEn(OffsetDateTime.now());
+
+        // Generar credenciales con el DNI como usuario
+        String plainPassword = com.imb.habisite.util.PasswordGenerator.generate();
+        postulante.setPasswordHash(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(plainPassword));
+
+        postulanteRepository.save(postulante);
+
+        Concurso concurso = obtenerConcursoActivo();
+        emailService.enviarCredenciales(postulante, plainPassword);
+        emailService.enviarConfirmacionExitosa(postulante, concurso);
+
+        log.info("Postulante {} confirmo con datos duros (DNI: {}).", postulante.getNombres(), dni);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean estaConfirmado(String token) {
+        Postulante postulante = postulanteRepository.findByTokenConfirmacion(token)
+                .orElseThrow(() -> new IllegalArgumentException("Token invalido."));
+        return postulante.getConfirmadoEn() != null;
+    }
+
     private Concurso obtenerConcursoActivo() {
         List<Concurso> activos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
         if (activos.isEmpty()) {

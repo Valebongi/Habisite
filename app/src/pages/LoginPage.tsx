@@ -183,7 +183,7 @@ const LoginPage: React.FC = () => {
       return;
     }
     if (localStorage.getItem('postulante_data')) {
-      history.replace('/postulante/perfil');
+      history.replace('/postulante');
     } else if (localStorage.getItem('admin_ok')) {
       history.replace('/admin');
     } else if (localStorage.getItem('jurado_nombre')) {
@@ -213,7 +213,7 @@ const LoginPage: React.FC = () => {
         history.replace('/jurado');
       } else {
         saveAuth('postulante_data', JSON.stringify(res.postulante));
-        history.replace('/postulante/perfil');
+        history.replace('/postulante');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión.';
@@ -276,19 +276,20 @@ const LoginPage: React.FC = () => {
       )}
 
       {/* Recordarme */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 16px', cursor: 'pointer' }}
-        onClick={() => setRememberMe(r => !r)}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 16px', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+        <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
+          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
         <div style={{
           width: 20, height: 20, borderRadius: 6, flexShrink: 0,
           border: `2px solid ${rememberMe ? ORANGE : '#d1d5db'}`,
           background: rememberMe ? ORANGE : '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.15s ease', pointerEvents: 'none',
         }}>
           {rememberMe && <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 800, lineHeight: 1 }}>✓</span>}
         </div>
         <span style={{ fontSize: '0.85rem', color: '#1f2937', userSelect: 'none' }}>Recordarme en este dispositivo</span>
-      </div>
+      </label>
 
       <IonButton expand="block" onClick={handleLogin} disabled={loading} style={styles.submitBtn}>
         {loading ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Ingresando…</> : 'Ingresar'}

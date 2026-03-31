@@ -33,7 +33,8 @@ public class DataSourceConfig {
         if (!databaseUrl.isBlank()) {
             URI uri = URI.create(databaseUrl.trim());
             String[] parts = uri.getUserInfo().split(":", 2);
-            cfg.setJdbcUrl("jdbc:postgresql://" + uri.getHost() + ":" + uri.getPort() + uri.getPath());
+            String query = uri.getQuery() != null ? "?" + uri.getQuery() : "";
+            cfg.setJdbcUrl("jdbc:postgresql://" + uri.getHost() + ":" + uri.getPort() + uri.getPath() + query);
             cfg.setUsername(parts[0].trim());
             cfg.setPassword(parts.length > 1 ? parts[1].trim() : "");
         } else {

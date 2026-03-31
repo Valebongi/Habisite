@@ -13,4 +13,10 @@ public interface CampanaService {
 
     /** Confirmación: el postulante clickea el link del email. */
     void confirmarParticipacion(String token);
+
+    /** Confirmación con datos duros: el postulante completa DNI, celular y especialidad. */
+    void confirmarConDatos(String token, String dni, String celular, String especialidad);
+
+    /** Verificar si un token existe y si ya fue confirmado. */
+    boolean estaConfirmado(String token);
 }

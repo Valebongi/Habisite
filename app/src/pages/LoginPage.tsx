@@ -297,7 +297,7 @@ const LoginPage: React.FC = () => {
 
       {/* Recuperar contraseña */}
       <div style={{ textAlign: 'center', marginTop: 20 }}>
-        <button onClick={() => { setShowRecuperar(r => !r); setShowSoporte(false); }} style={{
+        <button onClick={() => { setShowRecuperar(true); setShowSoporte(false); }} style={{
           background: 'none', border: 'none', cursor: 'pointer',
           fontSize: '0.82rem', color: '#374151', textDecoration: 'underline',
           textDecorationStyle: 'dotted', padding: 0,
@@ -306,26 +306,46 @@ const LoginPage: React.FC = () => {
         </button>
       </div>
 
-      {showRecuperar && (
-        <div style={{ marginTop: 12, background: '#f8fafc', borderRadius: 12, padding: '16px', border: '1px solid #e5e7eb' }}>
-          <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#374151' }}>
-            Ingresá tu DNI y te enviamos una nueva contraseña al email registrado.
-          </p>
-          <div style={styles.inputWrapper}>
-            <IonInput
-              value={dniRecuperar}
-              onIonInput={e => setDniRecuperar(e.detail.value ?? '')}
-              placeholder="Tu número de DNI"
-              type="text"
-              style={styles.input}
-            />
+      {/* Modal recuperar contraseña */}
+      <IonModal isOpen={showRecuperar} onDidDismiss={() => setShowRecuperar(false)} style={{ '--border-radius': '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
+          <div style={{ background: DARK, padding: '24px 24px 20px', position: 'relative' }}>
+            <button onClick={() => setShowRecuperar(false)} style={{
+              position: 'absolute', top: 16, right: 16,
+              background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem',
+              cursor: 'pointer', lineHeight: 1, padding: 4,
+            }}>×</button>
+            <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>
+              Recuperar contraseña
+            </h2>
+            <p style={{ margin: '4px 0 0', color: '#ffffff88', fontSize: '0.82rem' }}>
+              Te enviaremos una nueva contraseña por email
+            </p>
           </div>
-          <IonButton expand="block" onClick={handleRecuperar} disabled={enviandoClave}
-            style={{ marginTop: 10, '--background': ORANGE, '--border-radius': '8px' }}>
-            {enviandoClave ? <IonSpinner name="crescent" /> : 'Enviar nueva contraseña'}
-          </IonButton>
+          <div style={{ flex: 1, padding: '24px' }}>
+            <p style={{ margin: '0 0 16px', fontSize: '0.88rem', color: '#374151', lineHeight: 1.5 }}>
+              Ingresá tu DNI y te enviamos una nueva contraseña al email registrado.
+            </p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={styles.label}>DNI</label>
+              <div style={styles.inputWrapper}>
+                <IonInput
+                  value={dniRecuperar}
+                  onIonInput={e => setDniRecuperar(e.detail.value ?? '')}
+                  placeholder="Tu número de DNI"
+                  type="text"
+                  maxlength={8}
+                  style={styles.input}
+                />
+              </div>
+            </div>
+            <IonButton expand="block" onClick={handleRecuperar} disabled={enviandoClave}
+              style={{ '--background': ORANGE, '--border-radius': '10px', height: 48 }}>
+              {enviandoClave ? <><IonSpinner name="crescent" style={{ marginRight: 8 }} />Enviando…</> : 'Enviar nueva contraseña'}
+            </IonButton>
+          </div>
         </div>
-      )}
+      </IonModal>
 
       {/* Link de soporte */}
       <div style={{ textAlign: 'center', marginTop: 12 }}>

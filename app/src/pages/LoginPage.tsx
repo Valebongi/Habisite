@@ -64,18 +64,24 @@ const ModalSoporte: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOp
     <IonModal isOpen={isOpen} onDidDismiss={handleClose} style={{ '--border-radius': '16px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
         {/* Header */}
-        <div style={{ background: DARK, padding: '24px 24px 20px', position: 'relative' }}>
+        <div style={{ background: `linear-gradient(135deg, ${DARK} 0%, #1a1c1f 40%, #2a1208 100%)`, padding: '28px 24px 24px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -15, right: -15, width: 90, height: 90, border: `1.5px solid ${ORANGE}33`, borderRadius: 6, transform: 'rotate(25deg)' }} />
+          <div style={{ position: 'absolute', bottom: -10, left: 30, width: 50, height: 50, border: `1px solid #ffffff12`, borderRadius: 4, transform: 'rotate(-18deg)' }} />
+          <div style={{ position: 'absolute', top: 10, left: '50%', width: 120, height: 120, background: `${ORANGE}08`, borderRadius: 999, filter: 'blur(40px)' }} />
           <button onClick={handleClose} style={{
-            position: 'absolute', top: 16, right: 16,
-            background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem',
-            cursor: 'pointer', lineHeight: 1, padding: 4,
+            position: 'absolute', top: 16, right: 16, zIndex: 2,
+            background: '#ffffff15', border: 'none', color: '#fff', fontSize: '1.2rem',
+            cursor: 'pointer', lineHeight: 1, padding: '4px 8px', borderRadius: 8,
           }}>×</button>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>
-            Solicitar acceso
-          </h2>
-          <p style={{ margin: '4px 0 0', color: '#ffffff88', fontSize: '0.82rem' }}>
-            Te responderemos a la brevedad
-          </p>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p style={{ margin: '0 0 4px', fontSize: '0.6rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.2em' }}>Habisite Design Challenge</p>
+            <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>
+              Solicitar acceso
+            </h2>
+            <p style={{ margin: '6px 0 0', color: '#ffffff66', fontSize: '0.82rem' }}>
+              Te responderemos a la brevedad
+            </p>
+          </div>
         </div>
 
         {/* Body */}
@@ -309,18 +315,25 @@ const LoginPage: React.FC = () => {
       {/* Modal recuperar contraseña */}
       <IonModal isOpen={showRecuperar} onDidDismiss={() => setShowRecuperar(false)} style={{ '--border-radius': '16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
-          <div style={{ background: DARK, padding: '24px 24px 20px', position: 'relative' }}>
+          <div style={{ background: `linear-gradient(135deg, ${DARK} 0%, #1a1c1f 40%, #2a1208 100%)`, padding: '28px 24px 24px', position: 'relative', overflow: 'hidden' }}>
+            {/* Formas decorativas */}
+            <div style={{ position: 'absolute', top: -15, right: -15, width: 90, height: 90, border: `1.5px solid ${ORANGE}33`, borderRadius: 6, transform: 'rotate(25deg)' }} />
+            <div style={{ position: 'absolute', bottom: -10, left: 30, width: 50, height: 50, border: `1px solid #ffffff12`, borderRadius: 4, transform: 'rotate(-18deg)' }} />
+            <div style={{ position: 'absolute', top: 10, left: '50%', width: 120, height: 120, background: `${ORANGE}08`, borderRadius: 999, filter: 'blur(40px)' }} />
             <button onClick={() => setShowRecuperar(false)} style={{
-              position: 'absolute', top: 16, right: 16,
-              background: 'none', border: 'none', color: '#fff', fontSize: '1.4rem',
-              cursor: 'pointer', lineHeight: 1, padding: 4,
+              position: 'absolute', top: 16, right: 16, zIndex: 2,
+              background: '#ffffff15', border: 'none', color: '#fff', fontSize: '1.2rem',
+              cursor: 'pointer', lineHeight: 1, padding: '4px 8px', borderRadius: 8,
             }}>×</button>
-            <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 700 }}>
-              Recuperar contraseña
-            </h2>
-            <p style={{ margin: '4px 0 0', color: '#ffffff88', fontSize: '0.82rem' }}>
-              Te enviaremos una nueva contraseña por email
-            </p>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <p style={{ margin: '0 0 4px', fontSize: '0.6rem', fontWeight: 700, color: ORANGE, textTransform: 'uppercase', letterSpacing: '0.2em' }}>Habisite Design Challenge</p>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: '1.15rem', fontWeight: 700 }}>
+                Recuperar contraseña
+              </h2>
+              <p style={{ margin: '6px 0 0', color: '#ffffff66', fontSize: '0.82rem' }}>
+                Te enviaremos una nueva contraseña por email
+              </p>
+            </div>
           </div>
           <div style={{ flex: 1, padding: '24px' }}>
             <p style={{ margin: '0 0 16px', fontSize: '0.88rem', color: '#374151', lineHeight: 1.5 }}>

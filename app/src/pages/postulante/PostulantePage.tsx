@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   IonPage, IonContent, IonIcon, IonButton, IonCard, IonCardContent,
   IonCardHeader, IonCardTitle, IonList, IonItem, IonLabel, IonInput,
@@ -9,6 +9,8 @@ import {
   personOutline, trophyOutline, cloudUploadOutline,
   documentOutline, linkOutline, gridOutline, menuOutline,
   logOutOutline, chevronBackOutline, chevronForwardOutline,
+  rocketOutline, arrowForwardOutline, checkmarkCircleOutline,
+  sparklesOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { api, Postulante, PostulanteRequest, Concurso, Resolucion } from '../../services/api';
@@ -66,6 +68,266 @@ const MENU: MenuItem[] = [
   { id: 'entregas',  icon: cloudUploadOutline,   label: 'Mis Entregas' },
   { id: 'resumen',   icon: gridOutline,          label: 'Resumen' },
 ];
+
+// ─── Onboarding Tour ──────────────────────────────────────────────────────────
+
+const ONBOARDING_KEY = 'habisite_onboarding_v3';
+
+const TOUR_STEPS = [
+  {
+    targetId: 'nav-perfil',
+    sectionId: 'perfil',
+    icon: personOutline,
+    title: 'Tu Perfil',
+    desc: 'Acá están tus datos de inscripción: nombre, DNI, carrera y contacto.',
+    tip: 'Tu DNI es tu usuario de ingreso — no se puede cambiar.',
+  },
+  {
+    targetId: 'nav-concursos',
+    sectionId: 'concursos',
+    icon: trophyOutline,
+    title: 'Concursos',
+    desc: 'Explorá todos los desafíos activos. Cada tarjeta muestra el estado, las fechas y los días restantes.',
+    tip: 'Tocá "Ver bases" para leer las reglas completas antes de postularte.',
+  },
+  {
+    targetId: 'nav-entregas',
+    sectionId: 'entregas',
+    icon: cloudUploadOutline,
+    title: 'Mis Entregas',
+    desc: 'Subí tu proyecto: archivo (PDF, ZIP, imagen) o link de Google Drive.',
+    tip: 'El jurado revisa cada entrega. Vas a ver el estado acá: Pendiente, Aprobada o Rechazada.',
+  },
+  {
+    targetId: 'nav-resumen',
+    sectionId: 'resumen',
+    icon: gridOutline,
+    title: 'Resumen',
+    desc: 'Un dashboard rápido con tus estadísticas: entregas, aprobaciones y concursos activos.',
+    tip: 'Usalo para tener un panorama general de tu participación.',
+  },
+];
+
+interface OnboardingProps {
+  onNavigate: (sectionId: string) => void;
+  onFinish: () => void;
+}
+
+const OnboardingTour: React.FC<OnboardingProps> = ({ onNavigate, onFinish }) => {
+  const [step, setStep] = useState(-1); // -1 = welcome
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [visible, setVisible] = useState(!localStorage.getItem(ONBOARDING_KEY));
+  const [animating, setAnimating] = useState(false);
+
+  const updateTarget = useCallback((stepIdx: number) => {
+    if (stepIdx < 0 || stepIdx >= TOUR_STEPS.length) return;
+    const el = document.getElementById(TOUR_STEPS[stepIdx].targetId);
+    if (el) setTargetRect(el.getBoundingClientRect());
+  }, []);
+
+  useEffect(() => {
+    if (!visible || step < 0) return;
+    onNavigate(TOUR_STEPS[step].sectionId);
+    // Small delay for DOM to settle
+    const timer = setTimeout(() => updateTarget(step), 120);
+    return () => clearTimeout(timer);
+  }, [step, visible, onNavigate, updateTarget]);
+
+  const goNext = () => {
+    if (animating) return;
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 350);
+    if (step < TOUR_STEPS.length - 1) setStep(s => s + 1);
+    else finish();
+  };
+
+  const goPrev = () => {
+    if (animating || step <= 0) return;
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 350);
+    setStep(s => s - 1);
+  };
+
+  const finish = () => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setVisible(false);
+    onFinish();
+  };
+
+  if (!visible) return null;
+
+  // ── Welcome screen ────────────────────────────────────────────────────
+  if (step === -1) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 10000,
+        background: `linear-gradient(145deg, ${C.dark} 0%, #1a1208 40%, #2a1510 100%)`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '32px 28px', overflow: 'hidden',
+      }}>
+        {/* Decorative shapes */}
+        <div style={{ position: 'absolute', top: '8%', right: '10%', width: 140, height: 140, border: `1.5px solid ${C.orange}22`, borderRadius: 12, transform: 'rotate(25deg)' }} />
+        <div style={{ position: 'absolute', top: '25%', left: '5%', width: 80, height: 80, border: `1.5px solid ${C.orange}15`, borderRadius: 8, transform: 'rotate(-18deg)' }} />
+        <div style={{ position: 'absolute', bottom: '15%', right: '15%', width: 100, height: 100, border: `1px solid #ffffff10`, borderRadius: 10, transform: 'rotate(40deg)' }} />
+        <div style={{ position: 'absolute', bottom: '30%', left: '12%', width: 60, height: 60, background: `${C.orange}08`, borderRadius: 999, filter: 'blur(20px)' }} />
+        <div style={{ position: 'absolute', top: '50%', right: '8%', width: 200, height: 200, background: `${C.orange}06`, borderRadius: 999, filter: 'blur(60px)' }} />
+
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 400 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20, margin: '0 auto 24px',
+            background: `linear-gradient(135deg, ${C.orange} 0%, #cc4b1c 100%)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 12px 40px ${C.orange}44`,
+          }}>
+            <IonIcon icon={rocketOutline} style={{ fontSize: '2.2rem', color: '#fff' }} />
+          </div>
+
+          <p style={{ margin: '0 0 6px', color: C.orange, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+            Design Challenge 2026
+          </p>
+          <h1 style={{ margin: '0 0 16px', color: '#fff', fontWeight: 800, fontSize: '1.8rem', lineHeight: 1.2 }}>
+            Bienvenido a tu panel
+          </h1>
+          <p style={{ margin: '0 0 40px', color: '#ffffff66', fontSize: '1rem', lineHeight: 1.65 }}>
+            Te mostramos en 4 pasos cómo usar el panel para gestionar tu postulación.
+          </p>
+
+          <button onClick={() => setStep(0)} style={{
+            width: '100%', padding: '16px', background: C.orange, border: 'none',
+            borderRadius: 14, color: '#fff', fontWeight: 700, fontSize: '1rem',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: `0 8px 24px ${C.orange}55`,
+          }}>
+            Empezar el tour <IonIcon icon={arrowForwardOutline} style={{ fontSize: '1.1rem' }} />
+          </button>
+          <button onClick={finish} style={{
+            width: '100%', padding: '12px', background: 'transparent', border: 'none',
+            color: '#ffffff33', fontSize: '0.85rem', cursor: 'pointer', marginTop: 8,
+          }}>
+            Saltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Spotlight overlay ─────────────────────────────────────────────────
+  const current = TOUR_STEPS[step];
+  const r = targetRect;
+  const pad = 6;
+
+  return (
+    <>
+      {/* SVG overlay with cutout */}
+      <svg style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}
+        width="100%" height="100%" viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}>
+        <defs>
+          <mask id="onboarding-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {r && <rect x={r.left - pad} y={r.top - pad} width={r.width + pad * 2} height={r.height + pad * 2} rx="10" fill="black" />}
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" mask="url(#onboarding-mask)" />
+        {r && <rect x={r.left - pad} y={r.top - pad} width={r.width + pad * 2} height={r.height + pad * 2}
+          rx="10" fill="none" stroke={C.orange} strokeWidth="2" strokeDasharray="6 3" />}
+      </svg>
+
+      {/* Click blocker */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={e => e.stopPropagation()} />
+
+      {/* Tooltip card */}
+      <div style={{
+        position: 'fixed',
+        top: r ? Math.min(r.bottom + 16, window.innerHeight - 280) : '50%',
+        left: r ? Math.max(r.left, 16) : '50%',
+        transform: r ? 'none' : 'translate(-50%, -50%)',
+        zIndex: 10000, width: 340, maxWidth: 'calc(100vw - 32px)',
+        background: '#fff', borderRadius: 16, padding: '24px 22px 20px',
+        boxShadow: `0 16px 48px rgba(0,0,0,0.25), 0 0 0 1px ${C.border}`,
+        transition: 'top 0.3s ease, left 0.3s ease',
+      }}>
+        {/* Progress */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          {TOUR_STEPS.map((_, i) => (
+            <div key={i} style={{
+              height: 3, borderRadius: 2, flex: i === step ? 3 : 1,
+              background: i <= step ? C.orange : '#e5e7eb',
+              transition: 'flex 0.3s ease, background 0.3s ease',
+            }} />
+          ))}
+        </div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: `linear-gradient(135deg, ${C.orange}20 0%, ${C.orange}08 100%)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <IonIcon icon={current.icon} style={{ fontSize: '1.4rem', color: C.orange }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: C.orange, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Paso {step + 1} de {TOUR_STEPS.length}
+            </p>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: C.text }}>{current.title}</h3>
+          </div>
+        </div>
+
+        <p style={{ margin: '0 0 10px', color: '#374151', lineHeight: 1.6, fontSize: '0.92rem' }}>{current.desc}</p>
+
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px',
+          background: '#fffbf5', borderRadius: 10, border: `1px solid ${C.orange}22`, marginBottom: 18,
+        }}>
+          <IonIcon icon={sparklesOutline} style={{ fontSize: '0.95rem', color: C.orange, flexShrink: 0, marginTop: 2 }} />
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400e', lineHeight: 1.5 }}>{current.tip}</p>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {step > 0 && (
+            <button onClick={goPrev} style={{
+              flex: 1, padding: '10px', background: '#f3f4f6', border: 'none',
+              borderRadius: 10, color: C.muted, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
+            }}>
+              Atrás
+            </button>
+          )}
+          <button onClick={goNext} style={{
+            flex: 2, padding: '10px', background: C.orange, border: 'none',
+            borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            {step === TOUR_STEPS.length - 1
+              ? <><IonIcon icon={checkmarkCircleOutline} style={{ fontSize: '1rem' }} /> Entendido</>
+              : <>Siguiente <IonIcon icon={arrowForwardOutline} style={{ fontSize: '0.9rem' }} /></>}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ─── Sidebar decorative background ────────────────────────────────────────────
+
+const SidebarBackground: React.FC = () => (
+  <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+    {/* Base gradient */}
+    <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(175deg, #0f1114 0%, #1a1208 50%, #0d0e10 100%)` }} />
+    {/* Warm glow top */}
+    <div style={{ position: 'absolute', top: -40, left: -20, width: 180, height: 180, background: `${C.orange}08`, borderRadius: 999, filter: 'blur(50px)' }} />
+    {/* Warm glow bottom */}
+    <div style={{ position: 'absolute', bottom: 40, right: -30, width: 120, height: 120, background: `${C.orange}06`, borderRadius: 999, filter: 'blur(40px)' }} />
+    {/* Geometric shapes */}
+    <div style={{ position: 'absolute', top: '12%', right: 10, width: 50, height: 50, border: `1px solid ${C.orange}12`, borderRadius: 6, transform: 'rotate(25deg)' }} />
+    <div style={{ position: 'absolute', top: '55%', left: -10, width: 35, height: 35, border: `1px solid #ffffff08`, borderRadius: 4, transform: 'rotate(-15deg)' }} />
+    <div style={{ position: 'absolute', bottom: '18%', right: 20, width: 25, height: 25, border: `1px solid ${C.orange}10`, borderRadius: 3, transform: 'rotate(40deg)' }} />
+    {/* Subtle grid lines */}
+    <div style={{ position: 'absolute', top: '35%', left: 20, right: 20, height: 1, background: `linear-gradient(90deg, transparent, #ffffff06, transparent)` }} />
+    <div style={{ position: 'absolute', top: '70%', left: 20, right: 20, height: 1, background: `linear-gradient(90deg, transparent, ${C.orange}08, transparent)` }} />
+  </div>
+);
 
 // ─── Sección: Perfil ──────────────────────────────────────────────────────────
 
@@ -564,10 +826,15 @@ const PostulantePage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('perfil');
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const ok = sessionStorage.getItem('postulante_data') ?? localStorage.getItem('postulante_data');
-    if (!ok) history.replace('/login');
+    if (!ok) { history.replace('/login'); return; }
+    // Show onboarding after mount if not seen
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      setTimeout(() => setShowOnboarding(true), 400);
+    }
   }, [history]);
 
   const postulante = getPostulante();
@@ -601,11 +868,18 @@ const PostulantePage: React.FC = () => {
       <IonContent scrollY={false} fullscreen>
         <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', background: C.bg }}>
 
+          {/* Onboarding */}
+          {showOnboarding && (
+            <OnboardingTour
+              onNavigate={navigate}
+              onFinish={() => setShowOnboarding(false)}
+            />
+          )}
+
           {/* ── Sidebar ─────────────────────────────────────────────── */}
           <aside style={{
             width: sidebarOpen ? 250 : 0,
             minWidth: sidebarOpen ? 250 : 0,
-            background: C.dark,
             color: '#fff',
             display: 'flex',
             flexDirection: 'column',
@@ -616,8 +890,11 @@ const PostulantePage: React.FC = () => {
             zIndex: window.innerWidth < 768 ? 999 : 1,
             height: '100%',
           }}>
+            {/* Decorative background */}
+            <SidebarBackground />
+
             {/* Header */}
-            <div style={{ padding: '1.25rem', borderBottom: '1px solid #1f2937', flexShrink: 0 }}>
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid #ffffff0d', flexShrink: 0, position: 'relative', zIndex: 1 }}>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Habisite</div>
               <div style={{ fontSize: '0.62rem', color: C.orange, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 3 }}>
                 Panel de Postulante
@@ -626,9 +903,10 @@ const PostulantePage: React.FC = () => {
 
             {/* User info */}
             {postulante && (
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #ffffff0d', display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%', background: `${C.orange}33`,
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: `linear-gradient(135deg, ${C.orange}55 0%, ${C.orange}22 100%)`,
                   border: `1.5px solid ${C.orange}66`, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '0.75rem', fontWeight: 700, color: '#fff', flexShrink: 0,
                 }}>
@@ -644,14 +922,14 @@ const PostulantePage: React.FC = () => {
             )}
 
             {/* Nav */}
-            <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
+            <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0', position: 'relative', zIndex: 1 }}>
               {MENU.map(item => {
                 const isActive = activeSection === item.id;
                 return (
-                  <button key={item.id} onClick={() => navigate(item.id)} style={{
+                  <button key={item.id} id={`nav-${item.id}`} onClick={() => navigate(item.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '0.75rem',
                     width: '100%', padding: '0.7rem 1.25rem',
-                    background: isActive ? '#1f2937' : 'transparent',
+                    background: isActive ? '#ffffff0d' : 'transparent',
                     color: isActive ? C.orange : '#9ca3af',
                     border: 'none', cursor: 'pointer', fontSize: '0.875rem', textAlign: 'left',
                     borderLeft: isActive ? `3px solid ${C.orange}` : '3px solid transparent',
@@ -665,10 +943,10 @@ const PostulantePage: React.FC = () => {
             </nav>
 
             {/* Logout */}
-            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #1f2937', flexShrink: 0 }}>
+            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #ffffff0d', flexShrink: 0, position: 'relative', zIndex: 1 }}>
               <button onClick={handleLogout} style={{
                 width: '100%', padding: '0.6rem', background: 'transparent',
-                border: '1px solid #374151', color: '#9ca3af', borderRadius: 999,
+                border: '1px solid #ffffff15', color: '#9ca3af', borderRadius: 999,
                 fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}>
                 <IonIcon icon={logOutOutline} style={{ fontSize: '0.9rem' }} />

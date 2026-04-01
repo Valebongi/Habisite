@@ -24,10 +24,10 @@ public class Postulante {
     @Column(nullable = false, length = 100)
     private String apellidos;
 
-    @Column(nullable = false, length = 8, unique = true)
+    @Column(length = 8, unique = true)
     private String dni;
 
-    @Column(nullable = false, length = 15)
+    @Column(length = 15)
     private String celular;
 
     @Column(nullable = false, length = 150)
@@ -36,7 +36,7 @@ public class Postulante {
     @Column(name = "correo_electronico", nullable = false, length = 150, unique = true)
     private String correoElectronico;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String especialidad;
 
     @Column(name = "password_hash")

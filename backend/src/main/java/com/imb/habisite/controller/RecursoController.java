@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/v1/admin/recursos")
@@ -42,13 +43,22 @@ public class RecursoController {
         return sinDatos(repo.save(r));
     }
 
+    private static final Set<String> SAFE_TYPES = Set.of(
+            "image/png", "image/jpeg", "image/gif", "image/webp",
+            "application/pdf", "application/zip"
+    );
+
     @GetMapping("/{id}/archivo")
     public ResponseEntity<byte[]> descargar(@PathVariable Long id) {
         return repo.findById(id).map(r -> {
+            String ct = r.getContentType();
+            if (ct == null || !SAFE_TYPES.contains(ct.toLowerCase())) {
+                ct = "application/octet-stream";
+            }
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType(
-                    r.getContentType() != null ? r.getContentType() : "application/octet-stream"));
-            headers.setContentDisposition(ContentDisposition.inline().filename(r.getArchivoNombre()).build());
+            headers.setContentType(MediaType.parseMediaType(ct));
+            headers.setContentDisposition(ContentDisposition.attachment().filename(r.getArchivoNombre()).build());
+            headers.set("X-Content-Type-Options", "nosniff");
             return new ResponseEntity<>(r.getArchivoDatos(), headers, HttpStatus.OK);
         }).orElse(ResponseEntity.notFound().build());
     }

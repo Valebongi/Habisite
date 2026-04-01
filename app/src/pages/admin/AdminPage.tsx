@@ -1,975 +1,727 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { IonPage, IonContent, IonSpinner, IonIcon, useIonToast } from '@ionic/react';
-import { AdminMainTour, AdminSectionTour, onboardingPending, sectionTourPending } from './AdminOnboarding';
 import {
-  gridOutline, peopleOutline, starOutline, clipboardOutline,
-  barChartOutline, documentTextOutline, helpCircleOutline,
-  ribbonOutline, settingsOutline, mailOutline,
+  IonPage, IonContent, IonIcon, IonSpinner, IonSearchbar, IonToast,
+} from '@ionic/react';
+import {
+  gridOutline, trophyOutline, peopleOutline, mailOutline,
+  checkmarkCircleOutline, ribbonOutline, settingsOutline,
+  menuOutline, logOutOutline, chevronBackOutline,
+  rocketOutline, arrowForwardOutline, checkmarkDoneOutline,
+  sparklesOutline, alertCircleOutline, timeOutline,
+  addOutline, trashOutline, createOutline, closeOutline,
+  personOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import {
-  api, AdminStats, Postulante, Evaluacion,
-  SoporteTicket, Resolucion, CampanaInfoRequest,
-  Concurso, UsuarioInfo, PublicacionInfo, RecursoInfo,
+  api, AdminStats, Postulante, Evaluacion, Concurso,
+  UsuarioInfo, Resolucion, CampanaInfoRequest,
 } from '../../services/api';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from 'recharts';
 
-// ─── Paleta ───────────────────────────────────────────────────────────────────
+// ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  orange:  '#E85520',
-  dark:    '#111827',
-  gray:    '#6b7280',
-  border:  '#e5e7eb',
-  bg:      '#f4f5f7',
-  white:   '#ffffff',
-} as const;
+  orange: '#E85520',
+  dark: '#0d0e10',
+  bg: '#f4f5f7',
+  card: '#ffffff',
+  text: '#111827',
+  muted: '#6b7280',
+  border: '#e5e7eb',
+};
 
-const CHART_COLORS = ['#E85520', '#3dc2ff', '#2dd36f', '#ffc409', '#eb445a', '#92949c', '#6a64f1', '#f97316'];
+const BASE_URL = `${import.meta.env.VITE_API_URL || 'https://api.habisite.com/api'}/v1`;
 
-// ─── Tipos internos ───────────────────────────────────────────────────────────
-interface AreaItem {
-  id: string;
-  seccion: string;
-  tipo: string;
-  responsable: string;
-  ultimaMod: string;
-  estado: 'publicado' | 'revision' | 'pendiente';
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatFecha = (f: string) =>
+  new Date(f).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
 
-interface MenuItem {
-  id: string;
-  icon: string;
-  label: string;
-  sub?: { id: string; label: string }[];
-}
+const formatFechaCorta = (f: string) =>
+  new Date(f).toLocaleDateString('es-AR');
 
-// ─── Mock de áreas del sitio (conectar con API cuando esté disponible) ────────
-const AREAS: AreaItem[] = [
-  { id: '1',  seccion: 'Hero / Banner principal',    tipo: 'Imagen + texto',  responsable: 'Admin',        ultimaMod: '2026-03-20', estado: 'publicado' },
-  { id: '2',  seccion: 'Objetivo del concurso',      tipo: 'Texto',           responsable: 'Admin',        ultimaMod: '2026-03-18', estado: 'publicado' },
-  { id: '3',  seccion: 'Fases del concurso',         tipo: 'Contenido',       responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
-  { id: '4',  seccion: 'Cronograma de fechas',       tipo: 'Imagen / Tabla',  responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
-  { id: '5',  seccion: 'Bases y Condiciones',        tipo: 'Documento PDF',   responsable: 'Admin',        ultimaMod: '2026-03-22', estado: 'revision'  },
-  { id: '6',  seccion: 'Premios',                    tipo: 'Contenido',       responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
-  { id: '7',  seccion: 'Formulario de inscripción',  tipo: 'Formulario',      responsable: 'Admin',        ultimaMod: '2026-03-25', estado: 'publicado' },
-  { id: '8',  seccion: 'Jurado',                     tipo: 'Perfiles',        responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
-  { id: '9',  seccion: 'Galería / Participantes',    tipo: 'Galería',         responsable: 'Sin asignar',  ultimaMod: '—',          estado: 'pendiente' },
-  { id: '10', seccion: 'Footer y contacto',          tipo: 'Contenido',       responsable: 'Admin',        ultimaMod: '2026-03-15', estado: 'publicado' },
-];
+const diasRestantes = (fechaFin: string) => {
+  const diff = new Date(fechaFin).getTime() - Date.now();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
 
-// ─── Menú lateral ─────────────────────────────────────────────────────────────
-const MENU: MenuItem[] = [
-  { id: 'dashboard',    icon: gridOutline,         label: 'Dashboard' },
-  { id: 'postulantes',  icon: peopleOutline,        label: 'Postulantes' },
-  { id: 'campanas',     icon: mailOutline,           label: 'Campanas' },
-  { id: 'evaluaciones', icon: starOutline,           label: 'Evaluaciones' },
-  {
-    id: 'areas', icon: clipboardOutline, label: 'Relevamiento de Áreas',
-    sub: [
-      { id: 'areas-sitio',         label: 'Secciones del sitio' },
-      { id: 'areas-publicaciones', label: 'Publicaciones' },
-      { id: 'areas-recursos',      label: 'Imágenes y recursos' },
-    ],
-  },
-  { id: 'estadisticas',  icon: barChartOutline,      label: 'Estadísticas' },
-  { id: 'entregas',      icon: documentTextOutline,  label: 'Entregas' },
-  { id: 'soporte',       icon: helpCircleOutline,    label: 'Soporte' },
-  { id: 'jurado',        icon: ribbonOutline,        label: 'Jurado' },
-  { id: 'configuracion', icon: settingsOutline,      label: 'Configuración' },
-];
+const estadoConcursoBadge = (estado: Concurso['estado']) => {
+  const map: Record<string, { bg: string; color: string }> = {
+    ACTIVO:    { bg: '#f0fdf4', color: '#16a34a' },
+    CERRADO:   { bg: '#f3f4f6', color: C.muted },
+    PROXIMO:   { bg: '#fff7ed', color: '#92400e' },
+    TERMINADO: { bg: '#f3f4f6', color: '#9ca3af' },
+  };
+  return map[estado] ?? map.CERRADO;
+};
 
-// ─── Helpers de UI ────────────────────────────────────────────────────────────
-const OrangeBar: React.FC<{ label: string; action?: React.ReactNode }> = ({ label, action }) => (
-  <div style={{ background: C.orange, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, borderRadius: 14 }}>
-    <span style={{ color: '#fff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.85rem' }}>
-      {label}
-    </span>
+// ─── Shared UI helpers ────────────────────────────────────────────────────────
+const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ title, action }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+    <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: C.text }}>{title}</h2>
     {action}
   </div>
 );
 
-const StatCard: React.FC<{ value: string | number; label: string; sub?: string }> = ({ value, label, sub }) => (
-  <div style={{ background: C.white, borderRadius: 10, padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,.07)', borderLeft: `4px solid ${C.orange}`, flex: 1, minWidth: 160 }}>
-    <div style={{ fontSize: '0.7rem', color: C.gray, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>{label}</div>
-    <div style={{ fontSize: '2.2rem', fontWeight: 800, color: C.dark, lineHeight: 1 }}>{value}</div>
-    {sub && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: 4 }}>{sub}</div>}
+const StatCard: React.FC<{ value: string | number; label: string; color?: string; sub?: string }> = ({ value, label, color = C.orange, sub }) => (
+  <div style={{ background: C.card, borderRadius: 14, padding: '18px 20px', border: `1px solid ${C.border}`, flex: 1, minWidth: 140 }}>
+    <div style={{ fontSize: '2rem', fontWeight: 800, color, lineHeight: 1, marginBottom: 4 }}>{value}</div>
+    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+    {sub && <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 3 }}>{sub}</div>}
   </div>
 );
 
-const ChartBox: React.FC<{ label: string; height?: number }> = ({ label, height = 180 }) => (
-  <div style={{ height, background: '#f9fafb', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.8rem', border: `2px dashed ${C.border}`, letterSpacing: '0.5px' }}>
-    {label}
-  </div>
-);
-
-const Badge: React.FC<{ estado: AreaItem['estado'] }> = ({ estado }) => {
-  const map = {
-    publicado: { bg: '#f0fdf4', color: '#16a34a', label: 'Publicado' },
-    revision:  { bg: '#fff7ed', color: C.orange,  label: 'En revisión' },
-    pendiente: { bg: '#f3f4f6', color: C.gray,    label: 'Pendiente' },
-  };
-  const s = map[estado];
-  return (
-    <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 }}>
-      {s.label}
-    </span>
-  );
+const inputCss: React.CSSProperties = {
+  padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 10,
+  fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
+  background: '#fff', color: C.text,
 };
 
-// ─── Secciones de contenido ───────────────────────────────────────────────────
+const btnPrimary: React.CSSProperties = {
+  padding: '10px 20px', background: C.orange, border: 'none', borderRadius: 10,
+  color: '#fff', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+};
 
-const SecDashboard: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats, postulantes, evaluaciones }) => {
-  const publicadas  = AREAS.filter(a => a.estado === 'publicado').length;
-  const pendientes  = AREAS.filter(a => a.estado === 'pendiente').length;
-  const sinAsignar  = AREAS.filter(a => a.responsable === 'Sin asignar').length;
-  const promPuntaje = evaluaciones.length
-    ? (evaluaciones.reduce((s, e) => s + e.puntaje, 0) / evaluaciones.length).toFixed(1)
-    : '—';
+const btnSm: React.CSSProperties = {
+  padding: '6px 14px', background: '#fff', border: `1px solid ${C.border}`,
+  borderRadius: 8, color: C.muted, fontWeight: 600, fontSize: '0.78rem',
+  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+};
 
-  return (
-    <div>
-      <OrangeBar label="Dashboard" />
+const msgBox = (ok: boolean): React.CSSProperties => ({
+  background: ok ? '#f0fdf4' : '#fef2f2',
+  borderLeft: `4px solid ${ok ? '#16a34a' : '#dc2626'}`,
+  padding: '10px 16px', borderRadius: 8, marginBottom: 16,
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+});
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-        <StatCard value={stats?.totalPostulantes ?? '—'} label="Total postulantes" sub="inscriptos al concurso" />
-        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" sub="realizadas por el jurado" />
-        <StatCard value={promPuntaje} label="Puntaje promedio" sub="sobre 10 puntos" />
-        <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" sub="representadas" />
-      </div>
+// ─── Sidebar menu ─────────────────────────────────────────────────────────────
+type MenuItem = { id: string; icon: string; label: string };
 
-      <OrangeBar label="Campanas de comunicacion" />
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" sub="postulantes notificados" />
-        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" sub="inscripcion oficial" />
-        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(1)}%` : '—'} label="Tasa confirmacion" sub="interes real" />
-      </div>
+const MENU: MenuItem[] = [
+  { id: 'dashboard',    icon: gridOutline,             label: 'Dashboard' },
+  { id: 'concursos',   icon: trophyOutline,            label: 'Concursos' },
+  { id: 'postulantes', icon: peopleOutline,            label: 'Postulantes' },
+  { id: 'campanas',    icon: mailOutline,              label: 'Campañas' },
+  { id: 'evaluaciones',icon: checkmarkCircleOutline,   label: 'Evaluaciones' },
+  { id: 'jurado',      icon: ribbonOutline,            label: 'Jurado' },
+  { id: 'configuracion',icon: settingsOutline,         label: 'Configuración' },
+];
 
-      <OrangeBar label="Estado del sitio" />
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-        <StatCard value={publicadas}  label="Secciones publicadas"   sub={`de ${AREAS.length} totales`} />
-        <StatCard value={pendientes}  label="Secciones pendientes"   sub="sin contenido aún" />
-        <StatCard value={sinAsignar}  label="Sin responsable"        sub="requieren asignación" />
-      </div>
+// ─── Sidebar decorative background ───────────────────────────────────────────
+const SidebarBg: React.FC = () => (
+  <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+    <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(175deg, #0f1114 0%, #1a1208 50%, #0d0e10 100%)` }} />
+    <div style={{ position: 'absolute', top: -40, left: -20, width: 180, height: 180, background: `${C.orange}08`, borderRadius: 999, filter: 'blur(50px)' }} />
+    <div style={{ position: 'absolute', bottom: 40, right: -30, width: 120, height: 120, background: `${C.orange}06`, borderRadius: 999, filter: 'blur(40px)' }} />
+    <div style={{ position: 'absolute', top: '12%', right: 10, width: 50, height: 50, border: `1px solid ${C.orange}12`, borderRadius: 6, transform: 'rotate(25deg)' }} />
+    <div style={{ position: 'absolute', top: '55%', left: -10, width: 35, height: 35, border: `1px solid #ffffff08`, borderRadius: 4, transform: 'rotate(-15deg)' }} />
+    <div style={{ position: 'absolute', bottom: '18%', right: 20, width: 25, height: 25, border: `1px solid ${C.orange}10`, borderRadius: 3, transform: 'rotate(40deg)' }} />
+    <div style={{ position: 'absolute', top: '35%', left: 20, right: 20, height: 1, background: `linear-gradient(90deg, transparent, #ffffff06, transparent)` }} />
+    <div style={{ position: 'absolute', top: '70%', left: 20, right: 20, height: 1, background: `linear-gradient(90deg, transparent, ${C.orange}08, transparent)` }} />
+  </div>
+);
 
-      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 16 }}>Áreas sin responsable asignado</div>
-        {AREAS.filter(a => a.responsable === 'Sin asignar').map(a => (
-          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.seccion}</div>
-              <div style={{ fontSize: '0.75rem', color: C.gray }}>{a.tipo}</div>
-            </div>
-            <Badge estado={a.estado} />
-          </div>
-        ))}
-      </div>
+// ─── Onboarding Tour ─────────────────────────────────────────────────────────
+const ONBOARDING_KEY = 'habisite_admin_onboarding_v3';
 
-      <OrangeBar label="Últimos registros" />
-      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-        {postulantes.length === 0
-          ? <div style={{ padding: 32, textAlign: 'center', color: C.gray, fontSize: '0.875rem' }}>Sin postulantes registrados aún</div>
-          : postulantes.slice(-5).reverse().map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: `1px solid #f3f4f6` }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.nombres} {p.apellidos}</div>
-                  <div style={{ fontSize: '0.75rem', color: C.gray }}>{p.universidad}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ background: '#fff3ee', color: C.orange, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700 }}>{p.especialidad}</span>
-                  <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 4 }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</div>
-                </div>
-              </div>
-            ))
-        }
+const TOUR_STEPS = [
+  {
+    targetId: 'anav-dashboard',
+    sectionId: 'dashboard',
+    icon: gridOutline,
+    title: 'Dashboard',
+    desc: 'Vista general del concurso: postulantes activos, entregas, jurados y propuestas recibidas. También muestra concursos próximos a vencer y postulantes sin entregas.',
+    tip: 'Actualizá esta sección para tener el estado en tiempo real.',
+  },
+  {
+    targetId: 'anav-concursos',
+    sectionId: 'concursos',
+    icon: trophyOutline,
+    title: 'Concursos',
+    desc: 'Listado de todos los concursos con su estado (ACTIVO, CERRADO, TERMINADO). Podés editar título, descripción, bases, fechas y estado directamente.',
+    tip: 'Un concurso ACTIVO acepta entregas; pasarlo a CERRADO detiene nuevas postulaciones.',
+  },
+  {
+    targetId: 'anav-postulantes',
+    sectionId: 'postulantes',
+    icon: peopleOutline,
+    title: 'Postulantes',
+    desc: 'Lista completa de todos los inscritos. Buscá por nombre, DNI, email o universidad. Podés ver todos sus datos en un vistazo.',
+    tip: 'Usá el buscador para encontrar rápidamente a un postulante específico.',
+  },
+  {
+    targetId: 'anav-campanas',
+    sectionId: 'campanas',
+    icon: mailOutline,
+    title: 'Campañas',
+    desc: 'Enviá emails masivos: la info del concurso con link de webinar y canal, o una segunda convocatoria para quienes no confirmaron.',
+    tip: 'Verificá el número de destinatarios antes de enviar — la acción no se puede deshacer.',
+  },
+  {
+    targetId: 'anav-evaluaciones',
+    sectionId: 'evaluaciones',
+    icon: checkmarkCircleOutline,
+    title: 'Evaluaciones',
+    desc: 'Todas las evaluaciones del jurado: postulante, jurado, puntaje, comentario y fecha. Incluye estadísticas por jurado.',
+    tip: 'El puntaje promedio te da una idea rápida del nivel general del concurso.',
+  },
+  {
+    targetId: 'anav-jurado',
+    sectionId: 'jurado',
+    icon: ribbonOutline,
+    title: 'Jurado',
+    desc: 'Supervisá el progreso de cada miembro del jurado: cuántas evaluaciones hizo, promedio, máximo y mínimo. Barra de progreso contra el total de postulantes.',
+    tip: 'Un jurado con 0 evaluaciones puede indicar que aún no ingresó al sistema.',
+  },
+  {
+    targetId: 'anav-configuracion',
+    sectionId: 'configuracion',
+    icon: settingsOutline,
+    title: 'Configuración',
+    desc: 'Gestión de usuarios del sistema: crear nuevos jurados o admins, ver todos los usuarios activos y eliminar los que ya no se necesiten.',
+    tip: 'Al crear un usuario, el username se usa para iniciar sesión. Compartilo de forma segura.',
+  },
+];
+
+interface OnboardingProps { onNavigate: (id: string) => void; onFinish: () => void; }
+
+const OnboardingTour: React.FC<OnboardingProps> = ({ onNavigate, onFinish }) => {
+  const [step, setStep] = useState(-1);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (step < 0) return;
+    onNavigate(TOUR_STEPS[step].sectionId);
+    const timer = setTimeout(() => {
+      const el = document.getElementById(TOUR_STEPS[step].targetId);
+      if (el) setTargetRect(el.getBoundingClientRect());
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [step, onNavigate]);
+
+  const finish = () => { localStorage.setItem(ONBOARDING_KEY, '1'); setVisible(false); onFinish(); };
+  const goNext = () => step < TOUR_STEPS.length - 1 ? setStep(s => s + 1) : finish();
+
+  if (!visible) return null;
+
+  // Welcome screen
+  if (step === -1) return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: `linear-gradient(145deg, ${C.dark} 0%, #1a1208 40%, #2a1510 100%)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: '8%', right: '10%', width: 140, height: 140, border: `1.5px solid ${C.orange}22`, borderRadius: 12, transform: 'rotate(25deg)' }} />
+      <div style={{ position: 'absolute', top: '25%', left: '5%', width: 80, height: 80, border: `1.5px solid ${C.orange}15`, borderRadius: 8, transform: 'rotate(-18deg)' }} />
+      <div style={{ position: 'absolute', bottom: '15%', right: '15%', width: 100, height: 100, border: `1px solid #ffffff10`, borderRadius: 10, transform: 'rotate(40deg)' }} />
+      <div style={{ position: 'absolute', top: '50%', right: '8%', width: 200, height: 200, background: `${C.orange}06`, borderRadius: 999, filter: 'blur(60px)' }} />
+      <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 400 }}>
+        <div style={{ width: 72, height: 72, borderRadius: 20, margin: '0 auto 24px', background: `linear-gradient(135deg, ${C.orange} 0%, #cc4b1c 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 12px 40px ${C.orange}44` }}>
+          <IonIcon icon={rocketOutline} style={{ fontSize: '2.2rem', color: '#fff' }} />
+        </div>
+        <p style={{ margin: '0 0 6px', color: C.orange, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Panel de Administración</p>
+        <h1 style={{ margin: '0 0 16px', color: '#fff', fontWeight: 800, fontSize: '1.8rem', lineHeight: 1.2 }}>Bienvenido al panel</h1>
+        <p style={{ margin: '0 0 40px', color: '#ffffff66', fontSize: '1rem', lineHeight: 1.65 }}>Te mostramos cómo gestionar el concurso en 7 pasos.</p>
+        <button onClick={() => setStep(0)} style={{ width: '100%', padding: 16, background: C.orange, border: 'none', borderRadius: 14, color: '#fff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 8px 24px ${C.orange}55` }}>
+          Empezar <IonIcon icon={arrowForwardOutline} style={{ fontSize: '1.1rem' }} />
+        </button>
+        <button onClick={finish} style={{ width: '100%', padding: 12, background: 'transparent', border: 'none', color: '#ffffff33', fontSize: '0.85rem', cursor: 'pointer', marginTop: 8 }}>Saltar</button>
       </div>
     </div>
   );
+
+  const current = TOUR_STEPS[step];
+  const r = targetRect;
+  const pad = 6;
+
+  return (
+    <>
+      <svg style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }} width="100%" height="100%" viewBox={`0 0 ${window.innerWidth} ${window.innerHeight}`}>
+        <defs>
+          <mask id="admin-mask">
+            <rect width="100%" height="100%" fill="white" />
+            {r && <rect x={r.left - pad} y={r.top - pad} width={r.width + pad * 2} height={r.height + pad * 2} rx="10" fill="black" />}
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.65)" mask="url(#admin-mask)" />
+        {r && <rect x={r.left - pad} y={r.top - pad} width={r.width + pad * 2} height={r.height + pad * 2} rx="10" fill="none" stroke={C.orange} strokeWidth="2" strokeDasharray="6 3" />}
+      </svg>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={e => e.stopPropagation()} />
+      <div style={{ position: 'fixed', top: r ? Math.min(r.bottom + 16, window.innerHeight - 300) : '50%', left: r ? Math.max(r.left, 16) : '50%', transform: r ? 'none' : 'translate(-50%,-50%)', zIndex: 10000, width: 340, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, padding: '24px 22px 20px', boxShadow: `0 16px 48px rgba(0,0,0,0.25), 0 0 0 1px ${C.border}`, transition: 'top 0.3s ease, left 0.3s ease' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          {TOUR_STEPS.map((_, i) => <div key={i} style={{ height: 3, borderRadius: 2, flex: i === step ? 3 : 1, background: i <= step ? C.orange : '#e5e7eb', transition: 'flex 0.3s, background 0.3s' }} />)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.orange}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <IonIcon icon={current.icon} style={{ fontSize: '1.4rem', color: C.orange }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: 700, color: C.orange, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Paso {step + 1} de {TOUR_STEPS.length}</p>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: C.text }}>{current.title}</h3>
+          </div>
+        </div>
+        <p style={{ margin: '0 0 10px', color: '#374151', lineHeight: 1.6, fontSize: '0.92rem' }}>{current.desc}</p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: '#fffbf5', borderRadius: 10, border: `1px solid ${C.orange}22`, marginBottom: 18 }}>
+          <IonIcon icon={sparklesOutline} style={{ fontSize: '0.95rem', color: C.orange, flexShrink: 0, marginTop: 2 }} />
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400e', lineHeight: 1.5 }}>{current.tip}</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {step > 0 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: 10, background: '#f3f4f6', border: 'none', borderRadius: 10, color: C.muted, fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>Atrás</button>}
+          <button onClick={goNext} style={{ flex: 2, padding: 10, background: C.orange, border: 'none', borderRadius: 10, color: '#fff', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            {step === TOUR_STEPS.length - 1 ? <><IonIcon icon={checkmarkDoneOutline} style={{ fontSize: '1rem' }} /> Entendido</> : <>Siguiente <IonIcon icon={arrowForwardOutline} style={{ fontSize: '0.9rem' }} /></>}
+          </button>
+        </div>
+      </div>
+    </>
+  );
 };
 
-const SecPostulantes: React.FC<{ postulantes: Postulante[]; loading: boolean; reload: () => void }> = ({ postulantes, loading, reload }) => {
+// ─── Sección: Dashboard ───────────────────────────────────────────────────────
+const SecDashboard: React.FC = () => {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
+  const [concursos, setConcursos] = useState<Concurso[]>([]);
+  const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [s, ps, cs, rs, evs] = await Promise.all([
+        api.admin.stats(),
+        api.postulantes.listar(),
+        api.concursos.listar(),
+        api.resoluciones.listarTodas(),
+        api.evaluaciones.listar(),
+      ]);
+      setStats(s); setPostulantes(ps); setConcursos(cs); setResoluciones(rs); setEvaluaciones(evs);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
+  const juradosActivos = [...new Set(evaluaciones.map(e => e.juradoNombre))].length;
+  const sinEntregas = postulantes.filter(p => !resoluciones.some(r => r.postulanteId === p.id));
+  const ahora = Date.now();
+  const proximosAVencer = concursos.filter(c => {
+    const d = diasRestantes(c.fechaFin);
+    return c.estado === 'ACTIVO' && d >= 0 && d <= 14;
+  }).sort((a, b) => new Date(a.fechaFin).getTime() - new Date(b.fechaFin).getTime());
+
+  return (
+    <>
+      <SectionHeader title="Dashboard" action={
+        <button onClick={cargar} style={btnSm}>↻ Actualizar</button>
+      } />
+
+      {/* Stat cards */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+        <StatCard value={stats?.totalPostulantes ?? '—'} label="Postulantes" color={C.orange} sub="inscriptos" />
+        <StatCard value={stats?.resolucionesPendientes ?? '—'} label="Sin revisar" color='#f59e0b' sub="entregas pendientes" />
+        <StatCard value={stats?.totalResoluciones ?? '—'} label="Propuestas" color='#6a64f1' sub="entregas recibidas" />
+        <StatCard value={juradosActivos} label="Jurados" color='#2dd36f' sub="con evaluaciones" />
+        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" color={C.text} sub="realizadas" />
+      </div>
+
+      {/* Próximos a vencer */}
+      <div style={{ background: C.card, borderRadius: 14, padding: '18px 20px', border: `1px solid ${C.border}`, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <IonIcon icon={timeOutline} style={{ fontSize: '1.1rem', color: C.orange }} />
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Entregas próximas a vencer</span>
+        </div>
+        {proximosAVencer.length === 0
+          ? <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>No hay concursos activos con vencimiento en los próximos 14 días.</p>
+          : proximosAVencer.map(c => {
+              const dias = diasRestantes(c.fechaFin);
+              return (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid #f3f4f6` }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', color: C.text }}>{c.titulo}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: C.muted }}>Vence: {formatFechaCorta(c.fechaFin)}</p>
+                  </div>
+                  <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700, background: dias <= 3 ? '#fef2f2' : '#fff7ed', color: dias <= 3 ? '#dc2626' : '#92400e', whiteSpace: 'nowrap' }}>
+                    {dias === 0 ? 'Vence hoy' : dias === 1 ? '1 día' : `${dias} días`}
+                  </span>
+                </div>
+              );
+            })
+        }
+      </div>
+
+      {/* Postulantes sin entregas */}
+      <div style={{ background: C.card, borderRadius: 14, padding: '18px 20px', border: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <IonIcon icon={alertCircleOutline} style={{ fontSize: '1.1rem', color: '#f59e0b' }} />
+          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Postulantes sin entregas</span>
+          <span style={{ marginLeft: 'auto', fontSize: '0.78rem', fontWeight: 700, color: '#f59e0b' }}>{sinEntregas.length}</span>
+        </div>
+        {sinEntregas.length === 0
+          ? <p style={{ margin: 0, fontSize: '0.85rem', color: '#9ca3af' }}>Todos los postulantes tienen al menos una entrega.</p>
+          : <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+              {sinEntregas.map((p, i) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < sinEntregas.length - 1 ? `1px solid #f3f4f6` : 'none' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${C.orange}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: C.orange, flexShrink: 0 }}>
+                    {p.nombres[0]}{p.apellidos[0]}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: C.text }}>{p.nombres} {p.apellidos}</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: C.muted }}>{p.universidad}</p>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{formatFechaCorta(p.creadoEn)}</span>
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+    </>
+  );
+};
+
+// ─── Sección: Concursos ───────────────────────────────────────────────────────
+const SecConcursos: React.FC = () => {
+  const [concursos, setConcursos] = useState<Concurso[]>([]);
+  const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editData, setEditData] = useState<Partial<Concurso>>({});
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cs, rs] = await Promise.all([api.concursos.listar(), api.resoluciones.listarTodas()]);
+      setConcursos(cs); setResoluciones(rs);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const startEdit = (c: Concurso) => { setEditId(c.id); setEditData({ ...c }); };
+  const cancelEdit = () => { setEditId(null); setEditData({}); };
+
+  const guardar = async () => {
+    if (!editId || !editData) return;
+    setSaving(true);
+    try {
+      await fetch(`${BASE_URL}/concursos/${editId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData),
+      });
+      setMsg({ text: 'Concurso actualizado correctamente.', ok: true });
+      setEditId(null); setEditData({});
+      cargar();
+    } catch { setMsg({ text: 'Error al guardar el concurso.', ok: false }); }
+    finally { setSaving(false); }
+  };
+
+  const entregasDeConcurso = (id: number) => resoluciones.filter(r => r.concursoId === id).length;
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
+  return (
+    <>
+      <SectionHeader title={`Concursos (${concursos.length})`} action={<button onClick={cargar} style={btnSm}>↻ Actualizar</button>} />
+
+      {msg && (
+        <div style={msgBox(msg.ok)}>
+          <span style={{ fontSize: '0.875rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
+          <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
+        </div>
+      )}
+
+      {concursos.length === 0 && <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>No hay concursos registrados.</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {concursos.map(c => {
+          const badge = estadoConcursoBadge(c.estado);
+          const isEditing = editId === c.id;
+          const entregas = entregasDeConcurso(c.id);
+
+          return (
+            <div key={c.id} style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+              {/* Header strip */}
+              <div style={{ background: `linear-gradient(135deg, ${C.dark} 0%, #1e1208 100%)`, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>{c.titulo}</span>
+                <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: badge.bg, color: badge.color }}>{c.estado}</span>
+              </div>
+
+              {isEditing ? (
+                <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Título</label>
+                    <input value={editData.titulo ?? ''} onChange={e => setEditData(d => ({ ...d, titulo: e.target.value }))} style={inputCss} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Descripción</label>
+                    <textarea value={editData.descripcion ?? ''} onChange={e => setEditData(d => ({ ...d, descripcion: e.target.value }))} rows={3} style={{ ...inputCss, resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Bases y condiciones</label>
+                    <textarea value={editData.bases ?? ''} onChange={e => setEditData(d => ({ ...d, bases: e.target.value }))} rows={3} style={{ ...inputCss, resize: 'vertical', fontFamily: 'inherit' }} />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Fecha inicio</label>
+                      <input type="datetime-local" value={(editData.fechaInicio ?? '').slice(0, 16)} onChange={e => setEditData(d => ({ ...d, fechaInicio: e.target.value }))} style={inputCss} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Fecha fin</label>
+                      <input type="datetime-local" value={(editData.fechaFin ?? '').slice(0, 16)} onChange={e => setEditData(d => ({ ...d, fechaFin: e.target.value }))} style={inputCss} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Estado</label>
+                      <select value={editData.estado ?? 'ACTIVO'} onChange={e => setEditData(d => ({ ...d, estado: e.target.value as Concurso['estado'] }))} style={{ ...inputCss, cursor: 'pointer' }}>
+                        <option value="ACTIVO">ACTIVO</option>
+                        <option value="PROXIMO">PROXIMO</option>
+                        <option value="CERRADO">CERRADO</option>
+                        <option value="TERMINADO">TERMINADO</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
+                    <button onClick={guardar} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
+                    <button onClick={cancelEdit} style={btnSm}>Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '16px 20px' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: '0.875rem', color: '#4b5563', lineHeight: 1.55 }}>{c.descripcion}</p>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 14 }}>
+                    <span style={{ fontSize: '0.78rem', color: C.muted }}><strong style={{ color: C.text }}>Inicio:</strong> {formatFechaCorta(c.fechaInicio)}</span>
+                    <span style={{ fontSize: '0.78rem', color: C.muted }}><strong style={{ color: C.text }}>Fin:</strong> {formatFechaCorta(c.fechaFin)}</span>
+                    <span style={{ fontSize: '0.78rem', color: C.muted }}><strong style={{ color: C.text }}>Entregas:</strong> {entregas}</span>
+                  </div>
+                  <button onClick={() => startEdit(c)} style={btnSm}>
+                    <IonIcon icon={createOutline} style={{ fontSize: '0.85rem' }} /> Editar
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
+// ─── Sección: Postulantes ─────────────────────────────────────────────────────
+const SecPostulantes: React.FC = () => {
+  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
-  const [filtroEsp, setFiltroEsp] = useState('');
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [regenerando, setRegenerando] = useState<number | null>(null);
-  const especialidades = [...new Set(postulantes.map(p => p.especialidad))].sort();
+
+  useEffect(() => {
+    api.postulantes.listar().then(setPostulantes).finally(() => setLoading(false));
+  }, []);
+
   const filtrados = postulantes.filter(p => {
     const s = q.toLowerCase();
-    const matchQ = !s || p.nombres.toLowerCase().includes(s) || p.apellidos.toLowerCase().includes(s) || p.dni.includes(s) || p.universidad.toLowerCase().includes(s);
-    const matchE = !filtroEsp || p.especialidad === filtroEsp;
-    return matchQ && matchE;
+    return !s || p.nombres.toLowerCase().includes(s) || p.apellidos.toLowerCase().includes(s)
+      || p.dni.includes(s) || p.correoElectronico.toLowerCase().includes(s)
+      || p.universidad.toLowerCase().includes(s) || p.especialidad.toLowerCase().includes(s);
   });
 
   const exportCSV = () => {
-    const header = 'ID,Nombres,Apellidos,DNI,Celular,Universidad,Especialidad,Correo,Fecha';
+    const header = 'ID,Nombres,Apellidos,DNI,Celular,Universidad,Especialidad,Correo,Registrado';
     const rows = filtrados.map(p => `${p.id},${p.nombres},${p.apellidos},${p.dni},${p.celular},${p.universidad},${p.especialidad},${p.correoElectronico},${p.creadoEn}`);
     const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
   };
 
-  const handleRegenerarClave = async (id: number) => {
+  const regenerarClave = async (id: number, nombre: string) => {
+    if (!confirm(`Regenerar clave de "${nombre}"?`)) return;
     setRegenerando(id);
-    try { await api.postulantes.regenerarClave(id); }
-    catch { /* silencioso */ }
+    try { await api.postulantes.regenerarClave(id); setToast({ msg: 'Nueva clave enviada por email.', ok: true }); }
+    catch { setToast({ msg: 'Error al regenerar clave.', ok: false }); }
     finally { setRegenerando(null); }
   };
 
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
   return (
-    <div>
-      <OrangeBar
-        label={`Postulantes (${filtrados.length})`}
-        action={
-          <div id="tour-postulantes-actions" style={{ display: 'flex', gap: 8 }}>
-            <button onClick={reload}    style={btnOutlineWhite}>↻ Actualizar</button>
-            <button onClick={exportCSV} style={btnOutlineWhite}>↓ CSV</button>
-          </div>
-        }
-      />
+    <>
+      <SectionHeader title={`Postulantes (${filtrados.length}/${postulantes.length})`} action={
+        <button onClick={exportCSV} style={btnSm}>↓ CSV</button>
+      } />
 
-      <div id="tour-postulantes-filter" style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <input
-          value={q} onChange={e => setQ(e.target.value)}
-          placeholder="Buscar nombre, DNI, universidad…"
-          style={{ flex: 1, minWidth: 220, padding: '8px 16px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.875rem', outline: 'none' }}
-        />
-        <select value={filtroEsp} onChange={e => setFiltroEsp(e.target.value)}
-          style={{ padding: '8px 16px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.875rem', color: C.dark, background: '#fff', cursor: 'pointer' }}>
-          <option value="">Todas las especialidades</option>
-          {especialidades.map(e => <option key={e} value={e}>{e}</option>)}
-        </select>
-      </div>
+      <IonSearchbar value={q} onIonInput={e => setQ(e.detail.value ?? '')} placeholder="Buscar por nombre, DNI, email, universidad..." style={{ '--border-radius': '10px', '--background': '#fff', margin: '0 0 16px', padding: 0 }} />
 
-      {loading
-        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
-        : (
-          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    {['#', 'Nombre', 'DNI', 'Universidad', 'Especialidad', 'Correo', 'Registrado', 'Acciones'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtrados.length === 0
-                    ? <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin resultados</td></tr>
-                    : filtrados.map(p => (
-                        <tr key={p.id} style={{ borderBottom: `1px solid #f3f4f6` }}
-                            onMouseEnter={e => (e.currentTarget.style.background = '#fafafa')}
-                            onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                          <td style={{ padding: '12px 16px', color: C.gray }}>{p.id}</td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
-                          <td style={{ padding: '12px 16px' }}>{p.dni}</td>
-                          <td style={{ padding: '12px 16px' }}>{p.universidad}</td>
-                          <td style={{ padding: '12px 16px' }}>
-                            <span style={{ background: '#fff3ee', color: C.orange, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.especialidad}</span>
-                          </td>
-                          <td style={{ padding: '12px 16px', color: C.gray }}>{p.correoElectronico}</td>
-                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap', color: C.gray }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</td>
-                          <td style={{ padding: '12px 16px' }}>
-                            <button
-                              onClick={() => handleRegenerarClave(p.id)}
-                              disabled={regenerando === p.id}
-                              style={{ ...btnSm, whiteSpace: 'nowrap', opacity: regenerando === p.id ? 0.5 : 1 }}
-                            >
-                              {regenerando === p.id ? '…' : '🔑 Clave'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                  }
-                </tbody>
-              </table>
+      {filtrados.length === 0 && <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>No se encontraron postulantes.</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtrados.map((p, i) => (
+          <div key={p.id} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${C.orange}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: C.orange, flexShrink: 0 }}>#{i + 1}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem', color: C.text }}>{p.nombres} {p.apellidos}</p>
+              <p style={{ margin: '2px 0', fontSize: '0.8rem', color: C.muted }}>DNI: {p.dni} · {p.correoElectronico}</p>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>{p.universidad} · {p.especialidad}</p>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <button onClick={() => regenerarClave(p.id, `${p.nombres} ${p.apellidos}`)} disabled={regenerando === p.id} style={{ ...btnSm, opacity: regenerando === p.id ? 0.5 : 1, fontSize: '0.72rem' }}>
+                {regenerando === p.id ? '...' : 'Clave'}
+              </button>
+              <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: '#9ca3af' }}>{formatFechaCorta(p.creadoEn)}</p>
             </div>
           </div>
-        )
-      }
-    </div>
+        ))}
+      </div>
+
+      <IonToast isOpen={toast !== null} onDidDismiss={() => setToast(null)} message={toast?.msg} duration={2500} color={toast?.ok ? 'success' : 'danger'} position="top" />
+    </>
   );
 };
 
-const SecEvaluaciones: React.FC<{ evaluaciones: Evaluacion[]; loading: boolean; reload: () => void }> = ({ evaluaciones, loading, reload }) => {
-  const promedio = evaluaciones.length
-    ? (evaluaciones.reduce((s, e) => s + e.puntaje, 0) / evaluaciones.length).toFixed(1)
-    : null;
-  const porJurado: Record<string, { count: number; total: number }> = {};
-  evaluaciones.forEach(e => {
-    if (!porJurado[e.juradoNombre]) porJurado[e.juradoNombre] = { count: 0, total: 0 };
-    porJurado[e.juradoNombre].count++;
-    porJurado[e.juradoNombre].total += e.puntaje;
-  });
-
-  return (
-    <div>
-      <OrangeBar label={`Evaluaciones (${evaluaciones.length})`} action={<button onClick={reload} style={btnOutlineWhite}>↻ Actualizar</button>} />
-
-      {promedio && (
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-          <StatCard value={promedio} label="Puntaje promedio" sub="del jurado" />
-          <StatCard value={evaluaciones.length} label="Evaluaciones totales" />
-          <StatCard value={Object.keys(porJurado).length} label="Jurados activos" />
-          <StatCard value={Math.max(...evaluaciones.map(e => e.puntaje))} label="Puntaje más alto" sub="/ 10 puntos" />
-        </div>
-      )}
-
-      {Object.keys(porJurado).length > 0 && (
-        <>
-          <OrangeBar label="Actividad por jurado" />
-          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
-            {Object.entries(porJurado).map(([nombre, d]) => (
-              <div key={nombre} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: `1px solid #f3f4f6` }}>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{nombre}</div>
-                <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', color: C.gray }}>{d.count} evaluación{d.count !== 1 ? 'es' : ''}</span>
-                  <span style={{ fontWeight: 700, color: C.orange, fontSize: '1rem' }}>{(d.total / d.count).toFixed(1)}<span style={{ fontSize: '0.7rem', color: C.gray }}>/10</span></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <OrangeBar label="Detalle de evaluaciones" />
-      {loading
-        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
-        : (
-          <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    {['#', 'Postulante', 'Jurado', 'Puntaje', 'Comentario', 'Fecha'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}` }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {evaluaciones.length === 0
-                    ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin evaluaciones aún</td></tr>
-                    : evaluaciones.map(e => (
-                        <tr key={e.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={{ padding: '12px 16px', color: C.gray }}>{e.id}</td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{e.postulanteNombre}</td>
-                          <td style={{ padding: '12px 16px' }}>{e.juradoNombre}</td>
-                          <td style={{ padding: '12px 16px' }}><strong style={{ color: C.orange, fontSize: '1.1rem' }}>{e.puntaje}</strong><span style={{ color: C.gray, fontSize: '0.75rem' }}>/10</span></td>
-                          <td style={{ padding: '12px 16px', color: C.gray, maxWidth: 240 }}>{e.comentario || '—'}</td>
-                          <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{new Date(e.evaluadoEn).toLocaleDateString('es-AR')}</td>
-                        </tr>
-                      ))
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
-      }
-    </div>
-  );
-};
-
-const SecAreasSitio: React.FC = () => {
-  const [areas, setAreas] = useState<AreaItem[]>(AREAS);
-
-  const asignar = (id: string) => {
-    const nombre = prompt('Nombre del responsable:');
-    if (!nombre) return;
-    setAreas(prev => prev.map(a => a.id === id ? { ...a, responsable: nombre, ultimaMod: new Date().toISOString().slice(0, 10) } : a));
-  };
-
-  const cambiarEstado = (id: string, estado: AreaItem['estado']) => {
-    setAreas(prev => prev.map(a => a.id === id ? { ...a, estado, ultimaMod: new Date().toISOString().slice(0, 10) } : a));
-  };
-
-  const pub  = areas.filter(a => a.estado === 'publicado').length;
-  const rev  = areas.filter(a => a.estado === 'revision').length;
-  const pend = areas.filter(a => a.estado === 'pendiente').length;
-
-  return (
-    <div>
-      <OrangeBar label="Relevamiento — Secciones del sitio" />
-
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-        <StatCard value={pub}  label="Publicadas"  sub="en el sitio" />
-        <StatCard value={rev}  label="En revisión" sub="requieren aprobación" />
-        <StatCard value={pend} label="Pendientes"  sub="sin contenido" />
-      </div>
-
-      <div id="tour-areas-table" style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-            <thead>
-              <tr style={{ background: '#f9fafb' }}>
-                {['Sección', 'Tipo de contenido', 'Responsable', 'Última modif.', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {areas.map(a => (
-                <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '13px 16px', fontWeight: 600 }}>{a.seccion}</td>
-                  <td style={{ padding: '13px 16px', color: C.gray }}>{a.tipo}</td>
-                  <td style={{ padding: '13px 16px' }}>
-                    <span style={{ color: a.responsable === 'Sin asignar' ? '#dc2626' : C.dark, fontWeight: a.responsable === 'Sin asignar' ? 600 : 400 }}>
-                      {a.responsable}
-                    </span>
-                  </td>
-                  <td style={{ padding: '13px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{a.ultimaMod}</td>
-                  <td style={{ padding: '13px 16px' }}><Badge estado={a.estado} /></td>
-                  <td style={{ padding: '13px 16px' }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => asignar(a.id)} style={btnSm}>Asignar</button>
-                      <select
-                        value={a.estado}
-                        onChange={e => cambiarEstado(a.id, e.target.value as AreaItem['estado'])}
-                        style={{ padding: '4px 12px', border: `1px solid ${C.border}`, borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer', background: '#fff' }}
-                      >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="revision">En revisión</option>
-                        <option value="publicado">Publicado</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12, fontSize: '0.75rem', color: C.gray }}>
-        * Los cambios de responsable y estado son locales hasta integrar la API de gestión de contenido.
-      </div>
-    </div>
-  );
-};
-
-const SecEstadisticas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; evaluaciones: Evaluacion[] }> = ({ stats }) => {
-  const espData = stats
-    ? Object.entries(stats.porEspecialidad).map(([name, value]) => ({ name, value: Number(value) }))
-    : [];
-  const univData = stats
-    ? Object.entries(stats.porUniversidad).map(([name, value]) => ({ name, value: Number(value) }))
-    : [];
-  const resolucionesPie = stats
-    ? [
-        { name: 'Pendientes', value: Number(stats.resolucionesPendientes) },
-        { name: 'Aprobadas',  value: Number(stats.resolucionesAprobadas)  },
-        { name: 'Rechazadas', value: Number(stats.resolucionesRechazadas) },
-      ].filter(d => d.value > 0)
-    : [];
-  const PIE_COLORS = ['#ffc409', '#2dd36f', '#eb445a'];
-
-  return (
-    <div>
-      <OrangeBar label="Estadísticas del concurso" />
-
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <StatCard value={stats?.totalPostulantes ?? '—'}  label="Total postulantes" />
-        <StatCard value={stats?.totalEvaluaciones ?? '—'} label="Evaluaciones" />
-        <StatCard value={stats?.totalResoluciones ?? '—'} label="Entregas" />
-        <StatCard value={Object.keys(stats?.porUniversidad ?? {}).length || '—'} label="Universidades" />
-      </div>
-
-      {resolucionesPie.length > 0 && (
-        <>
-          <OrangeBar label="Entregas por estado" />
-          <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 24 }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={resolucionesPie} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={80}
-                  label={({ percent }: { percent?: number }) => percent != null ? `${(percent * 100).toFixed(0)}%` : ''}
-                  labelLine={false}
-                >
-                  {resolucionesPie.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                </Pie>
-                <Legend iconSize={10} wrapperStyle={{ fontSize: '0.8rem' }} />
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Postulantes por especialidad</div>
-          {espData.length === 0
-            ? <ChartBox label="Sin datos aún" />
-            : (
-              <ResponsiveContainer width="100%" height={Math.max(160, espData.length * 36)}>
-                <BarChart data={espData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10 }}
-                    tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 13) + '…' : v} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
-                    {espData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )
-          }
-        </div>
-
-        <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 16 }}>Ranking de universidades</div>
-          {univData.length === 0
-            ? <ChartBox label="Sin datos aún" />
-            : (
-              <ResponsiveContainer width="100%" height={Math.max(160, univData.length * 36)}>
-                <BarChart data={univData} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 0 }}>
-                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10 }}
-                    tickFormatter={(v: string) => v.length > 16 ? v.slice(0, 15) + '…' : v} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Postulantes" radius={[0, 4, 4, 0]}>
-                    {univData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )
-          }
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── Sección Entregas ─────────────────────────────────────────────────────────
-const estadoEntregaColor: Record<string, string> = {
-  PENDIENTE: '#ffc409',
-  APROBADA:  '#2dd36f',
-  RECHAZADA: '#eb445a',
-};
-
-const SecEntregas: React.FC = () => {
-  const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
+// ─── Sección: Campañas ────────────────────────────────────────────────────────
+const SecCampanas: React.FC = () => {
+  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filtroEstado, setFiltroEstado] = useState('');
-  const [saving, setSaving] = useState<number | null>(null);
-
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    try { setResoluciones(await api.resoluciones.listarTodas()); }
-    catch { /* silencioso */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { cargar(); }, [cargar]);
-
-  const cambiarEstado = async (id: number, estado: string) => {
-    setSaving(id);
-    try {
-      await api.resoluciones.cambiarEstado(id, estado);
-      setResoluciones(prev => prev.map(r => r.id === id ? { ...r, estado: estado as Resolucion['estado'] } : r));
-    } catch { /* silencioso */ }
-    finally { setSaving(null); }
-  };
-
-  const filtradas = filtroEstado ? resoluciones.filter(r => r.estado === filtroEstado) : resoluciones;
-  const pendientes = resoluciones.filter(r => r.estado === 'PENDIENTE').length;
-
-  return (
-    <div>
-      <OrangeBar
-        label={`Entregas (${filtradas.length})`}
-        action={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <select
-              id="tour-entregas-filter"
-              value={filtroEstado}
-              onChange={e => setFiltroEstado(e.target.value)}
-              style={{ padding: '6px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 999, fontSize: '0.75rem', color: '#fff', background: 'rgba(0,0,0,0.2)', cursor: 'pointer' }}
-            >
-              <option value="">Todos</option>
-              <option value="PENDIENTE">Pendientes</option>
-              <option value="APROBADA">Aprobadas</option>
-              <option value="RECHAZADA">Rechazadas</option>
-            </select>
-            <button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>
-          </div>
-        }
-      />
-
-      {pendientes > 0 && (
-        <div style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
-            <strong>{pendientes}</strong> entrega{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de revisión
-          </span>
-        </div>
-      )}
-
-      {loading
-        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
-        : filtradas.length === 0
-          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-              No hay entregas{filtroEstado ? ` con estado "${filtroEstado}"` : ''}
-            </div>
-          : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {filtradas.map(r => (
-                <div key={r.id} style={{ background: C.white, borderRadius: 10, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{r.titulo}</span>
-                      <span style={{
-                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-                        background: `${estadoEntregaColor[r.estado]}22`,
-                        color: estadoEntregaColor[r.estado],
-                      }}>
-                        {r.estado}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
-                      {new Date(r.creadoEn).toLocaleDateString('es-AR')}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: C.gray, marginBottom: 6 }}>
-                    <strong style={{ color: C.dark }}>{r.postulanteNombre}</strong> · {r.concursoTitulo}
-                  </div>
-                  {r.descripcion && (
-                    <div style={{ fontSize: '0.82rem', color: '#555', marginBottom: 8, lineHeight: 1.4 }}>{r.descripcion}</div>
-                  )}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {r.tieneArchivo && (
-                      <a href={`/api/v1/resoluciones/${r.id}/archivo`} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '0.8rem', color: C.orange, textDecoration: 'none' }}>
-                        ↓ Descargar archivo
-                      </a>
-                    )}
-                    {r.urlExterno && (
-                      <a href={r.urlExterno} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '0.8rem', color: '#3dc2ff', textDecoration: 'none' }}>
-                        Ver enlace externo
-                      </a>
-                    )}
-                    {r.estado === 'PENDIENTE' && (
-                      <>
-                        <button onClick={() => cambiarEstado(r.id, 'APROBADA')} disabled={saving === r.id}
-                          style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
-                          {saving === r.id ? '…' : '✓ Aprobar'}
-                        </button>
-                        <button onClick={() => cambiarEstado(r.id, 'RECHAZADA')} disabled={saving === r.id}
-                          style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>
-                          ✗ Rechazar
-                        </button>
-                      </>
-                    )}
-                    {r.estado !== 'PENDIENTE' && (
-                      <button onClick={() => cambiarEstado(r.id, 'PENDIENTE')}
-                        style={{ ...btnSm, marginLeft: 'auto' }}>
-                        Restablecer
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-      }
-    </div>
-  );
-};
-
-// ─── Sección Soporte ──────────────────────────────────────────────────────────
-const SecSoporte: React.FC = () => {
-  const [tickets, setTickets] = useState<SoporteTicket[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    try { setTickets(await api.soporte.listarTickets()); }
-    catch { /* silencioso */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { cargar(); }, [cargar]);
-
-  const resolver = async (id: number) => {
-    try { await api.soporte.resolverTicket(id); cargar(); }
-    catch { /* silencioso */ }
-  };
-
-  const pendientes = tickets.filter(t => !t.resuelto).length;
-
-  return (
-    <div>
-      <OrangeBar
-        label={`Soporte (${tickets.length})`}
-        action={<button onClick={cargar} style={btnOutlineWhite}>↻ Actualizar</button>}
-      />
-
-      {pendientes > 0 && (
-        <div id="tour-soporte-alert" style={{ background: '#fff7ed', borderLeft: `4px solid ${C.orange}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
-            <strong>{pendientes}</strong> ticket{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''} de resolución
-          </span>
-        </div>
-      )}
-
-      {loading
-        ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>
-        : tickets.length === 0
-          ? <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-              No hay tickets de soporte
-            </div>
-          : (
-            <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-              {tickets.map(t => (
-                <div key={t.id} style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, opacity: t.resuelto ? 0.65 : 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.nombre}</span>
-                      {t.dni && <span style={{ fontSize: '0.75rem', color: C.gray }}>DNI: {t.dni}</span>}
-                      <span style={{
-                        padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-                        background: t.resuelto ? '#f0fdf4' : '#fff7ed',
-                        color: t.resuelto ? '#16a34a' : '#92400e',
-                      }}>
-                        {t.resuelto ? 'Resuelto' : 'Pendiente'}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.72rem', color: C.gray, whiteSpace: 'nowrap' }}>
-                      {new Date(t.creadoEn).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 8px', lineHeight: 1.5 }}>{t.mensaje}</p>
-                  {!t.resuelto && (
-                    <button onClick={() => resolver(t.id)} style={{ ...btnSm, color: '#16a34a', borderColor: '#bbf7d0' }}>
-                      ✓ Marcar como resuelto
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )
-      }
-    </div>
-  );
-};
-
-const SecJurado: React.FC<{ evaluaciones: Evaluacion[] }> = ({ evaluaciones }) => {
-  const porJurado: Record<string, { count: number; total: number; max: number; min: number }> = {};
-  evaluaciones.forEach(e => {
-    if (!porJurado[e.juradoNombre]) porJurado[e.juradoNombre] = { count: 0, total: 0, max: 0, min: 11 };
-    const j = porJurado[e.juradoNombre];
-    j.count++; j.total += e.puntaje;
-    if (e.puntaje > j.max) j.max = e.puntaje;
-    if (e.puntaje < j.min) j.min = e.puntaje;
-  });
-
-  return (
-    <div>
-      <OrangeBar label={`Jurado (${Object.keys(porJurado).length} activos)`} />
-
-      {Object.keys(porJurado).length === 0
-        ? (
-          <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-            Ningún miembro del jurado ha realizado evaluaciones aún
-          </div>
-        )
-        : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {Object.entries(porJurado).map(([nombre, d]) => (
-              <div key={nombre} style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', borderTop: `4px solid ${C.orange}` }}>
-                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12 }}>{nombre}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: '0.8rem' }}>
-                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
-                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Evaluaciones</div>
-                    <div style={{ fontWeight: 700, fontSize: '1.3rem', color: C.dark }}>{d.count}</div>
-                  </div>
-                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
-                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Promedio</div>
-                    <div style={{ fontWeight: 700, fontSize: '1.3rem', color: C.orange }}>{(d.total / d.count).toFixed(1)}</div>
-                  </div>
-                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
-                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Puntaje máx.</div>
-                    <div style={{ fontWeight: 700, color: '#16a34a' }}>{d.max}/10</div>
-                  </div>
-                  <div style={{ background: C.bg, borderRadius: 8, padding: '10px 14px' }}>
-                    <div style={{ color: C.gray, fontSize: '0.7rem' }}>Puntaje mín.</div>
-                    <div style={{ fontWeight: 700, color: C.gray }}>{d.min === 11 ? '—' : d.min}/10</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      }
-    </div>
-  );
-};
-
-// ─── Sección Campañas ─────────────────────────────────────────────────────────
-const SecCampanas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[]; reload: () => void; reloadStats: () => void }> = ({ stats, postulantes, reload, reloadStats }) => {
   const [webinarUrl, setWebinarUrl] = useState('');
   const [webinarFecha, setWebinarFecha] = useState('');
   const [canalUrl, setCanalUrl] = useState('');
   const [canalNombre, setCanalNombre] = useState('WhatsApp');
   const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [ps, s] = await Promise.all([api.postulantes.listar(), api.admin.stats()]);
+      setPostulantes(ps); setStats(s);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const pendientesInfo = postulantes.filter(p => !p.infoEnviadaEn).length;
+  const pendientes2da = postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length;
   const formValido = webinarUrl.trim() && webinarFecha && canalUrl.trim();
 
   const enviarInfo = async () => {
     if (!formValido) return;
-    const pendientes = postulantes.filter(p => !p.infoEnviadaEn).length;
-    if (!confirm(`Se enviaran emails a ${pendientes} postulante${pendientes !== 1 ? 's' : ''}. ¿Continuar?`)) return;
-    setEnviando(true);
-    setResultado(null);
+    if (!confirm(`Se enviarán emails a ${pendientesInfo} postulante${pendientesInfo !== 1 ? 's' : ''}. ¿Continuar?`)) return;
+    setEnviando(true); setMsg(null);
     try {
-      const data: CampanaInfoRequest = {
-        webinarUrl: webinarUrl.trim(),
-        webinarFecha: new Date(webinarFecha).toISOString(),
-        canalUrl: canalUrl.trim(),
-        canalNombre,
-      };
+      const data: CampanaInfoRequest = { webinarUrl: webinarUrl.trim(), webinarFecha: new Date(webinarFecha).toISOString(), canalUrl: canalUrl.trim(), canalNombre };
       const res = await api.campanas.enviarInfoConcurso(data);
-      setResultado({ msg: `${res.emailsEnviados} emails enviados, ${res.emailsOmitidos} omitidos.`, tipo: 'ok' });
-      reload();
-      reloadStats();
-    } catch {
-      setResultado({ msg: 'Error al enviar la campaña.', tipo: 'err' });
-    } finally {
-      setEnviando(false);
-    }
+      setMsg({ text: `${res.emailsEnviados} emails enviados, ${res.emailsOmitidos} omitidos.`, ok: true });
+      cargar();
+    } catch { setMsg({ text: 'Error al enviar la campaña.', ok: false }); }
+    finally { setEnviando(false); }
   };
 
   const enviar2da = async () => {
-    const noConf = postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length;
-    if (!confirm(`Se enviaran ${noConf} recordatorio${noConf !== 1 ? 's' : ''}. ¿Continuar?`)) return;
-    setEnviando(true);
-    setResultado(null);
+    if (!confirm(`Se enviarán ${pendientes2da} recordatorio${pendientes2da !== 1 ? 's' : ''}. ¿Continuar?`)) return;
+    setEnviando(true); setMsg(null);
     try {
       const res = await api.campanas.enviarSegundaConvocatoria();
-      setResultado({ msg: `${res.emailsEnviados} recordatorios enviados.`, tipo: 'ok' });
-      reload();
-      reloadStats();
-    } catch {
-      setResultado({ msg: 'Error al enviar recordatorios.', tipo: 'err' });
-    } finally {
-      setEnviando(false);
-    }
+      setMsg({ text: `${res.emailsEnviados} recordatorios enviados.`, ok: true });
+      cargar();
+    } catch { setMsg({ text: 'Error al enviar recordatorios.', ok: false }); }
+    finally { setEnviando(false); }
   };
 
-  const badgeEstado = (p: Postulante) => {
-    if (p.confirmadoEn) return { label: 'Confirmado', bg: '#f0fdf4', color: '#16a34a' };
-    if (p.recordatorioEnviadoEn) return { label: 'Recordatorio enviado', bg: '#fff7ed', color: '#92400e' };
-    if (p.infoEnviadaEn) return { label: 'Info enviada', bg: '#eff6ff', color: '#1e40af' };
-    return { label: 'Pendiente', bg: '#f3f4f6', color: C.gray };
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
-    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
-  };
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
 
   return (
-    <div>
-      <OrangeBar label="Campanas de comunicacion" />
+    <>
+      <SectionHeader title="Campañas de comunicación" />
 
       {/* Stats */}
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" sub="postulantes notificados" />
-        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" sub="inscripcion oficial" />
-        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(1)}%` : '—'} label="Tasa confirmacion" sub="interes real" />
-        <StatCard value={stats?.totalRecordatorioEnviado ?? '—'} label="Recordatorios" sub="2da convocatoria" />
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" color={C.orange} />
+        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" color='#2dd36f' />
+        <StatCard value={stats?.totalRecordatorioEnviado ?? '—'} label="Recordatorios" color='#6a64f1' />
+        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(0)}%` : '—'} label="Tasa confirm." color={C.text} />
       </div>
 
-      {/* Resultado */}
-      {resultado && (
-        <div style={{
-          background: resultado.tipo === 'ok' ? '#f0fdf4' : '#fef2f2',
-          borderLeft: `4px solid ${resultado.tipo === 'ok' ? '#16a34a' : '#dc2626'}`,
-          padding: '10px 16px', borderRadius: 8, marginBottom: 16,
-        }}>
-          <span style={{ fontSize: '0.875rem', color: resultado.tipo === 'ok' ? '#166534' : '#991b1b' }}>
-            {resultado.msg}
-          </span>
+      {msg && (
+        <div style={msgBox(msg.ok)}>
+          <span style={{ fontSize: '0.875rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
+          <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
         </div>
       )}
 
-      {/* Formulario Paso 2 */}
-      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>Paso 2 — Enviar informacion del concurso</div>
-        <p style={{ fontSize: '0.8rem', color: C.gray, margin: '0 0 16px' }}>
-          Envia un email con info detallada + link de confirmacion a todos los postulantes que aun no lo recibieron.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+      {/* Formulario info concurso */}
+      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Enviar info del concurso</p>
+        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>Email con datos del webinar + link de confirmación para postulantes que aún no lo recibieron ({pendientesInfo} pendientes).</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>URL del Webinar</label>
-            <input value={webinarUrl} onChange={e => setWebinarUrl(e.target.value)} placeholder="https://meet.google.com/..." style={inputStyle} />
+            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>URL del Webinar</label>
+            <input value={webinarUrl} onChange={e => setWebinarUrl(e.target.value)} placeholder="https://meet.google.com/..." style={inputCss} />
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>Fecha del Webinar</label>
-            <input type="datetime-local" value={webinarFecha} onChange={e => setWebinarFecha(e.target.value)} style={inputStyle} />
+            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Fecha del Webinar</label>
+            <input type="datetime-local" value={webinarFecha} onChange={e => setWebinarFecha(e.target.value)} style={inputCss} />
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>URL del Canal</label>
-            <input value={canalUrl} onChange={e => setCanalUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputStyle} />
+            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>URL del Canal</label>
+            <input value={canalUrl} onChange={e => setCanalUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputCss} />
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600, display: 'block', marginBottom: 4 }}>Canal</label>
-            <select value={canalNombre} onChange={e => setCanalNombre(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-              <option value="WhatsApp">WhatsApp</option>
-              <option value="Telegram">Telegram</option>
-              <option value="Discord">Discord</option>
-              <option value="Slack">Slack</option>
+            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Canal</label>
+            <select value={canalNombre} onChange={e => setCanalNombre(e.target.value)} style={{ ...inputCss, cursor: 'pointer' }}>
+              <option>WhatsApp</option>
+              <option>Telegram</option>
+              <option>Discord</option>
+              <option>Slack</option>
             </select>
           </div>
         </div>
-
-        <button onClick={enviarInfo} disabled={enviando || !formValido}
-          style={{ ...btnAction, opacity: (enviando || !formValido) ? 0.5 : 1 }}>
-          {enviando ? 'Enviando...' : `Enviar info del concurso (${postulantes.filter(p => !p.infoEnviadaEn).length} pendientes)`}
+        <button onClick={enviarInfo} disabled={enviando || !formValido} style={{ ...btnPrimary, opacity: (enviando || !formValido) ? 0.5 : 1 }}>
+          {enviando ? 'Enviando...' : `Enviar a ${pendientesInfo} postulante${pendientesInfo !== 1 ? 's' : ''}`}
         </button>
       </div>
 
-      {/* Paso 3 */}
-      <div style={{ background: C.white, borderRadius: 10, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>Paso 3 — Segunda convocatoria</div>
-        <p style={{ fontSize: '0.8rem', color: C.gray, margin: '0 0 16px' }}>
-          Envia un recordatorio de ultima oportunidad a quienes recibieron la info pero no confirmaron su participacion.
-        </p>
-        <button onClick={enviar2da} disabled={enviando}
-          style={{ ...btnAction, background: '#92400e', opacity: enviando ? 0.5 : 1 }}>
-          {enviando ? 'Enviando...' : `Enviar 2da convocatoria (${postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length} no confirmados)`}
+      {/* Segunda convocatoria */}
+      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 20 }}>
+        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Segunda convocatoria</p>
+        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>Recordatorio para quienes recibieron la info pero no confirmaron su participación ({pendientes2da} no confirmados).</p>
+        <button onClick={enviar2da} disabled={enviando || pendientes2da === 0} style={{ ...btnPrimary, background: '#92400e', opacity: (enviando || pendientes2da === 0) ? 0.5 : 1 }}>
+          {enviando ? 'Enviando...' : `Enviar a ${pendientes2da} no confirmado${pendientes2da !== 1 ? 's' : ''}`}
         </button>
       </div>
 
-      {/* Tabla de status */}
-      <OrangeBar label="Estado por postulante" />
-      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
+      {/* Tabla estado */}
+      <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Estado por postulante</p>
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
                 {['Nombre', 'Email', 'Info enviada', 'Confirmado', 'Recordatorio', 'Estado'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {postulantes.length === 0
-                ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.gray }}>Sin postulantes</td></tr>
+                ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.muted }}>Sin postulantes</td></tr>
                 : postulantes.map(p => {
-                    const b = badgeEstado(p);
+                    const confirmado = !!p.confirmadoEn;
+                    const recordatorio = !!p.recordatorioEnviadoEn;
+                    const infoEnviada = !!p.infoEnviadaEn;
+                    const badge = confirmado ? { bg: '#f0fdf4', color: '#16a34a', label: 'Confirmado' }
+                      : recordatorio ? { bg: '#fff7ed', color: '#92400e', label: 'Recordatorio' }
+                      : infoEnviada ? { bg: '#eff6ff', color: '#1e40af', label: 'Info enviada' }
+                      : { bg: '#f3f4f6', color: C.muted, label: 'Pendiente' };
                     return (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
-                        <td style={{ padding: '12px 16px', color: C.gray }}>{p.correoElectronico}</td>
-                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.infoEnviadaEn ? new Date(p.infoEnviadaEn).toLocaleDateString('es-AR') : '—'}</td>
-                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.confirmadoEn ? new Date(p.confirmadoEn).toLocaleDateString('es-AR') : '—'}</td>
-                        <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{p.recordatorioEnviadoEn ? new Date(p.recordatorioEnviadoEn).toLocaleDateString('es-AR') : '—'}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ background: b.bg, color: b.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{b.label}</span>
+                        <td style={{ padding: '11px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
+                        <td style={{ padding: '11px 16px', color: C.muted }}>{p.correoElectronico}</td>
+                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : '—'}</td>
+                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : '—'}</td>
+                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : '—'}</td>
+                        <td style={{ padding: '11px 16px' }}>
+                          <span style={{ background: badge.bg, color: badge.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{badge.label}</span>
                         </td>
                       </tr>
                     );
@@ -979,689 +731,362 @@ const SecCampanas: React.FC<{ stats: AdminStats | null; postulantes: Postulante[
           </table>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
-// ─── Sección Configuración ────────────────────────────────────────────────────
+// ─── Sección: Evaluaciones ────────────────────────────────────────────────────
+const SecEvaluaciones: React.FC = () => {
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+
+  useEffect(() => { api.evaluaciones.listar().then(setEvaluaciones).finally(() => setLoading(false)); }, []);
+
+  const promedio = evaluaciones.length
+    ? (evaluaciones.reduce((s, e) => s + e.puntaje, 0) / evaluaciones.length).toFixed(1)
+    : null;
+
+  const filtradas = evaluaciones.filter(e => {
+    const s = q.toLowerCase();
+    return !s || e.postulanteNombre.toLowerCase().includes(s) || e.juradoNombre.toLowerCase().includes(s);
+  });
+
+  const scoreColor = (p: number) => p >= 7 ? '#2dd36f' : p >= 5 ? C.orange : '#eb445a';
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
+  return (
+    <>
+      <SectionHeader title={`Evaluaciones (${evaluaciones.length})`} action={<button onClick={() => api.evaluaciones.listar().then(setEvaluaciones)} style={btnSm}>↻</button>} />
+
+      {evaluaciones.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+          <StatCard value={promedio ?? '—'} label="Puntaje promedio" color='#2dd36f' />
+          <StatCard value={evaluaciones.length} label="Evaluaciones" color={C.orange} />
+          <StatCard value={Math.max(...evaluaciones.map(e => e.puntaje))} label="Puntaje máximo" color='#16a34a' />
+          <StatCard value={Math.min(...evaluaciones.map(e => e.puntaje))} label="Puntaje mínimo" color={C.muted} />
+        </div>
+      )}
+
+      <IonSearchbar value={q} onIonInput={e => setQ(e.detail.value ?? '')} placeholder="Filtrar por postulante o jurado..." style={{ '--border-radius': '10px', '--background': '#fff', margin: '0 0 16px', padding: 0 }} />
+
+      {filtradas.length === 0 && <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>No hay evaluaciones{q ? ' que coincidan.' : ' aún.'}</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtradas.sort((a, b) => b.puntaje - a.puntaje).map(e => (
+          <div key={e.id} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem', color: C.text }}>{e.postulanteNombre}</p>
+              <p style={{ margin: '2px 0', fontSize: '0.82rem', color: C.muted }}>Jurado: {e.juradoNombre}</p>
+              {e.comentario && <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#4b5563', lineHeight: 1.4 }}>{e.comentario}</p>}
+            </div>
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1, color: scoreColor(e.puntaje) }}>{e.puntaje}</div>
+              <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>/10</div>
+              <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 3 }}>{formatFechaCorta(e.evaluadoEn)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+};
+
+// ─── Sección: Jurado ──────────────────────────────────────────────────────────
+const SecJurado: React.FC = () => {
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([api.evaluaciones.listar(), api.postulantes.listar()])
+      .then(([evs, ps]) => { setEvaluaciones(evs); setPostulantes(ps); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
+  const total = postulantes.length;
+
+  // Aggregate by jurado
+  const porJurado: Record<string, { count: number; suma: number; max: number; min: number }> = {};
+  evaluaciones.forEach(e => {
+    if (!porJurado[e.juradoNombre]) porJurado[e.juradoNombre] = { count: 0, suma: 0, max: 0, min: 11 };
+    const j = porJurado[e.juradoNombre];
+    j.count++; j.suma += e.puntaje;
+    if (e.puntaje > j.max) j.max = e.puntaje;
+    if (e.puntaje < j.min) j.min = e.puntaje;
+  });
+
+  const jurados = Object.entries(porJurado).sort((a, b) => b[1].count - a[1].count);
+
+  return (
+    <>
+      <SectionHeader title={`Jurado (${jurados.length} activos)`} />
+
+      {jurados.length === 0 && <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>Ningún jurado ha realizado evaluaciones aún.</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {jurados.map(([nombre, d]) => {
+          const pct = total > 0 ? Math.round((d.count / total) * 100) : 0;
+          const promedio = (d.suma / d.count).toFixed(1);
+          return (
+            <div key={nombre} style={{ background: C.card, borderRadius: 14, padding: '18px 20px', border: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${C.orange}33 0%, ${C.orange}15 100%)`, border: `1.5px solid ${C.orange}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: C.orange, flexShrink: 0 }}>
+                  <IonIcon icon={personOutline} style={{ fontSize: '1rem' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: C.text }}>{nombre}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: C.muted }}>{d.count} de {total} evaluaciones · {pct}% completado</p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: C.orange, lineHeight: 1 }}>{promedio}</div>
+                  <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>promedio</div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ height: 8, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#16a34a' : C.orange, borderRadius: 999, transition: 'width 0.4s' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {[{ label: 'Evaluaciones', val: d.count, color: C.orange }, { label: 'Puntaje máx.', val: d.max + '/10', color: '#2dd36f' }, { label: 'Puntaje mín.', val: (d.min === 11 ? '—' : d.min) + '/10', color: C.muted }].map(c => (
+                  <div key={c.label} style={{ background: '#f9fafb', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: c.color }}>{c.val}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#9ca3af' }}>{c.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
+// ─── Sección: Configuración ───────────────────────────────────────────────────
 const SecConfiguracion: React.FC = () => {
-  const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editConcurso, setEditConcurso] = useState<Concurso | null>(null);
-  const [nuevoUser, setNuevoUser] = useState({ nombre: '', username: '', password: '', rol: 'JURADO' });
-  const [showNewUser, setShowNewUser] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ nombre: '', username: '', password: '', rol: 'JURADO' });
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const cargar = useCallback(async () => {
     setLoading(true);
-    try {
-      const [cs, us] = await Promise.all([api.concursos.listar(), api.usuarios.listar()]);
-      setConcursos(cs);
-      setUsuarios(us);
-    } catch { /* silent */ }
+    try { setUsuarios(await api.usuarios.listar()); }
+    catch { /* silent */ }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const guardarConcurso = async () => {
-    if (!editConcurso) return;
-    try {
-      await fetch(`${(import.meta.env.VITE_API_URL || 'https://api.habisite.com/api')}/v1/concursos/${editConcurso.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editConcurso),
-      });
-      setMsg({ text: 'Concurso actualizado.', ok: true });
-      setEditConcurso(null);
-      cargar();
-    } catch { setMsg({ text: 'Error al guardar.', ok: false }); }
-  };
-
   const crearUsuario = async () => {
-    if (!nuevoUser.nombre || !nuevoUser.username || !nuevoUser.password) return;
+    if (!form.nombre || !form.username || !form.password) { setMsg({ text: 'Completá todos los campos.', ok: false }); return; }
+    setSaving(true);
     try {
-      await api.usuarios.crear(nuevoUser);
-      setMsg({ text: 'Usuario creado.', ok: true });
-      setNuevoUser({ nombre: '', username: '', password: '', rol: 'JURADO' });
-      setShowNewUser(false);
+      await api.usuarios.crear(form);
+      setMsg({ text: `Usuario "${form.username}" creado correctamente.`, ok: true });
+      setForm({ nombre: '', username: '', password: '', rol: 'JURADO' });
+      setShowForm(false);
       cargar();
-    } catch (e: unknown) {
-      setMsg({ text: e instanceof Error ? e.message : 'Error al crear.', ok: false });
-    }
+    } catch (e: unknown) { setMsg({ text: e instanceof Error ? e.message : 'Error al crear.', ok: false }); }
+    finally { setSaving(false); }
   };
 
-  const eliminarUsuario = async (id: number, nombre: string) => {
+  const eliminar = async (id: number, nombre: string) => {
     if (!confirm(`Eliminar usuario "${nombre}"?`)) return;
     try { await api.usuarios.eliminar(id); cargar(); }
-    catch { setMsg({ text: 'Error al eliminar.', ok: false }); }
+    catch { setMsg({ text: 'Error al eliminar usuario.', ok: false }); }
   };
 
-  const inputStyle: React.CSSProperties = {
-    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
-    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
-  };
-
-  if (loading) return <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
 
   return (
-    <div>
+    <>
+      <SectionHeader title={`Usuarios del sistema (${usuarios.length})`} action={
+        <button onClick={() => setShowForm(f => !f)} style={btnPrimary}>
+          <IonIcon icon={showForm ? closeOutline : addOutline} style={{ fontSize: '1rem' }} />
+          {showForm ? 'Cancelar' : 'Nuevo usuario'}
+        </button>
+      } />
+
       {msg && (
-        <div style={{ background: msg.ok ? '#f0fdf4' : '#fef2f2', borderLeft: `4px solid ${msg.ok ? '#16a34a' : '#dc2626'}`, padding: '10px 16px', borderRadius: 8, marginBottom: 16 }}>
+        <div style={msgBox(msg.ok)}>
           <span style={{ fontSize: '0.875rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
-          <button onClick={() => setMsg(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>x</button>
+          <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
         </div>
       )}
 
-      {/* Concurso activo */}
-      <OrangeBar label="Concurso activo" />
-      {concursos.map(c => (
-        <div key={c.id} style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
-          {editConcurso?.id === c.id ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Titulo</label>
-                <input value={editConcurso.titulo} onChange={e => setEditConcurso({ ...editConcurso, titulo: e.target.value })} style={inputStyle} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Descripcion</label>
-                <textarea value={editConcurso.descripcion} onChange={e => setEditConcurso({ ...editConcurso, descripcion: e.target.value })}
-                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Bases y condiciones</label>
-                <textarea value={editConcurso.bases ?? ''} onChange={e => setEditConcurso({ ...editConcurso, bases: e.target.value })}
-                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Inicio</label>
-                  <input type="datetime-local" value={editConcurso.fechaInicio?.slice(0, 16)} onChange={e => setEditConcurso({ ...editConcurso, fechaInicio: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Fin</label>
-                  <input type="datetime-local" value={editConcurso.fechaFin?.slice(0, 16)} onChange={e => setEditConcurso({ ...editConcurso, fechaFin: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Estado</label>
-                  <select value={editConcurso.estado} onChange={e => setEditConcurso({ ...editConcurso, estado: e.target.value as Concurso['estado'] })} style={{ ...inputStyle, cursor: 'pointer' }}>
-                    <option value="ACTIVO">ACTIVO</option>
-                    <option value="PROXIMO">PROXIMO</option>
-                    <option value="CERRADO">CERRADO</option>
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={guardarConcurso} style={btnAction}>Guardar</button>
-                <button onClick={() => setEditConcurso(null)} style={btnSm}>Cancelar</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>{c.titulo}</div>
-                  <div style={{ fontSize: '0.8rem', color: C.gray, marginTop: 2 }}>
-                    {new Date(c.fechaInicio).toLocaleDateString('es-AR')} — {new Date(c.fechaFin).toLocaleDateString('es-AR')}
-                  </div>
-                </div>
-                <span style={{
-                  padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700,
-                  background: c.estado === 'ACTIVO' ? '#f0fdf4' : c.estado === 'PROXIMO' ? '#fff7ed' : '#f3f4f6',
-                  color: c.estado === 'ACTIVO' ? '#16a34a' : c.estado === 'PROXIMO' ? '#92400e' : C.gray,
-                }}>{c.estado}</span>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, margin: '0 0 12px' }}>{c.descripcion}</p>
-              <button onClick={() => setEditConcurso(c)} style={btnSm}>Editar concurso</button>
-            </>
-          )}
-        </div>
-      ))}
-
-      {/* Usuarios */}
-      <OrangeBar label={`Usuarios del sistema (${usuarios.length})`} action={
-        <button onClick={() => setShowNewUser(!showNewUser)} style={btnOutlineWhite}>{showNewUser ? 'Cancelar' : '+ Nuevo'}</button>
-      } />
-
-      {showNewUser && (
-        <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+      {showForm && (
+        <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 16 }}>
+          <p style={{ margin: '0 0 16px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Crear nuevo usuario</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Nombre</label>
-              <input value={nuevoUser.nombre} onChange={e => setNuevoUser({ ...nuevoUser, nombre: e.target.value })} placeholder="Juan Perez" style={inputStyle} />
+              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Nombre completo</label>
+              <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Juan Pérez" style={inputCss} />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Username</label>
-              <input value={nuevoUser.username} onChange={e => setNuevoUser({ ...nuevoUser, username: e.target.value })} placeholder="juanperez" style={inputStyle} />
+              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Username</label>
+              <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="juanperez" style={inputCss} />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Contrasena</label>
-              <input type="password" value={nuevoUser.password} onChange={e => setNuevoUser({ ...nuevoUser, password: e.target.value })} placeholder="********" style={inputStyle} />
+              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Contraseña</label>
+              <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" style={inputCss} />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Rol</label>
-              <select value={nuevoUser.rol} onChange={e => setNuevoUser({ ...nuevoUser, rol: e.target.value })} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Rol</label>
+              <select value={form.rol} onChange={e => setForm(f => ({ ...f, rol: e.target.value }))} style={{ ...inputCss, cursor: 'pointer' }}>
                 <option value="JURADO">Jurado</option>
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
           </div>
-          <button onClick={crearUsuario} style={btnAction}>Crear usuario</button>
+          <button onClick={crearUsuario} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Creando...' : 'Crear usuario'}
+          </button>
         </div>
       )}
 
-      <div style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{ background: '#f9fafb' }}>
-              {['Nombre', 'Username', 'Rol', 'Creado', 'Acciones'].map(h => (
-                <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.gray, borderBottom: `1px solid ${C.border}` }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map(u => (
-              <tr key={u.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{u.nombre}</td>
-                <td style={{ padding: '12px 16px', color: C.gray }}>{u.username}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: u.rol === 'ADMIN' ? '#fff3ee' : '#eff6ff', color: u.rol === 'ADMIN' ? C.orange : '#1e40af' }}>{u.rol}</span>
-                </td>
-                <td style={{ padding: '12px 16px', color: C.gray, whiteSpace: 'nowrap' }}>{new Date(u.creadoEn).toLocaleDateString('es-AR')}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <button onClick={() => eliminarUsuario(u.id, u.nombre)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-// ─── Sección Publicaciones ───────────────────────────────────────────────────
-const SecPublicaciones: React.FC = () => {
-  const [pubs, setPubs] = useState<PublicacionInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
-  const [form, setForm] = useState({ titulo: '', contenido: '', autor: 'Admin', publicado: false });
-
-  const cargar = useCallback(() => {
-    setLoading(true);
-    return api.publicaciones.listar().then(setPubs).finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { cargar(); }, [cargar]);
-
-  const resetForm = () => { setForm({ titulo: '', contenido: '', autor: 'Admin', publicado: false }); setEditId(null); setShowForm(false); };
-
-  const guardar = async () => {
-    if (!form.titulo.trim() || !form.contenido.trim()) return;
-    try {
-      if (editId) await api.publicaciones.actualizar(editId, form);
-      else await api.publicaciones.crear(form);
-      resetForm();
-      cargar();
-    } catch { /* silent */ }
-  };
-
-  const editar = (p: PublicacionInfo) => {
-    setForm({ titulo: p.titulo, contenido: p.contenido, autor: p.autor, publicado: p.publicado });
-    setEditId(p.id);
-    setShowForm(true);
-  };
-
-  const eliminar = async (id: number) => {
-    if (!confirm('Eliminar esta publicacion?')) return;
-    await api.publicaciones.eliminar(id);
-    cargar();
-  };
-
-  const togglePublicado = async (p: PublicacionInfo) => {
-    await api.publicaciones.actualizar(p.id, { publicado: !p.publicado });
-    cargar();
-  };
-
-  const inputStyle: React.CSSProperties = {
-    padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10,
-    fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box',
-  };
-
-  return (
-    <div>
-      <OrangeBar label={`Publicaciones (${pubs.length})`} action={
-        <button onClick={() => { resetForm(); setShowForm(!showForm); }} style={btnOutlineWhite}>
-          {showForm ? 'Cancelar' : '+ Nueva'}
-        </button>
-      } />
-
-      {showForm && (
-        <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 16 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Titulo</label>
-              <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} style={inputStyle} placeholder="Titulo de la publicacion" />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Contenido</label>
-              <textarea value={form.contenido} onChange={e => setForm({ ...form, contenido: e.target.value })}
-                style={{ ...inputStyle, minHeight: 120, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Escribe el contenido..." />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Autor</label>
-                <input value={form.autor} onChange={e => setForm({ ...form, autor: e.target.value })} style={inputStyle} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'end', gap: 8, paddingBottom: 4 }}>
-                <label style={{ fontSize: '0.85rem', color: C.gray, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.publicado} onChange={e => setForm({ ...form, publicado: e.target.checked })} />
-                  Publicar ahora
-                </label>
-              </div>
-            </div>
-            <button onClick={guardar} style={btnAction}>{editId ? 'Actualizar' : 'Crear publicacion'}</button>
-          </div>
-        </div>
-      )}
-
-      {loading ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {pubs.length === 0 ? (
-            <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-              No hay publicaciones. Crea la primera con el boton "+ Nueva".
-            </div>
-          ) : pubs.map(p => (
-            <div key={p.id} style={{ background: C.white, borderRadius: 10, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{p.titulo}</span>
-                  <span style={{
-                    padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-                    background: p.publicado ? '#f0fdf4' : '#f3f4f6',
-                    color: p.publicado ? '#16a34a' : C.gray,
-                    cursor: 'pointer',
-                  }} onClick={() => togglePublicado(p)}>
-                    {p.publicado ? 'Publicado' : 'Borrador'}
-                  </span>
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+        {usuarios.length === 0
+          ? <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>No hay usuarios registrados.</div>
+          : usuarios.map((u, i) => (
+              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderBottom: i < usuarios.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', background: u.rol === 'ADMIN' ? `${C.orange}18` : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <IonIcon icon={personOutline} style={{ fontSize: '1rem', color: u.rol === 'ADMIN' ? C.orange : '#1e40af' }} />
                 </div>
-                <span style={{ fontSize: '0.72rem', color: C.gray }}>{new Date(p.creadoEn).toLocaleDateString('es-AR')}</span>
-              </div>
-              <p style={{ fontSize: '0.85rem', color: '#4b5563', lineHeight: 1.5, margin: '0 0 8px', whiteSpace: 'pre-line' }}>{p.contenido.length > 200 ? p.contenido.slice(0, 200) + '...' : p.contenido}</p>
-              <div style={{ fontSize: '0.75rem', color: C.gray, marginBottom: 8 }}>Por {p.autor}</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => editar(p)} style={btnSm}>Editar</button>
-                <button onClick={() => eliminar(p.id)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Sección Imágenes y Recursos ─────────────────────────────────────────────
-const SecRecursos: React.FC = () => {
-  const [recursos, setRecursos] = useState<RecursoInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [nombre, setNombre] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [archivo, setArchivo] = useState<File | null>(null);
-
-  const cargar = useCallback(() => {
-    setLoading(true);
-    return api.recursos.listar().then(setRecursos).finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { cargar(); }, [cargar]);
-
-  const subir = async () => {
-    if (!archivo) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('archivo', archivo);
-      if (nombre.trim()) fd.append('nombre', nombre.trim());
-      if (descripcion.trim()) fd.append('descripcion', descripcion.trim());
-      fd.append('tipo', archivo.type.startsWith('image/') ? 'imagen' : 'documento');
-      await api.recursos.subir(fd);
-      setArchivo(null); setNombre(''); setDescripcion('');
-      cargar();
-    } catch { /* silent */ }
-    finally { setUploading(false); }
-  };
-
-  const eliminar = async (id: number) => {
-    if (!confirm('Eliminar este recurso?')) return;
-    await api.recursos.eliminar(id);
-    cargar();
-  };
-
-  const formatSize = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`;
-
-  return (
-    <div>
-      <OrangeBar label={`Imagenes y Recursos (${recursos.length})`} />
-
-      {/* Upload */}
-      <div style={{ background: C.white, borderRadius: 10, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,.07)', marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 12 }}>Subir archivo</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-          <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Nombre (opcional)</label>
-            <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del recurso"
-              style={{ padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.75rem', color: C.gray, fontWeight: 600 }}>Descripcion (opcional)</label>
-            <input value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Breve descripcion"
-              style={{ padding: '10px 16px', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: '0.875rem', width: '100%', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-        </div>
-        <div style={{
-          border: `2px dashed ${archivo ? C.orange : C.border}`, borderRadius: 10, padding: '20px 16px',
-          textAlign: 'center', cursor: 'pointer', marginBottom: 12, background: archivo ? '#fff8f5' : '#f9fafb',
-          transition: 'all 0.15s',
-        }}
-          onClick={() => document.getElementById('recurso-file')?.click()}
-        >
-          <input id="recurso-file" type="file" accept="image/*,.pdf,.zip,.dwg,.doc,.docx" style={{ display: 'none' }}
-            onChange={e => setArchivo(e.target.files?.[0] ?? null)} />
-          {archivo ? (
-            <div style={{ fontSize: '0.85rem', color: C.orange, fontWeight: 600 }}>{archivo.name} ({formatSize(archivo.size)})</div>
-          ) : (
-            <div style={{ fontSize: '0.85rem', color: C.gray }}>Click para seleccionar un archivo (imagen, PDF, ZIP, DWG...)</div>
-          )}
-        </div>
-        <button onClick={subir} disabled={!archivo || uploading} style={{ ...btnAction, opacity: (!archivo || uploading) ? 0.5 : 1 }}>
-          {uploading ? 'Subiendo...' : 'Subir recurso'}
-        </button>
-      </div>
-
-      {/* Lista */}
-      {loading ? <div style={{ textAlign: 'center', padding: 40 }}><IonSpinner color="primary" /></div> : (
-        recursos.length === 0 ? (
-          <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', color: C.gray, boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-            No hay recursos subidos aun.
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-            {recursos.map(r => (
-              <div key={r.id} style={{ background: C.white, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-                {r.contentType?.startsWith('image/') ? (
-                  <div style={{ height: 140, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    <img src={api.recursos.archivoUrl(r.id)} alt={r.nombre} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'cover' }} />
-                  </div>
-                ) : (
-                  <div style={{ height: 140, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '2rem', color: C.gray }}>📄</span>
-                  </div>
-                )}
-                <div style={{ padding: '12px 14px' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nombre}</div>
-                  {r.descripcion && <div style={{ fontSize: '0.75rem', color: C.gray, marginBottom: 4 }}>{r.descripcion}</div>}
-                  <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: 8 }}>
-                    {formatSize(r.tamanio)} · {new Date(r.creadoEn).toLocaleDateString('es-AR')}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <a href={api.recursos.archivoUrl(r.id)} target="_blank" rel="noreferrer" style={{ ...btnSm, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>Ver</a>
-                    <button onClick={() => eliminar(r.id)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca' }}>Eliminar</button>
-                  </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', color: C.text }}>{u.nombre}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: C.muted }}>@{u.username} · {formatFechaCorta(u.creadoEn)}</p>
                 </div>
+                <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: u.rol === 'ADMIN' ? '#fff3ee' : '#eff6ff', color: u.rol === 'ADMIN' ? C.orange : '#1e40af', flexShrink: 0 }}>{u.rol}</span>
+                <button onClick={() => eliminar(u.id, u.nombre)} style={{ ...btnSm, color: '#dc2626', borderColor: '#fecaca', flexShrink: 0 }}>
+                  <IonIcon icon={trashOutline} style={{ fontSize: '0.85rem' }} />
+                </button>
               </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
+            ))
+        }
+      </div>
+    </>
   );
 };
 
-const SecPlaceholder: React.FC<{ titulo: string; desc: string }> = ({ titulo, desc }) => (
-  <div>
-    <OrangeBar label={titulo} />
-    <div style={{ background: C.white, borderRadius: 10, padding: 40, textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.07)' }}>
-      <div style={{ border: `2px dashed ${C.border}`, borderRadius: 8, padding: '3rem 2rem', color: C.gray, fontSize: '0.875rem' }}>
-        {desc}
-      </div>
-    </div>
-  </div>
-);
-
-// ─── Estilos de botones reutilizables ─────────────────────────────────────────
-const btnOutlineWhite: React.CSSProperties = {
-  border: '2px solid #fff', color: '#fff', background: 'transparent',
-  padding: '6px 22px', fontWeight: 700, textTransform: 'uppercase' as const,
-  fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '1px', borderRadius: 999,
-};
-
-const btnSm: React.CSSProperties = {
-  padding: '5px 16px', background: 'transparent', border: `1px solid ${C.border}`,
-  borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer', color: C.dark,
-};
-
-const btnAction: React.CSSProperties = {
-  padding: '10px 28px', background: C.orange, border: 'none', borderRadius: 999,
-  fontSize: '0.82rem', fontWeight: 700, color: '#fff', cursor: 'pointer',
-  letterSpacing: '0.03em',
-};
-
-// ─── AdminPage principal ───────────────────────────────────────────────────────
+// ─── AdminPage — Layout principal ─────────────────────────────────────────────
 const AdminPage: React.FC = () => {
-  const history  = useHistory();
-  const [presentToast] = useIonToast();
-
-  const [sidebarOpen, setSidebarOpen]     = useState(true);
+  const history = useHistory();
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [expanded, setExpanded]           = useState<Set<string>>(new Set(['areas']));
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [sectionTour, setSectionTour] = useState<string | null>(null);
-
-  const [stats, setStats]               = useState<AdminStats | null>(null);
-  const [postulantes, setPostulantes]   = useState<Postulante[]>([]);
-  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
-  const [loadingP, setLoadingP] = useState(false);
-  const [loadingE, setLoadingE] = useState(false);
 
   useEffect(() => {
-    if (!sessionStorage.getItem('admin_ok')) { history.replace('/login'); return; }
-    if (onboardingPending()) setShowOnboarding(true);
-    loadStats();
-    loadPostulantes();
-    loadEvaluaciones();
-  }, []);
+    const ok = sessionStorage.getItem('admin_ok') ?? localStorage.getItem('admin_ok');
+    if (!ok) { history.replace('/login'); return; }
+    if (!localStorage.getItem(ONBOARDING_KEY)) setTimeout(() => setShowOnboarding(true), 400);
+  }, [history]);
 
-  const loadStats = async () => {
-    try { setStats(await api.admin.stats()); }
-    catch { presentToast({ message: 'Error cargando estadísticas', color: 'danger', duration: 3000 }); }
+  const handleLogout = () => {
+    sessionStorage.setItem('habisite_logout', '1');
+    sessionStorage.removeItem('admin_ok');
+    localStorage.removeItem('admin_ok');
+    window.location.replace('/login');
   };
 
-  const loadPostulantes = useCallback(async () => {
-    setLoadingP(true);
-    try { setPostulantes(await api.postulantes.listar()); }
-    catch { presentToast({ message: 'Error cargando postulantes', color: 'danger', duration: 3000 }); }
-    finally { setLoadingP(false); }
-  }, []);
-
-  const loadEvaluaciones = useCallback(async () => {
-    setLoadingE(true);
-    try { setEvaluaciones(await api.evaluaciones.listar()); }
-    catch { presentToast({ message: 'Error cargando evaluaciones', color: 'danger', duration: 3000 }); }
-    finally { setLoadingE(false); }
-  }, []);
-
-  const navigate = (id: string) => {
-    setActiveSection(id);
-    if (sectionTourPending(id)) setSectionTour(id);
-  };
-
-  const toggleExpand = (id: string) => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-
-  const logout = () => { sessionStorage.removeItem('admin_ok'); history.replace('/login'); };
-
-  const allItems = MENU.flatMap(m => m.sub ? [m, ...m.sub] : [m]);
-  const pageTitle = allItems.find(m => m.id === activeSection)?.label ?? 'Dashboard';
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'dashboard':           return <SecDashboard stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
-      case 'postulantes':         return <SecPostulantes postulantes={postulantes} loading={loadingP} reload={loadPostulantes} />;
-      case 'campanas':            return <SecCampanas stats={stats} postulantes={postulantes} reload={loadPostulantes} reloadStats={loadStats} />;
-      case 'evaluaciones':        return <SecEvaluaciones evaluaciones={evaluaciones} loading={loadingE} reload={loadEvaluaciones} />;
-      case 'areas-sitio':         return <SecAreasSitio />;
-      case 'areas-publicaciones': return <SecPublicaciones />;
-      case 'areas-recursos':      return <SecRecursos />;
-      case 'estadisticas':        return <SecEstadisticas stats={stats} postulantes={postulantes} evaluaciones={evaluaciones} />;
-      case 'entregas':            return <SecEntregas />;
-      case 'soporte':             return <SecSoporte />;
-      case 'jurado':              return <SecJurado evaluaciones={evaluaciones} />;
-      case 'configuracion':       return <SecConfiguracion />;
-      default:                    return null;
-    }
-  };
+  const navigate = (id: string) => { setActiveSection(id); setMobileMenuOpen(false); if (window.innerWidth < 768) setSidebarOpen(false); };
+  const sectionTitle = MENU.find(m => m.id === activeSection)?.label ?? '';
+  const isMobile = window.innerWidth < 768;
 
   return (
     <IonPage>
-      <IonContent scrollY={false} style={{ '--overflow': 'hidden' }}>
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.dark }}>
+      <IonContent scrollY={false} fullscreen>
+        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', background: C.bg }}>
 
-          {/* ─── Sidebar ──────────────────────────────────────────────────── */}
-          <aside id="admin-sidebar" style={{
-            width: sidebarOpen ? 260 : 52,
-            minWidth: sidebarOpen ? 260 : 52,
-            background: C.dark,
-            color: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'width 0.25s ease, min-width 0.25s ease',
-            flexShrink: 0,
-          }}>
-            <div style={{
-              padding: sidebarOpen ? '1.25rem 1rem 1.25rem 1.25rem' : '1rem 0',
-              borderBottom: '1px solid #1f2937',
-              display: 'flex', alignItems: 'center',
-              justifyContent: sidebarOpen ? 'space-between' : 'center',
-              flexShrink: 0,
-            }}>
-              {sidebarOpen && (
-                <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Habisite</div>
-                  <div style={{ fontSize: '0.62rem', color: C.orange, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 3 }}>Panel de Administración</div>
-                </div>
-              )}
-              <button
-                onClick={() => setSidebarOpen(o => !o)}
-                title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
-                style={{
-                  background: '#1f2937', border: 'none', cursor: 'pointer',
-                  color: '#9ca3af', width: 32, height: 32, borderRadius: 999,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.75rem', flexShrink: 0, transition: 'background 0.15s',
-                }}
-              >
-                {sidebarOpen ? '◀' : '▶'}
+          {showOnboarding && <OnboardingTour onNavigate={navigate} onFinish={() => setShowOnboarding(false)} />}
+
+          {/* Sidebar */}
+          <aside style={{ width: sidebarOpen ? 250 : 0, minWidth: sidebarOpen ? 250 : 0, color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width 0.25s ease, min-width 0.25s ease', flexShrink: 0, position: isMobile ? 'fixed' : 'relative', zIndex: isMobile ? 999 : 1, height: '100%' }}>
+            <SidebarBg />
+
+            {/* Logo */}
+            <div style={{ padding: '1.25rem', borderBottom: '1px solid #ffffff0d', flexShrink: 0, position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Habisite</div>
+              <div style={{ fontSize: '0.62rem', color: C.orange, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 3 }}>Panel de Admin</div>
+            </div>
+
+            {/* User */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #ffffff0d', display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${C.orange}55 0%, ${C.orange}22 100%)`, border: `1.5px solid ${C.orange}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>A</div>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>Administrador</p>
+                <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>Admin</p>
+              </div>
+            </div>
+
+            {/* Nav */}
+            <nav style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0', position: 'relative', zIndex: 1 }}>
+              {MENU.map(item => {
+                const isActive = activeSection === item.id;
+                return (
+                  <button key={item.id} id={`anav-${item.id}`} onClick={() => navigate(item.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%', padding: '0.7rem 1.25rem', background: isActive ? '#ffffff0d' : 'transparent', color: isActive ? C.orange : '#9ca3af', border: 'none', cursor: 'pointer', fontSize: '0.875rem', textAlign: 'left', borderLeft: isActive ? `3px solid ${C.orange}` : '3px solid transparent', transition: 'all 0.15s' }}>
+                    <IonIcon icon={item.icon} style={{ fontSize: '1.1rem', flexShrink: 0 }} />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Tutorial button */}
+            <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid #ffffff08', position: 'relative', zIndex: 1 }}>
+              <button onClick={() => { localStorage.removeItem(ONBOARDING_KEY); setShowOnboarding(true); }} style={{ width: '100%', padding: '0.5rem', background: 'transparent', border: '1px solid #ffffff10', color: '#ffffff44', borderRadius: 8, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <IonIcon icon={rocketOutline} style={{ fontSize: '0.8rem' }} /> Ver tutorial
               </button>
             </div>
 
-            {sidebarOpen && (
-              <nav id="admin-nav" className="sidebar-nav" style={{ flex: 1, overflowY: 'auto', padding: '0.5rem 0' }}>
-                {MENU.map(item => {
-                  const isActive = activeSection === item.id || (item.sub?.some(s => s.id === activeSection));
-                  return (
-                    <div key={item.id}>
-                      <button
-                        onClick={() => item.sub ? toggleExpand(item.id) : navigate(item.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          width: '100%', padding: '0.7rem 1.25rem',
-                          background: isActive ? '#1f2937' : 'transparent',
-                          color: isActive ? C.orange : '#9ca3af',
-                          border: 'none', cursor: 'pointer', fontSize: '0.875rem', textAlign: 'left',
-                          borderLeft: isActive ? `3px solid ${C.orange}` : '3px solid transparent',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <IonIcon icon={item.icon} style={{ fontSize: '1.1rem', flexShrink: 0 }} />
-                          {item.label}
-                        </span>
-                        {item.sub && (
-                          <span style={{ fontSize: '0.6rem', transition: 'transform 0.2s', display: 'inline-block', transform: expanded.has(item.id) ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
-                        )}
-                      </button>
-                      {item.sub && expanded.has(item.id) && (
-                        <div style={{ background: '#0d1420' }}>
-                          {item.sub.map(sub => (
-                            <button
-                              key={sub.id}
-                              onClick={() => navigate(sub.id)}
-                              style={{
-                                display: 'block', width: '100%', padding: '0.6rem 1.25rem 0.6rem 3.2rem',
-                                background: activeSection === sub.id ? '#1f2937' : 'transparent',
-                                color: activeSection === sub.id ? C.orange : '#6b7280',
-                                border: 'none', cursor: 'pointer', fontSize: '0.8rem', textAlign: 'left',
-                                borderLeft: activeSection === sub.id ? `3px solid ${C.orange}` : '3px solid transparent',
-                                transition: 'all 0.12s',
-                              }}
-                            >
-                              {sub.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </nav>
-            )}
-
-            {sidebarOpen && (
-              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #1f2937', flexShrink: 0 }}>
-                <button onClick={logout} style={{ width: '100%', padding: '0.6rem', background: 'transparent', border: '1px solid #374151', color: '#9ca3af', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer' }}>
-                  Cerrar sesión
-                </button>
-              </div>
-            )}
+            {/* Logout */}
+            <div style={{ padding: '0.75rem 1.25rem 1rem', flexShrink: 0, position: 'relative', zIndex: 1 }}>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '0.6rem', background: 'transparent', border: '1px solid #ffffff15', color: '#9ca3af', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <IonIcon icon={logOutOutline} style={{ fontSize: '0.9rem' }} />Cerrar sesión
+              </button>
+            </div>
           </aside>
 
-          {/* ─── Contenido principal ──────────────────────────────────────── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
-            <div id="admin-topbar" style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{pageTitle}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <button onClick={loadStats} style={{ ...btnSm, fontSize: '0.75rem', color: C.gray }}>↻ Sync</button>
-                <span style={{ fontSize: '0.8rem', color: C.gray }}>Administrador</span>
-                <div style={{ width: 32, height: 32, background: C.orange, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem' }}>A</div>
+          {/* Mobile overlay */}
+          {mobileMenuOpen && isMobile && (
+            <div onClick={() => { setSidebarOpen(false); setMobileMenuOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 998 }} />
+          )}
+
+          {/* Main content */}
+          <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Top bar */}
+            <header style={{ padding: '14px 24px', background: C.card, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button onClick={() => { if (isMobile) { const next = !sidebarOpen; setSidebarOpen(next); setMobileMenuOpen(next); } else { setSidebarOpen(o => !o); } }} style={{ background: '#f3f4f6', border: 'none', cursor: 'pointer', width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IonIcon icon={sidebarOpen ? chevronBackOutline : menuOutline} style={{ fontSize: '1rem', color: C.muted }} />
+                </button>
+                <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: C.text }}>{sectionTitle}</h2>
+              </div>
+            </header>
+
+            {/* Section content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+              <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                {activeSection === 'dashboard'     && <SecDashboard />}
+                {activeSection === 'concursos'     && <SecConcursos />}
+                {activeSection === 'postulantes'   && <SecPostulantes />}
+                {activeSection === 'campanas'      && <SecCampanas />}
+                {activeSection === 'evaluaciones'  && <SecEvaluaciones />}
+                {activeSection === 'jurado'        && <SecJurado />}
+                {activeSection === 'configuracion' && <SecConfiguracion />}
               </div>
             </div>
-
-            <div id="admin-content" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-              {renderContent()}
-            </div>
-          </div>
-
+          </main>
         </div>
-        {showOnboarding && (
-          <AdminMainTour
-            onNavigate={(section) => setActiveSection(section)}
-            onFinish={() => setShowOnboarding(false)}
-          />
-        )}
-        {sectionTour && (
-          <AdminSectionTour
-            section={sectionTour}
-            onFinish={() => setSectionTour(null)}
-          />
-        )}
       </IonContent>
     </IonPage>
   );

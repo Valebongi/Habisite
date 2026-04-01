@@ -10,10 +10,10 @@ import {
   documentOutline, linkOutline, gridOutline, menuOutline,
   logOutOutline, chevronBackOutline, chevronForwardOutline,
   rocketOutline, arrowForwardOutline, checkmarkCircleOutline,
-  sparklesOutline,
+  sparklesOutline, peopleOutline, trashOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
-import { api, Postulante, PostulanteRequest, Concurso, Resolucion } from '../../services/api';
+import { api, Postulante, PostulanteRequest, Concurso, Resolucion, EquipoMiembro } from '../../services/api';
 
 // ─── Design tokens (mismos que LoginPage) ─────────────────────────────────────
 const C = {
@@ -56,7 +56,7 @@ const formatFecha = (fecha: string) =>
   new Date(fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
 
 const estadoBadgeColor = (e: string) =>
-  e === 'APROBADA' ? 'success' : e === 'RECHAZADA' ? 'danger' : 'warning';
+  e === 'APROBADA' ? 'success' : e === 'RECHAZADA' ? 'danger' : e === 'INDETERMINADO' ? 'medium' : 'warning';
 
 // ─── Sidebar menu ─────────────────────────────────────────────────────────────
 
@@ -66,6 +66,7 @@ const MENU: MenuItem[] = [
   { id: 'perfil',    icon: personOutline,        label: 'Mi Perfil' },
   { id: 'concursos', icon: trophyOutline,        label: 'Concursos' },
   { id: 'entregas',  icon: cloudUploadOutline,   label: 'Mis Entregas' },
+  { id: 'equipo',    icon: peopleOutline,         label: 'Mi Equipo' },
   { id: 'resumen',   icon: gridOutline,          label: 'Resumen' },
 ];
 
@@ -97,6 +98,14 @@ const TOUR_STEPS = [
     title: 'Mis Entregas',
     desc: 'Subí tu proyecto: archivo (PDF, ZIP, imagen) o link de Google Drive.',
     tip: 'El jurado revisa cada entrega. Vas a ver el estado acá: Pendiente, Aprobada o Rechazada.',
+  },
+  {
+    targetId: 'nav-equipo',
+    sectionId: 'equipo',
+    icon: peopleOutline,
+    title: 'Mi Equipo',
+    desc: 'Agregá a los integrantes de tu equipo. Buscalos por DNI — si ya están registrados, sus datos se completan automáticamente.',
+    tip: 'Los integrantes de tu equipo comparten tus entregas y figuran en tu postulación.',
   },
   {
     targetId: 'nav-resumen',
@@ -189,7 +198,7 @@ const OnboardingTour: React.FC<OnboardingProps> = ({ onNavigate, onFinish }) => 
             Bienvenido a tu panel
           </h1>
           <p style={{ margin: '0 0 40px', color: '#ffffff66', fontSize: '1rem', lineHeight: 1.65 }}>
-            Te mostramos en 4 pasos cómo usar el panel para gestionar tu postulación.
+            Te mostramos en 5 pasos cómo usar el panel para gestionar tu postulación.
           </p>
 
           <button onClick={() => setStep(0)} style={{
@@ -555,9 +564,11 @@ const ConcursosSection: React.FC = () => {
               padding: '22px 24px 18px', position: 'relative', overflow: 'hidden',
             }}>
               <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, border: `1.5px solid ${C.orange}33`, borderRadius: 4, transform: 'rotate(20deg)' }} />
-              <IonChip color={estadoColor} style={{ marginBottom: 10, fontWeight: 600 }}>{c.estado}</IonChip>
-              <h2 style={{ margin: '0 0 6px', color: '#fff', fontSize: '1.05rem', fontWeight: 700 }}>{c.titulo}</h2>
-              <p style={{ margin: 0, color: '#ffffff88', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, position: 'relative', zIndex: 1 }}>
+                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.2rem', fontWeight: 800, lineHeight: 1.25 }}>{c.titulo}</h2>
+                <IonChip color={estadoColor} style={{ fontWeight: 600, flexShrink: 0, marginLeft: 12 }}>{c.estado}</IonChip>
+              </div>
+              <p style={{ margin: 0, color: '#ffffff88', fontSize: '0.8rem', position: 'relative', zIndex: 1 }}>
                 {formatFecha(c.fechaInicio)} → {formatFecha(c.fechaFin)}
                 {c.estado === 'ACTIVO' && <span style={{ color: C.orange, marginLeft: 8, fontWeight: 600 }}>{diasRestantes(c.fechaFin)} días restantes</span>}
               </p>
@@ -608,6 +619,8 @@ const EntregasSection: React.FC = () => {
   const [urlExterno, setUrlExterno] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [propuestaInputs, setPropuestaInputs] = useState<Record<number, string>>({});
+  const [enviandoPropuesta, setEnviandoPropuesta] = useState<Record<number, boolean>>({});
 
   const cargar = () => {
     if (!postulante) return;
@@ -648,6 +661,22 @@ const EntregasSection: React.FC = () => {
       const msg = err instanceof Error ? err.message : 'Error al enviar.';
       setError(msg); setToastMsg(msg); setToastColor('danger'); setShowToast(true);
     } finally { setSubiendo(false); }
+  };
+
+  const handleSeleccionarPropuesta = async (id: number) => {
+    const propuesta = propuestaInputs[id]?.trim();
+    if (!propuesta) return;
+    setEnviandoPropuesta(p => ({ ...p, [id]: true }));
+    try {
+      await api.resoluciones.seleccionarPropuesta(id, propuesta);
+      setToastMsg('Propuesta seleccionada.'); setToastColor('success'); setShowToast(true);
+      cargar();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al seleccionar propuesta.';
+      setToastMsg(msg); setToastColor('danger'); setShowToast(true);
+    } finally {
+      setEnviandoPropuesta(p => ({ ...p, [id]: false }));
+    }
   };
 
   return (
@@ -732,6 +761,32 @@ const EntregasSection: React.FC = () => {
           </div>
           <p style={{ margin: '0 0 4px', fontSize: '0.82rem', color: C.muted }}>{r.concursoTitulo}</p>
           {r.descripcion && <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#374151' }}>{r.descripcion}</p>}
+          {r.propuesta && (
+            <p style={{ margin: '4px 0 0', fontSize: '0.83rem', color: '#374151', background: '#f8fafc', borderRadius: 6, padding: '6px 10px', borderLeft: `3px solid ${C.orange}` }}>
+              <span style={{ color: C.muted, fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Propuesta: </span>
+              {r.propuesta}
+            </p>
+          )}
+          {r.estado === 'INDETERMINADO' && (
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ ...sty.inputWrap, flex: 1 }}>
+                <IonInput
+                  value={propuestaInputs[r.id] ?? ''}
+                  onIonInput={e => setPropuestaInputs(p => ({ ...p, [r.id]: e.detail.value ?? '' }))}
+                  placeholder="Nombre de tu propuesta…"
+                  style={sty.input}
+                />
+              </div>
+              <IonButton
+                size="small"
+                disabled={enviandoPropuesta[r.id] || !propuestaInputs[r.id]?.trim()}
+                onClick={() => handleSeleccionarPropuesta(r.id)}
+                style={{ '--background': C.orange, '--border-radius': '8px', flexShrink: 0 }}
+              >
+                {enviandoPropuesta[r.id] ? <IonSpinner name="crescent" /> : 'Seleccionar propuesta'}
+              </IonButton>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
             {r.tieneArchivo && (
               <a href={`/api/v1/resoluciones/${r.id}/archivo`} target="_blank" rel="noreferrer"
@@ -747,6 +802,210 @@ const EntregasSection: React.FC = () => {
             )}
           </div>
           <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>{formatFecha(r.creadoEn)}</p>
+        </div>
+      ))}
+
+      <IonToast isOpen={showToast} onDidDismiss={() => setShowToast(false)} message={toastMsg} duration={2500} color={toastColor} position="top" />
+    </>
+  );
+};
+
+// ─── Sección: Mi Equipo ───────────────────────────────────────────────────────
+
+const EquipoSection: React.FC = () => {
+  const postulante = getPostulante();
+  const [miembros, setMiembros] = useState<EquipoMiembro[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [buscandoDni, setBuscandoDni] = useState(false);
+  const [yaRegistrado, setYaRegistrado] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
+  const [error, setError] = useState('');
+
+  const [dni, setDni] = useState('');
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [email, setEmail] = useState('');
+  const [celular, setCelular] = useState('');
+
+  const cargar = () => {
+    if (!postulante) return;
+    setLoading(true);
+    api.equipo.listar(postulante.id)
+      .then(setMiembros)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { cargar(); }, []);
+
+  const resetForm = () => {
+    setDni(''); setNombres(''); setApellidos(''); setEmail(''); setCelular('');
+    setYaRegistrado(false); setError('');
+  };
+
+  const handleBlurDni = async () => {
+    if (!dni.trim()) return;
+    setBuscandoDni(true);
+    setYaRegistrado(false);
+    try {
+      const resultado = await api.equipo.buscarDni(dni.trim());
+      if (resultado.encontrado) {
+        setNombres(resultado.nombres ?? '');
+        setApellidos(resultado.apellidos ?? '');
+        setEmail(resultado.email ?? '');
+        setCelular(resultado.celular ?? '');
+        setYaRegistrado(true);
+      } else {
+        setNombres(''); setApellidos(''); setEmail(''); setCelular('');
+        setYaRegistrado(false);
+      }
+    } catch {
+      // Si falla la búsqueda, dejamos los campos vacíos para ingreso manual
+    } finally {
+      setBuscandoDni(false);
+    }
+  };
+
+  const handleAgregar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!dni.trim() || !nombres.trim() || !apellidos.trim() || !email.trim() || !celular.trim()) {
+      setError('Completá todos los campos.'); return;
+    }
+    if (!postulante) return;
+    setGuardando(true);
+    try {
+      await api.equipo.agregar(postulante.id, {
+        dni: dni.trim(), nombres: nombres.trim(), apellidos: apellidos.trim(),
+        email: email.trim(), celular: celular.trim(),
+      });
+      setToastMsg('Integrante agregado al equipo.'); setToastColor('success'); setShowToast(true);
+      resetForm();
+      cargar();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al agregar integrante.';
+      setError(msg); setToastMsg(msg); setToastColor('danger'); setShowToast(true);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleEliminar = async (equipoId: number) => {
+    try {
+      await api.equipo.eliminar(equipoId);
+      setToastMsg('Integrante eliminado.'); setToastColor('success'); setShowToast(true);
+      cargar();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar integrante.';
+      setToastMsg(msg); setToastColor('danger'); setShowToast(true);
+    }
+  };
+
+  return (
+    <>
+      {/* Add member form */}
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, padding: 24, marginBottom: 24 }}>
+        <h3 style={{ margin: '0 0 20px', fontWeight: 700, color: C.orange, fontSize: '1rem' }}>Agregar integrante</h3>
+        <form onSubmit={handleAgregar} noValidate>
+          {/* DNI with lookup */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={sty.label}>DNI *</label>
+            <div style={{ ...sty.inputWrap, display: 'flex', alignItems: 'center' }}>
+              <IonInput
+                value={dni}
+                onIonInput={e => { setDni(e.detail.value ?? ''); setYaRegistrado(false); }}
+                onIonBlur={handleBlurDni}
+                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); handleBlurDni(); } }}
+                placeholder="Ingresá el DNI"
+                type="text"
+                style={sty.input}
+              />
+              {buscandoDni && <IonSpinner name="crescent" style={{ marginRight: 10, color: C.orange, flexShrink: 0 }} />}
+            </div>
+            {yaRegistrado && (
+              <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: '#059669', background: '#ecfdf5', padding: '6px 10px', borderRadius: 6, borderLeft: '3px solid #059669' }}>
+                Ya registrado — se compartirán entregas
+              </p>
+            )}
+          </div>
+
+          {[
+            { label: 'Nombres', value: nombres, setter: setNombres, type: 'text' },
+            { label: 'Apellidos', value: apellidos, setter: setApellidos, type: 'text' },
+            { label: 'Email', value: email, setter: setEmail, type: 'email' },
+            { label: 'Celular', value: celular, setter: setCelular, type: 'tel' },
+          ].map(({ label, value, setter, type }) => (
+            <div key={label} style={{ marginBottom: 16 }}>
+              <label style={sty.label}>{label} *</label>
+              <div style={sty.inputWrap}>
+                <IonInput
+                  value={value}
+                  onIonInput={e => setter(e.detail.value ?? '')}
+                  type={type as any}
+                  placeholder={`Ingresá ${label.toLowerCase()}`}
+                  style={sty.input}
+                />
+              </div>
+            </div>
+          ))}
+
+          {error && (
+            <p style={{ fontSize: '0.83rem', color: '#dc2626', background: '#fef2f2', padding: '10px 12px', borderRadius: 8, margin: '0 0 12px' }}>{error}</p>
+          )}
+          <IonButton expand="block" type="submit" disabled={guardando} style={{ '--background': C.orange, '--border-radius': '10px' }}>
+            {guardando ? <IonSpinner name="crescent" /> : 'Agregar al equipo'}
+          </IonButton>
+        </form>
+      </div>
+
+      {/* Members list */}
+      <h3 style={{ margin: '0 0 14px', fontWeight: 700, color: C.text, fontSize: '1rem' }}>Integrantes actuales</h3>
+      {loading && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><IonSpinner name="crescent" color="primary" /></div>
+      )}
+      {!loading && miembros.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 48, color: C.muted }}>
+          <IonIcon icon={peopleOutline} style={{ fontSize: '2.5rem', marginBottom: 8, opacity: 0.4 }} />
+          <p style={{ margin: 0, fontSize: '0.95rem' }}>Aún no agregaste integrantes al equipo.</p>
+        </div>
+      )}
+      {miembros.map(m => (
+        <div key={m.id} style={{
+          background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 18px', marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: `${C.orange}22`, border: `1.5px solid ${C.orange}55`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.85rem', fontWeight: 700, color: C.orange, flexShrink: 0,
+            }}>
+              {m.nombres[0]}{m.apellidos[0]}
+            </div>
+            <div>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.92rem', color: C.text }}>
+                {m.nombres} {m.apellidos}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: C.muted }}>
+                DNI {m.dni} · {m.email}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleEliminar(m.id)}
+            style={{
+              background: '#fef2f2', border: `1px solid #fecaca`, borderRadius: 8,
+              padding: '6px 10px', cursor: 'pointer', color: '#dc2626',
+              display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 600, flexShrink: 0,
+            }}
+          >
+            <IonIcon icon={trashOutline} style={{ fontSize: '0.9rem' }} />
+            Quitar
+          </button>
         </div>
       ))}
 
@@ -858,6 +1117,7 @@ const PostulantePage: React.FC = () => {
       case 'perfil': return <PerfilSection />;
       case 'concursos': return <ConcursosSection />;
       case 'entregas': return <EntregasSection />;
+      case 'equipo': return <EquipoSection />;
       case 'resumen': return <ResumenSection />;
       default: return <PerfilSection />;
     }

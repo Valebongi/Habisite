@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   IonPage, IonContent, IonIcon, IonButton, IonLabel, IonItem,
-  IonBadge, IonChip, IonText, IonSpinner, IonModal, IonTextarea,
+  IonBadge, IonChip, IonText, IonSpinner, IonModal,
   IonSearchbar, IonToast, IonHeader, IonToolbar, IonTitle, IonButtons,
 } from '@ionic/react';
 import {
@@ -12,7 +12,7 @@ import {
   logOutOutline, chevronBackOutline, rocketOutline, sparklesOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
-import { api, Postulante, Evaluacion, EvaluacionRequest, Resolucion } from '../../services/api';
+import { api, Postulante, Evaluacion, EvaluacionRequest, Resolucion, CriterioEvaluacion, Concurso } from '../../services/api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -150,11 +150,15 @@ const OnboardingTour: React.FC<OnboardingProps> = ({ onNavigate, onFinish }) => 
 };
 
 // ─── Modal de evaluación ──────────────────────────────────────────────────────
-interface ModalEvaluarProps { postulante: Postulante; numero: number; evaluacionPrevia?: Evaluacion; onClose: () => void; onGuardado: () => void; }
+interface ModalEvaluarProps { postulante: Postulante; numero: number; evaluacionPrevia?: Evaluacion; concursoId: number | null; onClose: () => void; onGuardado: () => void; }
 
-const ModalEvaluar: React.FC<ModalEvaluarProps> = ({ postulante, numero, evaluacionPrevia, onClose, onGuardado }) => {
+const ModalEvaluar: React.FC<ModalEvaluarProps> = ({ postulante, numero, evaluacionPrevia, concursoId, onClose, onGuardado }) => {
+  // Fallback single-score state (used when no criteria exist)
   const [puntaje, setPuntaje] = useState<number | null>(evaluacionPrevia?.puntaje ?? null);
-  const [comentario, setComentario] = useState(evaluacionPrevia?.comentario ?? '');
+  // Per-criterion scores: criterioId → puntaje
+  const [puntajes, setPuntajes] = useState<Record<number, number>>({});
+  const [criterios, setCriterios] = useState<CriterioEvaluacion[]>([]);
+  const [loadingCriterios, setLoadingCriterios] = useState(false);
   const [resoluciones, setResoluciones] = useState<Resolucion[]>([]);
   const [loadingRes, setLoadingRes] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -162,10 +166,32 @@ const ModalEvaluar: React.FC<ModalEvaluarProps> = ({ postulante, numero, evaluac
 
   useEffect(() => { api.resoluciones.listarPorPostulante(postulante.id).then(setResoluciones).finally(() => setLoadingRes(false)); }, [postulante.id]);
 
+  useEffect(() => {
+    if (concursoId == null) return;
+    setLoadingCriterios(true);
+    api.criterios.listar(concursoId).then(setCriterios).catch(() => setCriterios([])).finally(() => setLoadingCriterios(false));
+  }, [concursoId]);
+
+  const usaCriterios = criterios.length > 0;
+
+  // Weighted average: sum(score * peso) / sum(peso)
+  const pesoTotal = criterios.reduce((s, c) => s + c.peso, 0);
+  const puntajesPonderados = criterios.reduce((s, c) => s + (puntajes[c.id] ?? 0) * c.peso, 0);
+  const promedioCalculado = pesoTotal > 0 && criterios.every(c => puntajes[c.id] != null)
+    ? puntajesPonderados / pesoTotal
+    : null;
+
   const handleGuardar = async () => {
-    if (puntaje === null) { setToast({ msg: 'Seleccioná un puntaje del 1 al 10.', color: 'warning' }); return; }
+    let finalPuntaje: number | null = null;
+    if (usaCriterios) {
+      if (promedioCalculado === null) { setToast({ msg: 'Asigná un puntaje a todos los criterios.', color: 'warning' }); return; }
+      finalPuntaje = parseFloat(promedioCalculado.toFixed(1));
+    } else {
+      if (puntaje === null) { setToast({ msg: 'Seleccioná un puntaje del 1 al 10.', color: 'warning' }); return; }
+      finalPuntaje = puntaje;
+    }
     setLoading(true);
-    const payload: EvaluacionRequest = { postulanteId: postulante.id, juradoNombre: juradoNombre(), puntaje, comentario: comentario.trim() };
+    const payload: EvaluacionRequest = { postulanteId: postulante.id, juradoNombre: juradoNombre(), puntaje: finalPuntaje, comentario: '' };
     try { await api.evaluaciones.crear(payload); setToast({ msg: 'Evaluación guardada.', color: 'success' }); setTimeout(onGuardado, 1200); }
     catch (err: unknown) { setToast({ msg: err instanceof Error ? err.message : 'Error', color: 'danger' }); }
     finally { setLoading(false); }
@@ -204,16 +230,51 @@ const ModalEvaluar: React.FC<ModalEvaluarProps> = ({ postulante, numero, evaluac
 
           <div style={{ background: '#fff', borderRadius: 12, padding: 16, border: `2px solid ${yaTieneEval ? '#2dd36f44' : C.border}` }}>
             {yaTieneEval && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 12px', background: '#f0fdf4', borderRadius: 8 }}><IonIcon icon={checkmarkDoneOutline} style={{ color: '#2dd36f', fontSize: '1.1rem' }} /><span style={{ fontSize: '0.85rem', color: '#15803d', fontWeight: 600 }}>Ya evaluaste a este postulante</span></div>}
-            <p style={{ margin: '0 0 10px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>{yaTieneEval ? 'Tu evaluación' : 'Asignar puntaje'}</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-                <button key={n} disabled={yaTieneEval} onClick={() => setPuntaje(n)} style={{ width: 44, height: 44, borderRadius: 8, border: 'none', cursor: yaTieneEval ? 'default' : 'pointer', background: puntaje === n ? C.orange : '#f3f4f6', color: puntaje === n ? '#fff' : '#374151', fontWeight: puntaje === n ? 700 : 500, fontSize: '1rem', transition: 'all .15s' }}>{n}</button>
-              ))}
-            </div>
-            <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.85rem', color: '#374151' }}>Comentario {yaTieneEval ? '' : '(opcional)'}</p>
-            <IonTextarea value={comentario} onIonInput={e => setComentario(e.detail.value ?? '')} placeholder="Observaciones sobre la propuesta..." rows={3} readonly={yaTieneEval}
-              style={{ '--background': yaTieneEval ? '#f9fafb' : '#fff', '--border-radius': '8px', '--padding-start': '12px', '--padding-end': '12px', '--padding-top': '10px', '--padding-bottom': '10px', border: `1px solid ${C.border}`, borderRadius: 8 }} />
-            {!yaTieneEval && <IonButton expand="block" onClick={handleGuardar} disabled={loading || puntaje === null} style={{ marginTop: 16, '--background': C.orange, '--border-radius': '8px' }}>{loading ? <IonSpinner name="crescent" /> : 'Guardar evaluación'}</IonButton>}
+            <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>{yaTieneEval ? 'Tu evaluación' : 'Asignar puntaje'}</p>
+
+            {loadingCriterios && <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}><IonSpinner name="crescent" color="primary" /></div>}
+
+            {!loadingCriterios && usaCriterios && (
+              <div style={{ marginBottom: 16 }}>
+                {criterios.sort((a, b) => a.orden - b.orden).map(c => {
+                  const sel = puntajes[c.id] ?? null;
+                  return (
+                    <div key={c.id} style={{ marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: C.text }}>{c.nombre}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', background: C.orange, borderRadius: 6, padding: '2px 7px' }}>x{c.peso}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                          <button key={n} disabled={yaTieneEval} onClick={() => setPuntajes(prev => ({ ...prev, [c.id]: n }))}
+                            style={{ width: 36, height: 36, borderRadius: 7, border: 'none', cursor: yaTieneEval ? 'default' : 'pointer', background: sel === n ? C.orange : '#f3f4f6', color: sel === n ? '#fff' : '#374151', fontWeight: sel === n ? 700 : 500, fontSize: '0.9rem', transition: 'all .15s' }}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Weighted average display */}
+                <div style={{ marginTop: 8, padding: '12px 14px', background: promedioCalculado !== null ? `${C.orange}12` : '#f9fafb', borderRadius: 10, border: `1.5px solid ${promedioCalculado !== null ? C.orange : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: C.muted }}>Puntaje ponderado</span>
+                  <span style={{ fontSize: '1.6rem', fontWeight: 800, color: promedioCalculado !== null ? scoreColor(promedioCalculado) : '#d1d5db', lineHeight: 1 }}>
+                    {promedioCalculado !== null ? promedioCalculado.toFixed(1) : '—'}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#9ca3af', marginLeft: 2 }}>/10</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!loadingCriterios && !usaCriterios && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                  <button key={n} disabled={yaTieneEval} onClick={() => setPuntaje(n)} style={{ width: 44, height: 44, borderRadius: 8, border: 'none', cursor: yaTieneEval ? 'default' : 'pointer', background: puntaje === n ? C.orange : '#f3f4f6', color: puntaje === n ? '#fff' : '#374151', fontWeight: puntaje === n ? 700 : 500, fontSize: '1rem', transition: 'all .15s' }}>{n}</button>
+                ))}
+              </div>
+            )}
+
+            {!yaTieneEval && <IonButton expand="block" onClick={handleGuardar} disabled={loading || loadingCriterios || (usaCriterios ? promedioCalculado === null : puntaje === null)} style={{ marginTop: 4, '--background': C.orange, '--border-radius': '8px' }}>{loading ? <IonSpinner name="crescent" /> : 'Guardar evaluación'}</IonButton>}
           </div>
         </div>
       </IonContent>
@@ -227,6 +288,7 @@ const PostulantesSection: React.FC = () => {
   const nombre = juradoNombre();
   const [postulantes, setPostulantes] = useState<Postulante[]>([]);
   const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [concursoId, setConcursoId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtro, setFiltro] = useState('');
@@ -235,7 +297,13 @@ const PostulantesSection: React.FC = () => {
 
   const cargar = useCallback(async () => {
     setLoading(true); setError('');
-    try { const [ps, evs] = await Promise.all([api.postulantes.listar(), api.evaluaciones.listar()]); setPostulantes(ps); setEvaluaciones(evs); }
+    try {
+      const [ps, evs, concursos] = await Promise.all([api.postulantes.listar(), api.evaluaciones.listar(), api.concursos.listar()]);
+      setPostulantes(ps);
+      setEvaluaciones(evs);
+      const activo = concursos.find((c: Concurso) => c.estado === 'ACTIVO') ?? concursos[0] ?? null;
+      if (activo) setConcursoId(activo.id);
+    }
     catch (err: unknown) { setError(err instanceof Error ? err.message : 'Error al cargar'); }
     finally { setLoading(false); }
   }, []);
@@ -294,7 +362,7 @@ const PostulantesSection: React.FC = () => {
       })}
 
       <IonModal isOpen={modalPostulante !== null} onDidDismiss={() => setModalPostulante(null)}>
-        {modalPostulante && <ModalEvaluar postulante={modalPostulante.p} numero={modalPostulante.idx} evaluacionPrevia={evalDeJurado(modalPostulante.p.id)} onClose={() => setModalPostulante(null)} onGuardado={() => { setModalPostulante(null); cargar(); }} />}
+        {modalPostulante && <ModalEvaluar postulante={modalPostulante.p} numero={modalPostulante.idx} evaluacionPrevia={evalDeJurado(modalPostulante.p.id)} concursoId={concursoId} onClose={() => setModalPostulante(null)} onGuardado={() => { setModalPostulante(null); cargar(); }} />}
       </IonModal>
     </>
   );
@@ -334,7 +402,6 @@ const MisEvaluacionesSection: React.FC = () => {
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${C.orange}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: C.orange, flexShrink: 0 }}>#{idx + 1}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', color: C.text }}>{ev.postulanteNombre}</p>
-            {ev.comentario && <p style={{ margin: '2px 0', fontSize: '0.83rem', color: '#555', lineHeight: 1.4 }}>{ev.comentario}</p>}
             <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>{formatFecha(ev.evaluadoEn)}</p>
           </div>
           <div style={{ textAlign: 'center', flexShrink: 0 }}><div style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, color: scoreColor(ev.puntaje) }}>{ev.puntaje}</div><div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>/10</div></div>
@@ -360,7 +427,7 @@ const EstadisticasSection: React.FC = () => {
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><IonSpinner name="crescent" color="primary" /></div>;
 
-  const distribucion = Array.from({ length: 10 }, (_, i) => ({ score: i + 1, count: misEvals.filter(e => e.puntaje === i + 1).length }));
+  const distribucion = Array.from({ length: 10 }, (_, i) => ({ score: i + 1, count: misEvals.filter(e => Math.round(e.puntaje) === i + 1).length }));
   const maxCount = Math.max(...distribucion.map(d => d.count), 1);
   const ranking = postulantes.map(p => { const evs = evaluaciones.filter(e => e.postulanteId === p.id); const avg = evs.length > 0 ? evs.reduce((s, e) => s + e.puntaje, 0) / evs.length : 0; return { postulante: p, promedio: avg, totalEvals: evs.length }; }).filter(r => r.totalEvals > 0).sort((a, b) => b.promedio - a.promedio);
   const evaluados = misEvals.length;

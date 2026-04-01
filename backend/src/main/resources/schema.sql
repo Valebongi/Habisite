@@ -104,3 +104,72 @@ CREATE TABLE IF NOT EXISTS recurso (
 ALTER TABLE postulante ALTER COLUMN dni DROP NOT NULL;
 ALTER TABLE postulante ALTER COLUMN celular DROP NOT NULL;
 ALTER TABLE postulante ALTER COLUMN especialidad DROP NOT NULL;
+
+-- ── Equipos ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS equipo (
+    id              BIGSERIAL       PRIMARY KEY,
+    postulante_id   BIGINT          NOT NULL REFERENCES postulante(id) ON DELETE CASCADE,
+    miembro_id      BIGINT          REFERENCES postulante(id) ON DELETE SET NULL,
+    dni             VARCHAR(8)      NOT NULL,
+    email           VARCHAR(150)    NOT NULL,
+    celular         VARCHAR(15),
+    nombres         VARCHAR(100)    NOT NULL,
+    apellidos       VARCHAR(100)    NOT NULL,
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    UNIQUE (postulante_id, dni)
+);
+
+-- ── Entregas: equipo + propuesta + indeterminado ────────────────────────────
+ALTER TABLE resolucion ADD COLUMN IF NOT EXISTS tipo_entrega VARCHAR(20) NOT NULL DEFAULT 'INDIVIDUAL';
+ALTER TABLE resolucion ADD COLUMN IF NOT EXISTS propuesta VARCHAR(200);
+
+-- Actualizar constraint de estado para incluir INDETERMINADO
+ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_estado_check;
+DO $$ BEGIN
+  ALTER TABLE resolucion ADD CONSTRAINT resolucion_estado_check
+    CHECK (estado IN ('INDETERMINADO','PENDIENTE','APROBADA','RECHAZADA'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Miembros de una entrega grupal
+CREATE TABLE IF NOT EXISTS resolucion_miembro (
+    id              BIGSERIAL       PRIMARY KEY,
+    resolucion_id   BIGINT          NOT NULL REFERENCES resolucion(id) ON DELETE CASCADE,
+    postulante_id   BIGINT          NOT NULL REFERENCES postulante(id) ON DELETE CASCADE,
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    UNIQUE (resolucion_id, postulante_id)
+);
+
+-- ── Concurso: terminación + pasos estructurados ────────────────────────────
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS bases_pasos JSONB;
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS terminado_en TIMESTAMPTZ;
+ALTER TABLE concurso ADD COLUMN IF NOT EXISTS limpieza_programada_en TIMESTAMPTZ;
+
+ALTER TABLE concurso DROP CONSTRAINT IF EXISTS concurso_estado_check;
+DO $$ BEGIN
+  ALTER TABLE concurso ADD CONSTRAINT concurso_estado_check
+    CHECK (estado IN ('ACTIVO','CERRADO','PROXIMO','TERMINADO'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Permitir múltiples entregas por postulante por concurso (equipo)
+ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_postulante_id_concurso_id_key;
+
+-- ── Criterios de evaluación dinámicos ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS criterio_evaluacion (
+    id              BIGSERIAL       PRIMARY KEY,
+    concurso_id     BIGINT          NOT NULL REFERENCES concurso(id) ON DELETE CASCADE,
+    nombre          VARCHAR(100)    NOT NULL,
+    peso            INTEGER         NOT NULL DEFAULT 1,
+    orden           INTEGER         NOT NULL DEFAULT 0,
+    creado_en       TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+-- Puntaje por criterio (reemplaza el puntaje único de evaluacion)
+CREATE TABLE IF NOT EXISTS evaluacion_criterio (
+    id                  BIGSERIAL   PRIMARY KEY,
+    evaluacion_id       BIGINT      NOT NULL REFERENCES evaluacion(id) ON DELETE CASCADE,
+    criterio_id         BIGINT      NOT NULL REFERENCES criterio_evaluacion(id) ON DELETE CASCADE,
+    puntaje             INTEGER     NOT NULL CHECK (puntaje BETWEEN 1 AND 10),
+    UNIQUE (evaluacion_id, criterio_id)
+);

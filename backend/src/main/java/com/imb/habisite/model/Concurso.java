@@ -49,6 +49,12 @@ public class Concurso {
     @Column(name = "canal_nombre", length = 50)
     private String canalNombre;
 
+    @Column(name = "terminado_en")
+    private OffsetDateTime terminadoEn;
+
+    @Column(name = "limpieza_programada_en")
+    private OffsetDateTime limpiezaProgramadaEn;
+
     @PrePersist
     void prePersist() {
         if (creadoEn == null) creadoEn = OffsetDateTime.now();

@@ -1,12 +1,7 @@
 package com.imb.habisite.config;
 
-import com.imb.habisite.model.Concurso;
-import com.imb.habisite.model.Postulante;
-import com.imb.habisite.model.Rol;
-import com.imb.habisite.model.Usuario;
-import com.imb.habisite.repository.ConcursoRepository;
-import com.imb.habisite.repository.PostulanteRepository;
-import com.imb.habisite.repository.UsuarioRepository;
+import com.imb.habisite.model.*;
+import com.imb.habisite.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +22,8 @@ public class DataInitializer implements ApplicationRunner {
     private final UsuarioRepository usuarioRepository;
     private final PostulanteRepository postulanteRepository;
     private final ConcursoRepository concursoRepository;
+    private final ResolucionRepository resolucionRepository;
+    private final CriterioEvaluacionRepository criterioRepository;
 
     @Value("${app.seed.admin-pass:#{null}}")
     private String adminPass;
@@ -42,6 +39,7 @@ public class DataInitializer implements ApplicationRunner {
         seedUsuario("Jurado General", "jurado", jp, Rol.JURADO);
         seedPostulantePrueba();
         seedConcurso();
+        seedCriteriosYPropuestas();
     }
 
     private void seedUsuario(String nombre, String username, String password, Rol rol) {
@@ -107,6 +105,58 @@ public class DataInitializer implements ApplicationRunner {
             c.setEstado("ACTIVO");
             concursoRepository.save(c);
             log.info("Concurso de prueba '{}' creado en DB.", c.getTitulo());
+        }
+    }
+
+    private void seedCriteriosYPropuestas() {
+        var concursos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
+        if (concursos.isEmpty()) return;
+        Concurso c = concursos.get(0);
+
+        // Criterios de evaluación (si no existen)
+        if (criterioRepository.findByConcursoIdOrderByOrdenAsc(c.getId()).isEmpty()) {
+            String[][] criterios = {
+                    {"Innovación", "3"},
+                    {"Viabilidad técnica", "2"},
+                    {"Impacto ambiental", "2"},
+                    {"Presentación visual", "2"},
+                    {"Funcionalidad del espacio", "1"},
+            };
+            for (int i = 0; i < criterios.length; i++) {
+                criterioRepository.save(CriterioEvaluacion.builder()
+                        .concurso(c)
+                        .nombre(criterios[i][0])
+                        .peso(Integer.parseInt(criterios[i][1]))
+                        .orden(i + 1)
+                        .build());
+            }
+            log.info("5 criterios de evaluación creados para '{}'.", c.getTitulo());
+        }
+
+        // 5 propuestas mock (si no hay resoluciones)
+        if (resolucionRepository.findByConcursoId(c.getId()).isEmpty()) {
+            var postulante = postulanteRepository.findByDni("12345678").orElse(null);
+            if (postulante == null) return;
+
+            String[][] props = {
+                    {"Centro Comunitario Solar", "Espacio multifuncional con paneles fotovoltaicos integrados en cubierta."},
+                    {"Biblioteca Flotante", "Estructura modular sobre espejo de agua con ventilación natural cruzada."},
+                    {"Hub de Reciclaje Urbano", "Punto de acopio y taller de reutilización para barrios periféricos."},
+                    {"Refugio Bioclimático", "Vivienda de emergencia con materiales locales y confort térmico pasivo."},
+                    {"Parque Vertical", "Fachada verde transitable en edificio existente del microcentro."},
+            };
+            for (String[] p : props) {
+                Resolucion r = new Resolucion();
+                r.setPostulante(postulante);
+                r.setConcurso(c);
+                r.setTitulo(p[0]);
+                r.setDescripcion(p[1]);
+                r.setEstado("PENDIENTE");
+                r.setPropuesta(p[0]);
+                r.setTipoEntrega("INDIVIDUAL");
+                resolucionRepository.save(r);
+            }
+            log.info("5 propuestas mock creadas para '{}'.", c.getTitulo());
         }
     }
 }

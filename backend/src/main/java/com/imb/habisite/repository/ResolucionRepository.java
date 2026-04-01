@@ -13,4 +13,7 @@ public interface ResolucionRepository extends JpaRepository<Resolucion, Long> {
 
     @Query("SELECT r.estado, COUNT(r) FROM Resolucion r GROUP BY r.estado")
     List<Object[]> countByEstadoGrouped();
+
+    List<Resolucion> findByConcursoId(Long concursoId);
+    long countByConcursoIdAndEstado(Long concursoId, String estado);
 }

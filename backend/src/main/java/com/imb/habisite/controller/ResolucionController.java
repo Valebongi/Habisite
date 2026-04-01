@@ -45,6 +45,7 @@ public class ResolucionController {
         r.setTitulo(titulo.trim());
         r.setDescripcion(descripcion != null ? descripcion.trim() : null);
         r.setUrlExterno(urlExterno != null && !urlExterno.isBlank() ? urlExterno.trim() : null);
+        r.setEstado("INDETERMINADO");
 
         if (archivo != null && !archivo.isEmpty()) {
             r.setArchivoNombre(archivo.getOriginalFilename());
@@ -52,6 +53,17 @@ public class ResolucionController {
         }
 
         return ResponseEntity.ok(toDTO(resolucionRepo.save(r)));
+    }
+
+    /** Seleccionar propuesta: pasa de INDETERMINADO a PENDIENTE */
+    @PatchMapping("/{id}/propuesta")
+    public ResponseEntity<ResolucionResponseDTO> seleccionarPropuesta(
+            @PathVariable long id, @RequestParam String propuesta) {
+        return resolucionRepo.findById(id).map(r -> {
+            r.setPropuesta(propuesta.trim());
+            if ("INDETERMINADO".equals(r.getEstado())) r.setEstado("PENDIENTE");
+            return ResponseEntity.ok(toDTO(resolucionRepo.save(r)));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     /** Lista las resoluciones de un postulante */
@@ -104,6 +116,8 @@ public class ResolucionController {
         dto.setTieneArchivo(r.getArchivoDatos() != null);
         dto.setUrlExterno(r.getUrlExterno());
         dto.setEstado(r.getEstado());
+        dto.setTipoEntrega(r.getTipoEntrega());
+        dto.setPropuesta(r.getPropuesta());
         dto.setCreadoEn(r.getCreadoEn());
         return dto;
     }

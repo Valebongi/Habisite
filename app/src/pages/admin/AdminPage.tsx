@@ -690,6 +690,28 @@ const SecCampanas: React.FC = () => {
         </button>
       </div>
 
+      {/* Bienvenida a confirmados */}
+      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 20 }}>
+        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Bienvenida a confirmados</p>
+        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>
+          Envía un email a los postulantes que confirmaron su inscripción pero aún no recibieron la bienvenida.
+          Les avisa que pronto recibirán el link de la charla y sus datos de acceso.
+          También se ejecuta automáticamente cada 1 hora.
+        </p>
+        <button onClick={async () => {
+          if (!confirm('¿Enviar email de bienvenida a todos los confirmados pendientes?')) return;
+          setEnviando(true); setMsg(null);
+          try {
+            const res = await api.campanas.enviarBienvenidaConfirmados();
+            setMsg({ text: `${res.emailsEnviados} bienvenidas enviadas.`, ok: true });
+            cargar();
+          } catch { setMsg({ text: 'Error al enviar bienvenidas.', ok: false }); }
+          finally { setEnviando(false); }
+        }} disabled={enviando} style={{ ...btnPrimary, background: '#16a34a', opacity: enviando ? 0.5 : 1 }}>
+          {enviando ? 'Enviando...' : 'Enviar bienvenida a confirmados'}
+        </button>
+      </div>
+
       {/* Tabla estado */}
       <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Estado por postulante</p>
       <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>

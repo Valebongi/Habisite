@@ -27,4 +27,10 @@ public class CampanaController {
     public ResponseEntity<CampanaResultDTO> enviarSegundaConvocatoria() {
         return ResponseEntity.ok(campanaService.enviarSegundaConvocatoria());
     }
+
+    /** POST /api/v1/admin/campanas/bienvenida-confirmados — Envía bienvenida a confirmados pendientes */
+    @PostMapping("/bienvenida-confirmados")
+    public ResponseEntity<CampanaResultDTO> enviarBienvenidaConfirmados() {
+        return ResponseEntity.ok(campanaService.enviarBienvenidaConfirmados());
+    }
 }

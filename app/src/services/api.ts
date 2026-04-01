@@ -286,6 +286,8 @@ export const api = {
       }),
     enviarSegundaConvocatoria: () =>
       req<CampanaResult>('/admin/campanas/segunda-convocatoria', { method: 'POST' }),
+    enviarBienvenidaConfirmados: () =>
+      req<CampanaResult>('/admin/campanas/bienvenida-confirmados', { method: 'POST' }),
   },
 
   confirmacion: {

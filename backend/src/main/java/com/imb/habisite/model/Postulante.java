@@ -57,6 +57,9 @@ public class Postulante {
     @Column(name = "recordatorio_enviado_en")
     private OffsetDateTime recordatorioEnviadoEn;
 
+    @Column(name = "bienvenida_enviada_en")
+    private OffsetDateTime bienvenidaEnviadaEn;
+
     @PrePersist
     private void prePersist() {
         this.creadoEn = OffsetDateTime.now();

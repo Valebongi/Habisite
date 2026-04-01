@@ -71,6 +71,7 @@ ALTER TABLE postulante ADD COLUMN IF NOT EXISTS token_confirmacion       VARCHAR
 ALTER TABLE postulante ADD COLUMN IF NOT EXISTS info_enviada_en          TIMESTAMPTZ;
 ALTER TABLE postulante ADD COLUMN IF NOT EXISTS confirmado_en            TIMESTAMPTZ;
 ALTER TABLE postulante ADD COLUMN IF NOT EXISTS recordatorio_enviado_en  TIMESTAMPTZ;
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS bienvenida_enviada_en   TIMESTAMPTZ;
 
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_url    VARCHAR(500);
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS webinar_fecha  TIMESTAMPTZ;

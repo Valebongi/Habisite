@@ -30,4 +30,12 @@ public interface PostulanteRepository extends JpaRepository<Postulante, Long> {
     long countByInfoEnviadaEnIsNotNullAndConfirmadoEnIsNull();
 
     long countByRecordatorioEnviadoEnIsNotNull();
+
+    // Confirmados que aún no recibieron mail de bienvenida
+    List<Postulante> findByConfirmadoEnIsNotNullAndBienvenidaEnviadaEnIsNull();
+
+    // Todos los confirmados
+    List<Postulante> findByConfirmadoEnIsNotNull();
+
+    long countByBienvenidaEnviadaEnIsNotNull();
 }

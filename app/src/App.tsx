@@ -4,6 +4,7 @@ import { Redirect, Route } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
 import ConfirmacionPage from './pages/ConfirmacionPage';
+import BajaPage from './pages/BajaPage';
 import AdminPage from './pages/admin/AdminPage';
 import JuradoPage from './pages/jurado/JuradoPage';
 import PostulantePage from './pages/postulante/PostulantePage';
@@ -17,6 +18,7 @@ const App: React.FC = () => (
         </Route>
         <Route exact path="/login" component={LoginPage} />
         <Route exact path="/confirmar" component={ConfirmacionPage} />
+        <Route exact path="/baja" component={BajaPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/jurado" component={JuradoPage} />
         <Route path="/postulante" component={PostulantePage} />

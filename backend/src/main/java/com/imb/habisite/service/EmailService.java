@@ -17,4 +17,7 @@ public interface EmailService {
 
     /** Paso 3: Envía recordatorio de última oportunidad a quienes no confirmaron. */
     void enviarSegundaConvocatoria(Postulante postulante, Concurso concurso, String confirmacionUrl);
+
+    /** Bienvenida post-confirmación: avisa que pronto recibirá link charla + acceso. */
+    void enviarBienvenidaConfirmado(Postulante postulante);
 }

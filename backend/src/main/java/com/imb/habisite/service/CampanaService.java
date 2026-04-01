@@ -19,4 +19,7 @@ public interface CampanaService {
 
     /** Verificar si un token existe y si ya fue confirmado. */
     boolean estaConfirmado(String token);
+
+    /** Envía email de bienvenida a todos los confirmados que aún no lo recibieron. */
+    CampanaResultDTO enviarBienvenidaConfirmados();
 }

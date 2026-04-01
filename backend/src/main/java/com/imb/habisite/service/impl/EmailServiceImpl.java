@@ -26,6 +26,9 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     @Value("${app.mail.from}")
     private String mailFrom;
 
@@ -158,6 +161,7 @@ public class EmailServiceImpl implements EmailService {
                               <p style="margin:0;font-size:12px;color:#9ca3af;">
                                 Guardá tus credenciales en un lugar seguro. No las compartas con nadie.
                               </p>
+                              %s
                             </td>
                           </tr>
 
@@ -175,7 +179,8 @@ public class EmailServiceImpl implements EmailService {
                 fila("Especialidad", p.getEspecialidad()),
                 fila("Correo", p.getCorreoElectronico()),
                 esc(p.getDni()),
-                esc(plainPassword)
+                esc(plainPassword),
+                footerConBaja(p.getTokenConfirmacion())
         );
     }
 
@@ -616,10 +621,116 @@ public class EmailServiceImpl implements EmailService {
         );
     }
 
+    // ── Bienvenida post-confirmación ────────────────────────────────────────
+
+    @Override
+    @Async
+    public void enviarBienvenidaConfirmado(Postulante postulante) {
+        try {
+            MimeMessage mensaje = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+            helper.setFrom(mailFrom, "Habisite Challenge");
+            helper.setTo(postulante.getCorreoElectronico());
+            helper.setSubject("¡Tu inscripción fue confirmada! — Habisite Design Challenge");
+            helper.setText(construirHtmlBienvenida(postulante), true);
+            mailSender.send(mensaje);
+            log.info("Email de bienvenida enviado a: {}", postulante.getCorreoElectronico());
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Error enviando bienvenida a {}: {}", postulante.getCorreoElectronico(), e.getMessage());
+        }
+    }
+
+    private String construirHtmlBienvenida(Postulante p) {
+        return """
+                <!DOCTYPE html>
+                <html lang="es">
+                <head><meta charset="UTF-8"/></head>
+                <body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',system-ui,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+                    <tr><td align="center">
+                      <table width="560" cellpadding="0" cellspacing="0"
+                             style="background:#ffffff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;">
+                        <tr>
+                          <td style="background:linear-gradient(135deg,#0d0e10 0%%,#2a1208 100%%);padding:32px 40px;text-align:center;">
+                            <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff;letter-spacing:.12em;">HABISITE</p>
+                            <p style="margin:0;font-size:11px;font-weight:600;color:#E85520;letter-spacing:.22em;text-transform:uppercase;">
+                              DESIGN CHALLENGE 2026
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:36px 40px 28px;">
+                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
+                              ¡Hola, %s!
+                            </p>
+                            <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
+                              Tu inscripción al Habisite Design Challenge fue confirmada exitosamente.
+                              Ya sos participante oficial.
+                            </p>
+
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;margin-bottom:24px;">
+                              <tr>
+                                <td style="padding:20px 24px;text-align:center;">
+                                  <p style="margin:0 0 8px;font-size:1.4rem;color:#16a34a;">&#10003;</p>
+                                  <p style="margin:0;font-size:15px;font-weight:700;color:#15803d;">
+                                    Inscripción confirmada
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:24px;">
+                              <tr>
+                                <td style="padding:18px 22px;">
+                                  <p style="margin:0;font-size:14px;color:#1e40af;line-height:1.6;">
+                                    <strong>Próximos pasos:</strong><br/>
+                                    Pronto te enviaremos otro correo con:<br/>
+                                    • El link de la charla informativa del concurso<br/>
+                                    • Tus datos de acceso al sistema<br/>
+                                    • Acceso a la plataforma: <strong>concursos.habisite.com</strong>
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0;font-size:15px;color:#4b5563;">
+                              Mientras tanto, si tenés alguna consulta podés responder este correo.<br/><br/>
+                              ¡Mucho éxito!<br/>
+                              <strong style="color:#111827;">El equipo de Habisite</strong>
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 40px;text-align:center;">
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">
+                              Habisite Design Challenge 2026
+                            </p>
+                            %s
+                          </td>
+                        </tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body></html>
+                """.formatted(esc(p.getNombres()), footerConBaja(p.getTokenConfirmacion()));
+    }
+
     // ── Helper ───────────────────────────────────────────────────────────────
 
     private String esc(String s) {
         return s == null ? "" : HtmlUtils.htmlEscape(s);
+    }
+
+    private String footerConBaja(String token) {
+        if (token == null || token.isBlank()) return "";
+        String url = frontendUrl + "/baja?token=" + token;
+        return """
+               <p style="margin:8px 0 0;font-size:11px;color:#c0c0c0;text-align:center;">
+                 <a href="%s" style="color:#9ca3af;text-decoration:underline;">Darme de baja del concurso</a>
+               </p>
+               """.formatted(esc(url));
     }
 
     private String fila(String label, String valor) {

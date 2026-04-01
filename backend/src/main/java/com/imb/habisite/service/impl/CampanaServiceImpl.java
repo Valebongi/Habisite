@@ -167,6 +167,32 @@ public class CampanaServiceImpl implements CampanaService {
         return postulante.getConfirmadoEn() != null;
     }
 
+    @Override
+    @Transactional
+    public CampanaResultDTO enviarBienvenidaConfirmados() {
+        List<Postulante> pendientes = postulanteRepository
+                .findByConfirmadoEnIsNotNullAndBienvenidaEnviadaEnIsNull();
+
+        int enviados = 0;
+        for (Postulante p : pendientes) {
+            try {
+                emailService.enviarBienvenidaConfirmado(p);
+                p.setBienvenidaEnviadaEn(OffsetDateTime.now());
+                postulanteRepository.save(p);
+                enviados++;
+            } catch (Exception e) {
+                log.warn("Error enviando bienvenida a {}: {}", p.getCorreoElectronico(), e.getMessage());
+            }
+        }
+
+        log.info("Bienvenida confirmados: {} enviados de {} pendientes", enviados, pendientes.size());
+        return CampanaResultDTO.builder()
+                .emailsEnviados(enviados)
+                .emailsOmitidos(pendientes.size() - enviados)
+                .mensaje("Se enviaron " + enviados + " emails de bienvenida a confirmados.")
+                .build();
+    }
+
     private Concurso obtenerConcursoActivo() {
         List<Concurso> activos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
         if (activos.isEmpty()) {

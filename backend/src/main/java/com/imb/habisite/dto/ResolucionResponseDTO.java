@@ -16,5 +16,7 @@ public class ResolucionResponseDTO {
     private boolean tieneArchivo;
     private String urlExterno;
     private String estado;
+    private String tipoEntrega;
+    private String propuesta;
     private OffsetDateTime creadoEn;
 }

@@ -88,8 +88,10 @@ export interface Concurso {
   bases: string | null;
   fechaInicio: string;
   fechaFin: string;
-  estado: 'ACTIVO' | 'CERRADO' | 'PROXIMO';
+  estado: 'ACTIVO' | 'CERRADO' | 'PROXIMO' | 'TERMINADO';
   creadoEn: string;
+  terminadoEn: string | null;
+  limpiezaProgramadaEn: string | null;
 }
 
 export interface Resolucion {
@@ -103,8 +105,29 @@ export interface Resolucion {
   archivoNombre: string | null;
   tieneArchivo: boolean;
   urlExterno: string | null;
-  estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  estado: 'INDETERMINADO' | 'PENDIENTE' | 'APROBADA' | 'RECHAZADA';
+  tipoEntrega: string;
+  propuesta: string | null;
   creadoEn: string;
+}
+
+export interface EquipoMiembro {
+  id: number;
+  postulanteId: number;
+  miembroId: number;
+  dni: string;
+  email: string;
+  celular: string;
+  nombres: string;
+  apellidos: string;
+}
+
+export interface CriterioEvaluacion {
+  id: number;
+  concursoId: number;
+  nombre: string;
+  peso: number;
+  orden: number;
 }
 
 // ─── Helper HTTP ──────────────────────────────────────────────────────────────
@@ -235,6 +258,24 @@ export const api = {
 
     cambiarEstado: (id: number, estado: string) =>
       req<Resolucion>(`/resoluciones/${id}/estado?estado=${estado}`, { method: 'PATCH' }),
+
+    seleccionarPropuesta: (id: number, propuesta: string) =>
+      req<Resolucion>(`/resoluciones/${id}/propuesta?propuesta=${encodeURIComponent(propuesta)}`, { method: 'PATCH' }),
+  },
+
+  equipo: {
+    listar: (postulanteId: number) => req<EquipoMiembro[]>(`/equipo/${postulanteId}`),
+    buscarDni: (dni: string) => req<{ encontrado: boolean; id?: number; nombres?: string; apellidos?: string; dni?: string; email?: string; celular?: string }>(`/equipo/buscar-dni?dni=${dni}`),
+    agregar: (postulanteId: number, data: { dni: string; email: string; celular: string; nombres: string; apellidos: string }) =>
+      req<EquipoMiembro>(`/equipo/${postulanteId}`, { method: 'POST', body: JSON.stringify(data) }),
+    eliminar: (equipoId: number) => req<void>(`/equipo/${equipoId}`, { method: 'DELETE' }),
+  },
+
+  criterios: {
+    listar: (concursoId: number) => req<CriterioEvaluacion[]>(`/criterios/concurso/${concursoId}`),
+    crear: (concursoId: number, data: { nombre: string; peso: number; orden: number }) =>
+      req<CriterioEvaluacion>(`/criterios/concurso/${concursoId}`, { method: 'POST', body: JSON.stringify(data) }),
+    eliminar: (id: number) => req<void>(`/criterios/${id}`, { method: 'DELETE' }),
   },
 
   campanas: {

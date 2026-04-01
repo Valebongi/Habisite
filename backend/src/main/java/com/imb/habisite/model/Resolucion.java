@@ -43,6 +43,12 @@ public class Resolucion {
     @Column(nullable = false, length = 20)
     private String estado = "PENDIENTE";
 
+    @Column(name = "tipo_entrega", nullable = false, length = 20)
+    private String tipoEntrega = "INDIVIDUAL";
+
+    @Column(length = 200)
+    private String propuesta;
+
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;
 

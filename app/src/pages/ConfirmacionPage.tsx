@@ -168,16 +168,15 @@ const ConfirmacionPage: React.FC = () => {
 
                   {/* Celular */}
                   <div style={{ marginBottom: 18 }}>
-                    <label style={sty.label}>Celular <span style={{ color: ORANGE }}>*</span></label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <IonSelect value={codigoPais} onIonChange={e => setCodigoPais(e.detail.value)} interface="popover"
-                        style={{ minWidth: 110, background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, '--padding-start': '10px', flexShrink: 0 }}>
-                        {CODIGOS_PAIS.map(c => <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>)}
-                      </IonSelect>
-                      <div style={{ ...sty.inputWrap, flex: 1 }}>
-                        <IonInput value={numeroCelular} onIonInput={e => { setNumeroCelular(e.detail.value ?? ''); setError(''); }}
-                          placeholder="1155443322" type="tel" style={sty.input} />
-                      </div>
+                    <label style={sty.label}>Código de país</label>
+                    <IonSelect value={codigoPais} onIonChange={e => setCodigoPais(e.detail.value)} interface="popover"
+                      style={{ width: '100%', background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, '--padding-start': '14px', marginBottom: 10 }}>
+                      {CODIGOS_PAIS.map(c => <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>)}
+                    </IonSelect>
+                    <label style={sty.label}>Número de celular <span style={{ color: ORANGE }}>*</span></label>
+                    <div style={sty.inputWrap}>
+                      <IonInput value={numeroCelular} onIonInput={e => { setNumeroCelular(e.detail.value ?? ''); setError(''); }}
+                        placeholder="1155443322" type="tel" style={sty.input} />
                     </div>
                   </div>
 

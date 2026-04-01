@@ -8,9 +8,7 @@ import com.imb.habisite.repository.ConcursoRepository;
 import com.imb.habisite.repository.PostulanteRepository;
 import com.imb.habisite.repository.ResolucionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -85,10 +83,11 @@ public class ResolucionController {
     public ResponseEntity<byte[]> descargarArchivo(@PathVariable long id) {
         return resolucionRepo.findById(id).map(r -> {
             if (r.getArchivoDatos() == null) return ResponseEntity.notFound().<byte[]>build();
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + r.getArchivoNombre() + "\"")
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
-                    .body(r.getArchivoDatos());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(r.getArchivoNombre()).build());
+            headers.set("X-Content-Type-Options", "nosniff");
+            return new ResponseEntity<>(r.getArchivoDatos(), headers, HttpStatus.OK);
         }).orElse(ResponseEntity.notFound().build());
     }
 

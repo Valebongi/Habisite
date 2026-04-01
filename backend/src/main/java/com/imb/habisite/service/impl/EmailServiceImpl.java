@@ -3,6 +3,7 @@ package com.imb.habisite.service.impl;
 import com.imb.habisite.model.Concurso;
 import com.imb.habisite.model.Postulante;
 import com.imb.habisite.model.SoporteTicket;
+import org.springframework.web.util.HtmlUtils;
 import com.imb.habisite.service.EmailService;
 
 import java.time.format.DateTimeFormatter;
@@ -167,14 +168,14 @@ public class EmailServiceImpl implements EmailService {
                 </body>
                 </html>
                 """.formatted(
-                p.getNombres(),
+                esc(p.getNombres()),
                 fila("Nombre completo", p.getNombres() + " " + p.getApellidos()),
                 fila("DNI", p.getDni()),
                 fila("Universidad", p.getUniversidad()),
                 fila("Especialidad", p.getEspecialidad()),
                 fila("Correo", p.getCorreoElectronico()),
-                p.getDni(),
-                plainPassword
+                esc(p.getDni()),
+                esc(plainPassword)
         );
     }
 
@@ -234,7 +235,7 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(
                 fila("Nombre", t.getNombre()),
                 fila("DNI", dni),
-                t.getMensaje(),
+                esc(t.getMensaje()),
                 t.getId()
         );
     }
@@ -371,13 +372,13 @@ public class EmailServiceImpl implements EmailService {
                   </table>
                 </body></html>
                 """.formatted(
-                p.getNombres(),
-                c.getTitulo(),
+                esc(p.getNombres()),
+                esc(c.getTitulo()),
                 fila("Concurso", c.getTitulo()),
                 fila("Periodo", fechaInicio + " — " + fechaFin),
                 fila("Estado", c.getEstado()),
-                c.getDescripcion(),
-                url
+                esc(c.getDescripcion()),
+                esc(url)
         );
     }
 
@@ -496,13 +497,13 @@ public class EmailServiceImpl implements EmailService {
                   </table>
                 </body></html>
                 """.formatted(
-                p.getNombres(),
-                c.getTitulo(),
+                esc(p.getNombres()),
+                esc(c.getTitulo()),
                 fila("Fecha", fechaWebinar),
-                c.getWebinarUrl() != null ? c.getWebinarUrl() : "#",
-                canalNombre,
-                c.getCanalUrl() != null ? c.getCanalUrl() : "#",
-                canalNombre
+                esc(c.getWebinarUrl() != null ? c.getWebinarUrl() : "#"),
+                esc(canalNombre),
+                esc(c.getCanalUrl() != null ? c.getCanalUrl() : "#"),
+                esc(canalNombre)
         );
     }
 
@@ -608,20 +609,24 @@ public class EmailServiceImpl implements EmailService {
                   </table>
                 </body></html>
                 """.formatted(
-                p.getNombres(),
-                c.getTitulo(),
-                fechaFin,
-                url
+                esc(p.getNombres()),
+                esc(c.getTitulo()),
+                esc(fechaFin),
+                esc(url)
         );
     }
 
     // ── Helper ───────────────────────────────────────────────────────────────
+
+    private String esc(String s) {
+        return s == null ? "" : HtmlUtils.htmlEscape(s);
+    }
 
     private String fila(String label, String valor) {
         return """
                <p style="margin:0 0 6px;font-size:14px;color:#374151;">
                  <span style="font-weight:600;">%s:</span> %s
                </p>
-               """.formatted(label, valor);
+               """.formatted(esc(label), esc(valor));
     }
 }

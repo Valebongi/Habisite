@@ -32,24 +32,42 @@ public class PostulanteServiceImpl implements PostulanteService {
     @Override
     @Transactional
     public PostulanteResponseDTO registrar(PostulanteRequestDTO request) {
-        log.debug("Registrando postulante con DNI: {}", request.getDni());
+        log.debug("Registrando postulante con correo: {}", request.getCorreoElectronico());
 
-        if (repository.existsByDni(request.getDni())) {
-            throw new DuplicateResourceException("Ya existe un postulante con el DNI: " + request.getDni());
+        // DNI puede ser vacío en pre-registro; solo validar unicidad si tiene valor
+        String dni = request.getDni() != null ? request.getDni().trim() : "";
+        if (!dni.isEmpty() && repository.existsByDni(dni)) {
+            throw new DuplicateResourceException("Ya existe un postulante con el DNI: " + dni);
         }
         if (repository.existsByCorreoElectronico(request.getCorreoElectronico().toLowerCase())) {
             throw new DuplicateResourceException("Ya existe un postulante con el correo: " + request.getCorreoElectronico());
         }
 
-        String plainPassword = PasswordGenerator.generate();
         Postulante entity = mapper.toEntity(request);
-        entity.setPasswordHash(ENCODER.encode(plainPassword));
+        // Si DNI vacío, setear null para que no choque con UNIQUE constraint
+        if (dni.isEmpty()) {
+            entity.setDni(null);
+        }
+        if (entity.getCelular() != null && entity.getCelular().isBlank()) {
+            entity.setCelular(null);
+        }
+        if (entity.getEspecialidad() != null && entity.getEspecialidad().isBlank()) {
+            entity.setEspecialidad(null);
+        }
 
+        // Solo generar credenciales si tiene DNI (inscripción completa)
+        if (entity.getDni() != null) {
+            String plainPassword = PasswordGenerator.generate();
+            entity.setPasswordHash(ENCODER.encode(plainPassword));
+            Postulante saved = repository.save(entity);
+            log.info("Postulante registrado con ID: {} (inscripcion completa)", saved.getId());
+            emailService.enviarCredenciales(saved, plainPassword);
+            return mapper.toResponseDTO(saved);
+        }
+
+        // Pre-registro sin DNI — no genera credenciales
         Postulante saved = repository.save(entity);
-        log.info("Postulante registrado con ID: {}", saved.getId());
-
-        emailService.enviarCredenciales(saved, plainPassword);
-
+        log.info("Pre-registro con ID: {} (sin DNI, pendiente confirmacion)", saved.getId());
         return mapper.toResponseDTO(saved);
     }
 

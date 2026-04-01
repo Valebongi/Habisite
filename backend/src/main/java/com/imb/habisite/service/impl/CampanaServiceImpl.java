@@ -126,8 +126,16 @@ public class CampanaServiceImpl implements CampanaService {
             return;
         }
 
+        // Validar que el DNI no esté tomado por otro postulante
+        String dniLimpio = dni.trim();
+        postulanteRepository.findByDni(dniLimpio).ifPresent(otro -> {
+            if (!otro.getId().equals(postulante.getId())) {
+                throw new IllegalArgumentException("Ya existe otro postulante con el DNI: " + dniLimpio);
+            }
+        });
+
         // Actualizar datos duros
-        postulante.setDni(dni.trim());
+        postulante.setDni(dniLimpio);
         postulante.setCelular(celular.trim());
         postulante.setEspecialidad(especialidad.trim());
         postulante.setConfirmadoEn(OffsetDateTime.now());
@@ -137,12 +145,18 @@ public class CampanaServiceImpl implements CampanaService {
         postulante.setPasswordHash(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(plainPassword));
 
         postulanteRepository.save(postulante);
+        log.info("Postulante {} confirmo con datos duros (DNI: {}).", postulante.getNombres(), dniLimpio);
 
-        Concurso concurso = obtenerConcursoActivo();
-        emailService.enviarCredenciales(postulante, plainPassword);
-        emailService.enviarConfirmacionExitosa(postulante, concurso);
-
-        log.info("Postulante {} confirmo con datos duros (DNI: {}).", postulante.getNombres(), dni);
+        // Emails asíncronos — no bloquean la confirmación
+        try {
+            emailService.enviarCredenciales(postulante, plainPassword);
+            List<Concurso> activos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
+            if (!activos.isEmpty()) {
+                emailService.enviarConfirmacionExitosa(postulante, activos.get(0));
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email post-confirmacion para {}: {}", dniLimpio, e.getMessage());
+        }
     }
 
     @Override

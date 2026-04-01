@@ -9,6 +9,7 @@ import com.imb.habisite.repository.PostulanteRepository;
 import com.imb.habisite.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -27,10 +28,18 @@ public class DataInitializer implements ApplicationRunner {
     private final PostulanteRepository postulanteRepository;
     private final ConcursoRepository concursoRepository;
 
+    @Value("${app.seed.admin-pass:#{null}}")
+    private String adminPass;
+
+    @Value("${app.seed.jurado-pass:#{null}}")
+    private String juradoPass;
+
     @Override
     public void run(ApplicationArguments args) {
-        seedUsuario("Administrador", "admin", "habisite2025", Rol.ADMIN);
-        seedUsuario("Jurado General", "jurado", "jurado2025", Rol.JURADO);
+        String ap = adminPass != null ? adminPass : System.getenv().getOrDefault("ADMIN_SEED_PASS", "habisite2025");
+        String jp = juradoPass != null ? juradoPass : System.getenv().getOrDefault("JURADO_SEED_PASS", "jurado2025");
+        seedUsuario("Administrador", "admin", ap, Rol.ADMIN);
+        seedUsuario("Jurado General", "jurado", jp, Rol.JURADO);
         seedPostulantePrueba();
         seedConcurso();
     }

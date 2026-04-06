@@ -25,4 +25,7 @@ public interface CampanaService {
 
     /** Reenvía info del concurso a un postulante específico (resetea infoEnviadaEn y genera nuevo token). */
     void reenviarInfoConcurso(Long postulanteId);
+
+    /** Envía email de cualquier tipo a un postulante: info, 2da, bienvenida. */
+    void reenviarEmail(Long postulanteId, String tipo);
 }

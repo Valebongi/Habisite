@@ -22,4 +22,7 @@ public interface CampanaService {
 
     /** Envía email de bienvenida a todos los confirmados que aún no lo recibieron. */
     CampanaResultDTO enviarBienvenidaConfirmados();
+
+    /** Reenvía info del concurso a un postulante específico (resetea infoEnviadaEn y genera nuevo token). */
+    void reenviarInfoConcurso(Long postulanteId);
 }

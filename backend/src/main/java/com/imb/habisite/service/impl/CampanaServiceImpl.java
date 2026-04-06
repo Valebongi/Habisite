@@ -193,6 +193,24 @@ public class CampanaServiceImpl implements CampanaService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public void reenviarInfoConcurso(Long postulanteId) {
+        Postulante p = postulanteRepository.findById(postulanteId)
+                .orElseThrow(() -> new IllegalArgumentException("Postulante no encontrado."));
+        Concurso concurso = obtenerConcursoActivo();
+
+        // Generar nuevo token
+        String token = UUID.randomUUID().toString();
+        p.setTokenConfirmacion(token);
+        p.setInfoEnviadaEn(OffsetDateTime.now());
+        postulanteRepository.save(p);
+
+        String confirmacionUrl = frontendUrl + "/confirmar?token=" + token;
+        emailService.enviarInfoConcurso(p, concurso, confirmacionUrl);
+        log.info("Info concurso reenviada a postulante ID {} ({})", postulanteId, p.getCorreoElectronico());
+    }
+
     private Concurso obtenerConcursoActivo() {
         List<Concurso> activos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
         if (activos.isEmpty()) {

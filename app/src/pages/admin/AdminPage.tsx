@@ -588,6 +588,9 @@ const SecCampanas: React.FC = () => {
   const [canalNombre, setCanalNombre] = useState('WhatsApp');
   const [enviando, setEnviando] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -603,6 +606,38 @@ const SecCampanas: React.FC = () => {
   const pendientesInfo = postulantes.filter(p => !p.infoEnviadaEn).length;
   const pendientes2da = postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length;
   const formValido = webinarUrl.trim() && webinarFecha && canalUrl.trim();
+
+  const toggleSelect = (id: number) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleAll = () => {
+    const filtered = filteredPostulantes();
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(p => p.id)));
+  };
+  const filteredPostulantes = () => {
+    if (filtroEstado === 'pendiente') return postulantes.filter(p => !p.infoEnviadaEn);
+    if (filtroEstado === 'enviado') return postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn);
+    if (filtroEstado === 'confirmado') return postulantes.filter(p => !!p.confirmadoEn);
+    return postulantes;
+  };
+
+  const reenviarSeleccionados = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`¿Reenviar info del concurso a ${selected.size} postulante${selected.size !== 1 ? 's' : ''}? (resetea su estado de envío)`)) return;
+    setEnviando(true); setMsg(null);
+    let ok = 0;
+    for (const id of selected) {
+      try {
+        const p = postulantes.find(x => x.id === id);
+        if (!p) continue;
+        await fetch(`${import.meta.env.VITE_API_URL || 'https://api.habisite.com/api'}/v1/admin/campanas/reenviar/${id}`, { method: 'POST' });
+        ok++;
+      } catch { /* skip */ }
+    }
+    setMsg({ text: `${ok} email${ok !== 1 ? 's' : ''} reenviado${ok !== 1 ? 's' : ''}.`, ok: true });
+    setSelected(new Set());
+    cargar();
+    setEnviando(false);
+  };
 
   const enviarInfo = async () => {
     if (!formValido) return;
@@ -712,40 +747,106 @@ const SecCampanas: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabla estado */}
-      <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Estado por postulante</p>
+      {/* Tabla estado con selección */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Postulantes ({filteredPostulantes().length})</p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['todos', 'pendiente', 'enviado', 'confirmado'].map(f => (
+            <button key={f} onClick={() => { setFiltroEstado(f); setSelected(new Set()); }} style={{
+              padding: '4px 12px', borderRadius: 20, border: `1.5px solid ${filtroEstado === f ? C.orange : C.border}`,
+              background: filtroEstado === f ? `${C.orange}15` : 'transparent', color: filtroEstado === f ? C.orange : C.muted,
+              fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+            }}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {selected.size > 0 && (
+        <div style={{ background: `${C.orange}10`, border: `1.5px solid ${C.orange}33`, borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.85rem', color: C.text, fontWeight: 600 }}>{selected.size} seleccionado{selected.size !== 1 ? 's' : ''}</span>
+          <button onClick={reenviarSeleccionados} disabled={enviando} style={{ ...btnPrimary, padding: '6px 16px', fontSize: '0.8rem', margin: 0, opacity: enviando ? 0.5 : 1 }}>
+            {enviando ? 'Reenviando...' : 'Reenviar info del concurso'}
+          </button>
+        </div>
+      )}
+
       <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['Nombre', 'Email', 'Info enviada', 'Confirmado', 'Recordatorio', 'Estado'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 16px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                <th style={{ padding: '10px 8px 10px 16px', width: 32 }}>
+                  <input type="checkbox" checked={selected.size === filteredPostulantes().length && filteredPostulantes().length > 0} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+                </th>
+                {['Nombre', 'Email', 'DNI', 'Info', 'Estado', ''].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {postulantes.length === 0
-                ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.muted }}>Sin postulantes</td></tr>
-                : postulantes.map(p => {
+              {filteredPostulantes().length === 0
+                ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: C.muted }}>Sin postulantes en este filtro</td></tr>
+                : filteredPostulantes().map(p => {
                     const confirmado = !!p.confirmadoEn;
-                    const recordatorio = !!p.recordatorioEnviadoEn;
                     const infoEnviada = !!p.infoEnviadaEn;
                     const badge = confirmado ? { bg: '#f0fdf4', color: '#16a34a', label: 'Confirmado' }
-                      : recordatorio ? { bg: '#fff7ed', color: '#92400e', label: 'Recordatorio' }
                       : infoEnviada ? { bg: '#eff6ff', color: '#1e40af', label: 'Info enviada' }
                       : { bg: '#f3f4f6', color: C.muted, label: 'Pendiente' };
+                    const isExpanded = expandedId === p.id;
                     return (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '11px 16px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
-                        <td style={{ padding: '11px 16px', color: C.muted }}>{p.correoElectronico}</td>
-                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : '—'}</td>
-                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : '—'}</td>
-                        <td style={{ padding: '11px 16px', color: C.muted, whiteSpace: 'nowrap' }}>{p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : '—'}</td>
-                        <td style={{ padding: '11px 16px' }}>
-                          <span style={{ background: badge.bg, color: badge.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{badge.label}</span>
-                        </td>
-                      </tr>
+                      <React.Fragment key={p.id}>
+                        <tr style={{ borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : p.id)}>
+                          <td style={{ padding: '11px 8px 11px 16px' }} onClick={e => e.stopPropagation()}>
+                            <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} style={{ cursor: 'pointer' }} />
+                          </td>
+                          <td style={{ padding: '11px 12px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
+                          <td style={{ padding: '11px 12px', color: C.muted, fontSize: '0.8rem' }}>{p.correoElectronico}</td>
+                          <td style={{ padding: '11px 12px', color: C.muted, fontSize: '0.8rem' }}>{p.dni || '—'}</td>
+                          <td style={{ padding: '11px 12px', color: C.muted, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : '—'}</td>
+                          <td style={{ padding: '11px 12px' }}>
+                            <span style={{ background: badge.bg, color: badge.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{badge.label}</span>
+                          </td>
+                          <td style={{ padding: '11px 12px', fontSize: '0.75rem', color: C.orange, cursor: 'pointer' }}>
+                            {isExpanded ? '▲' : '▼'}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td colSpan={7} style={{ padding: '0 16px 16px', background: '#fafafa' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, padding: '12px 0 8px' }}>
+                                {[
+                                  { label: 'DNI', val: p.dni || 'Sin completar' },
+                                  { label: 'Celular', val: p.celular || 'Sin completar' },
+                                  { label: 'Universidad', val: p.universidad },
+                                  { label: 'Especialidad', val: p.especialidad || 'Sin completar' },
+                                  { label: 'Registrado', val: formatFechaCorta(p.creadoEn) },
+                                  { label: 'Info enviada', val: p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : 'No' },
+                                  { label: 'Confirmado', val: p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : 'No' },
+                                  { label: 'Recordatorio', val: p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : 'No' },
+                                ].map(d => (
+                                  <div key={d.label}>
+                                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{d.label}</p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: C.text, fontWeight: 500 }}>{d.val}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <button onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`¿Reenviar info del concurso a ${p.nombres} ${p.apellidos}?`)) return;
+                                setEnviando(true);
+                                try {
+                                  await fetch(`${import.meta.env.VITE_API_URL || 'https://api.habisite.com/api'}/v1/admin/campanas/reenviar/${p.id}`, { method: 'POST' });
+                                  setMsg({ text: `Email reenviado a ${p.nombres}.`, ok: true });
+                                  cargar();
+                                } catch { setMsg({ text: 'Error al reenviar.', ok: false }); }
+                                finally { setEnviando(false); }
+                              }} disabled={enviando} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.78rem', margin: '4px 0 0', opacity: enviando ? 0.5 : 1 }}>
+                                Reenviar info del concurso
+                              </button>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })
               }

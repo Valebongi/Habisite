@@ -126,11 +126,8 @@ ALTER TABLE resolucion ADD COLUMN IF NOT EXISTS propuesta VARCHAR(200);
 
 -- Actualizar constraint de estado para incluir INDETERMINADO
 ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_estado_check;
-DO $$ BEGIN
-  ALTER TABLE resolucion ADD CONSTRAINT resolucion_estado_check
-    CHECK (estado IN ('INDETERMINADO','PENDIENTE','APROBADA','RECHAZADA'));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+ALTER TABLE resolucion ADD CONSTRAINT resolucion_estado_check
+  CHECK (estado IN ('INDETERMINADO','PENDIENTE','APROBADA','RECHAZADA'));
 
 -- Miembros de una entrega grupal
 CREATE TABLE IF NOT EXISTS resolucion_miembro (
@@ -147,11 +144,8 @@ ALTER TABLE concurso ADD COLUMN IF NOT EXISTS terminado_en TIMESTAMPTZ;
 ALTER TABLE concurso ADD COLUMN IF NOT EXISTS limpieza_programada_en TIMESTAMPTZ;
 
 ALTER TABLE concurso DROP CONSTRAINT IF EXISTS concurso_estado_check;
-DO $$ BEGIN
-  ALTER TABLE concurso ADD CONSTRAINT concurso_estado_check
-    CHECK (estado IN ('ACTIVO','CERRADO','PROXIMO','TERMINADO'));
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+ALTER TABLE concurso ADD CONSTRAINT concurso_estado_check
+  CHECK (estado IN ('ACTIVO','CERRADO','PROXIMO','TERMINADO'));
 
 -- Permitir múltiples entregas por postulante por concurso (equipo)
 ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_postulante_id_concurso_id_key;

@@ -100,7 +100,6 @@ const MENU: MenuItem[] = [
   { id: 'dashboard',    icon: gridOutline,             label: 'Dashboard' },
   { id: 'concursos',   icon: trophyOutline,            label: 'Concursos' },
   { id: 'postulantes', icon: peopleOutline,            label: 'Postulantes' },
-  { id: 'campanas',    icon: mailOutline,              label: 'Campañas' },
   { id: 'evaluaciones',icon: checkmarkCircleOutline,   label: 'Evaluaciones' },
   { id: 'jurado',      icon: ribbonOutline,            label: 'Jurado' },
   { id: 'configuracion',icon: settingsOutline,         label: 'Configuración' },
@@ -147,14 +146,6 @@ const TOUR_STEPS = [
     title: 'Postulantes',
     desc: 'Lista completa de todos los inscritos. Buscá por nombre, DNI, email o universidad. Podés ver todos sus datos en un vistazo.',
     tip: 'Usá el buscador para encontrar rápidamente a un postulante específico.',
-  },
-  {
-    targetId: 'anav-campanas',
-    sectionId: 'campanas',
-    icon: mailOutline,
-    title: 'Campañas',
-    desc: 'Enviá emails masivos: la info del concurso con link de webinar y canal, o una segunda convocatoria para quienes no confirmaron.',
-    tip: 'Verificá el número de destinatarios antes de enviar — la acción no se puede deshacer.',
   },
   {
     targetId: 'anav-evaluaciones',
@@ -507,90 +498,22 @@ const SecConcursos: React.FC = () => {
   );
 };
 
-// ─── Sección: Postulantes ─────────────────────────────────────────────────────
+// ─── Sección: Postulantes (unificada con Campañas) ──────────────────────────
 const SecPostulantes: React.FC = () => {
-  const [postulantes, setPostulantes] = useState<Postulante[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState('');
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const [regenerando, setRegenerando] = useState<number | null>(null);
-
-  useEffect(() => {
-    api.postulantes.listar().then(setPostulantes).finally(() => setLoading(false));
-  }, []);
-
-  const filtrados = postulantes.filter(p => {
-    const s = q.toLowerCase();
-    return !s || p.nombres.toLowerCase().includes(s) || p.apellidos.toLowerCase().includes(s)
-      || p.dni.includes(s) || p.correoElectronico.toLowerCase().includes(s)
-      || p.universidad.toLowerCase().includes(s) || p.especialidad.toLowerCase().includes(s);
-  });
-
-  const exportCSV = () => {
-    const header = 'ID,Nombres,Apellidos,DNI,Celular,Universidad,Especialidad,Correo,Registrado';
-    const rows = filtrados.map(p => `${p.id},${p.nombres},${p.apellidos},${p.dni},${p.celular},${p.universidad},${p.especialidad},${p.correoElectronico},${p.creadoEn}`);
-    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
-  };
-
-  const regenerarClave = async (id: number, nombre: string) => {
-    if (!confirm(`Regenerar clave de "${nombre}"?`)) return;
-    setRegenerando(id);
-    try { await api.postulantes.regenerarClave(id); setToast({ msg: 'Nueva clave enviada por email.', ok: true }); }
-    catch { setToast({ msg: 'Error al regenerar clave.', ok: false }); }
-    finally { setRegenerando(null); }
-  };
-
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
-
-  return (
-    <>
-      <SectionHeader title={`Postulantes (${filtrados.length}/${postulantes.length})`} action={
-        <button onClick={exportCSV} style={btnSm}>↓ CSV</button>
-      } />
-
-      <IonSearchbar value={q} onIonInput={e => setQ(e.detail.value ?? '')} placeholder="Buscar por nombre, DNI, email, universidad..." style={{ '--border-radius': '10px', '--background': '#fff', margin: '0 0 16px', padding: 0 }} />
-
-      {filtrados.length === 0 && <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>No se encontraron postulantes.</div>}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {filtrados.map((p, i) => (
-          <div key={p.id} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: `${C.orange}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: C.orange, flexShrink: 0 }}>#{i + 1}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem', color: C.text }}>{p.nombres} {p.apellidos}</p>
-              <p style={{ margin: '2px 0', fontSize: '0.8rem', color: C.muted }}>DNI: {p.dni} · {p.correoElectronico}</p>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>{p.universidad} · {p.especialidad}</p>
-            </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <button onClick={() => regenerarClave(p.id, `${p.nombres} ${p.apellidos}`)} disabled={regenerando === p.id} style={{ ...btnSm, opacity: regenerando === p.id ? 0.5 : 1, fontSize: '0.72rem' }}>
-                {regenerando === p.id ? '...' : 'Clave'}
-              </button>
-              <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: '#9ca3af' }}>{formatFechaCorta(p.creadoEn)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <IonToast isOpen={toast !== null} onDidDismiss={() => setToast(null)} message={toast?.msg} duration={2500} color={toast?.ok ? 'success' : 'danger'} position="top" />
-    </>
-  );
-};
-
-// ─── Sección: Campañas ────────────────────────────────────────────────────────
-const SecCampanas: React.FC = () => {
   const [postulantes, setPostulantes] = useState<Postulante[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [webinarUrl, setWebinarUrl] = useState('');
   const [webinarFecha, setWebinarFecha] = useState('');
   const [canalUrl, setCanalUrl] = useState('');
   const [canalNombre, setCanalNombre] = useState('WhatsApp');
-  const [enviando, setEnviando] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [showConfig, setShowConfig] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -603,246 +526,205 @@ const SecCampanas: React.FC = () => {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const pendientesInfo = postulantes.filter(p => !p.infoEnviadaEn).length;
-  const pendientes2da = postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn).length;
-  const formValido = webinarUrl.trim() && webinarFecha && canalUrl.trim();
+  const BASE = import.meta.env.VITE_API_URL || 'https://api.habisite.com/api';
+
+  // Filtros
+  const buscados = postulantes.filter(p => {
+    if (!q) return true;
+    const s = q.toLowerCase();
+    return (p.nombres + ' ' + p.apellidos).toLowerCase().includes(s) || (p.dni || '').includes(s) || p.correoElectronico.toLowerCase().includes(s) || p.universidad.toLowerCase().includes(s);
+  });
+  const filtrados = buscados.filter(p => {
+    if (filtroEstado === 'pendiente') return !p.infoEnviadaEn;
+    if (filtroEstado === 'enviado') return !!p.infoEnviadaEn && !p.confirmadoEn;
+    if (filtroEstado === 'confirmado') return !!p.confirmadoEn;
+    return true;
+  });
 
   const toggleSelect = (id: number) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
-  const toggleAll = () => {
-    const filtered = filteredPostulantes();
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map(p => p.id)));
-  };
-  const filteredPostulantes = () => {
-    if (filtroEstado === 'pendiente') return postulantes.filter(p => !p.infoEnviadaEn);
-    if (filtroEstado === 'enviado') return postulantes.filter(p => p.infoEnviadaEn && !p.confirmadoEn);
-    if (filtroEstado === 'confirmado') return postulantes.filter(p => !!p.confirmadoEn);
-    return postulantes;
-  };
+  const toggleAll = () => selected.size === filtrados.length ? setSelected(new Set()) : setSelected(new Set(filtrados.map(p => p.id)));
 
-  const reenviarSeleccionados = async () => {
-    if (selected.size === 0) return;
-    if (!confirm(`¿Reenviar info del concurso a ${selected.size} postulante${selected.size !== 1 ? 's' : ''}? (resetea su estado de envío)`)) return;
+  // Acciones por tipo de email
+  const enviarA = async (ids: number[], tipo: 'info' | '2da' | 'bienvenida') => {
+    const label = tipo === 'info' ? 'info del concurso' : tipo === '2da' ? 'segunda convocatoria' : 'bienvenida';
+    if (!confirm(`¿Enviar ${label} a ${ids.length} postulante${ids.length !== 1 ? 's' : ''}?`)) return;
     setEnviando(true); setMsg(null);
     let ok = 0;
-    for (const id of selected) {
+    for (const id of ids) {
       try {
-        const p = postulantes.find(x => x.id === id);
-        if (!p) continue;
-        await fetch(`${import.meta.env.VITE_API_URL || 'https://api.habisite.com/api'}/v1/admin/campanas/reenviar/${id}`, { method: 'POST' });
+        await fetch(`${BASE}/v1/admin/campanas/reenviar/${id}?tipo=${tipo}`, { method: 'POST' });
         ok++;
       } catch { /* skip */ }
     }
-    setMsg({ text: `${ok} email${ok !== 1 ? 's' : ''} reenviado${ok !== 1 ? 's' : ''}.`, ok: true });
+    setMsg({ text: `${ok} email${ok !== 1 ? 's' : ''} de ${label} enviado${ok !== 1 ? 's' : ''}.`, ok: ok > 0 });
     setSelected(new Set());
     cargar();
     setEnviando(false);
   };
 
-  const enviarInfo = async () => {
-    if (!formValido) return;
-    if (!confirm(`Se enviarán emails a ${pendientesInfo} postulante${pendientesInfo !== 1 ? 's' : ''}. ¿Continuar?`)) return;
+  // Envío masivo primera vez (con datos de webinar)
+  const enviarInfoMasivo = async () => {
+    if (!webinarUrl.trim() || !webinarFecha || !canalUrl.trim()) return;
+    const pendientes = postulantes.filter(p => !p.infoEnviadaEn).length;
+    if (!confirm(`Se enviarán emails a ${pendientes} postulantes pendientes. ¿Continuar?`)) return;
     setEnviando(true); setMsg(null);
     try {
       const data: CampanaInfoRequest = { webinarUrl: webinarUrl.trim(), webinarFecha: new Date(webinarFecha).toISOString(), canalUrl: canalUrl.trim(), canalNombre };
       const res = await api.campanas.enviarInfoConcurso(data);
-      setMsg({ text: `${res.emailsEnviados} emails enviados, ${res.emailsOmitidos} omitidos.`, ok: true });
+      setMsg({ text: `${res.emailsEnviados} emails enviados.`, ok: true });
       cargar();
-    } catch { setMsg({ text: 'Error al enviar la campaña.', ok: false }); }
+    } catch { setMsg({ text: 'Error al enviar.', ok: false }); }
     finally { setEnviando(false); }
   };
 
-  const enviar2da = async () => {
-    if (!confirm(`Se enviarán ${pendientes2da} recordatorio${pendientes2da !== 1 ? 's' : ''}. ¿Continuar?`)) return;
-    setEnviando(true); setMsg(null);
-    try {
-      const res = await api.campanas.enviarSegundaConvocatoria();
-      setMsg({ text: `${res.emailsEnviados} recordatorios enviados.`, ok: true });
-      cargar();
-    } catch { setMsg({ text: 'Error al enviar recordatorios.', ok: false }); }
-    finally { setEnviando(false); }
+  const exportCSV = () => {
+    const header = 'Nombres,Apellidos,DNI,Email,Universidad,Especialidad,Info enviada,Confirmado';
+    const rows = filtrados.map(p => `${p.nombres},${p.apellidos},${p.dni || ''},${p.correoElectronico},${p.universidad},${p.especialidad || ''},${p.infoEnviadaEn ? 'Si' : 'No'},${p.confirmadoEn ? 'Si' : 'No'}`);
+    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
   };
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
 
+  const pendientesInfo = postulantes.filter(p => !p.infoEnviadaEn).length;
+
   return (
     <>
-      <SectionHeader title="Campañas de comunicación" />
+      <SectionHeader title={`Postulantes (${postulantes.length})`} action={
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => setShowConfig(c => !c)} style={btnSm}>{showConfig ? 'Ocultar config' : 'Config envío'}</button>
+          <button onClick={exportCSV} style={btnSm}>CSV</button>
+        </div>
+      } />
 
       {/* Stats */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <StatCard value={stats?.totalInfoEnviada ?? '—'} label="Info enviada" color={C.orange} />
-        <StatCard value={stats?.totalConfirmados ?? '—'} label="Confirmados" color='#2dd36f' />
-        <StatCard value={stats?.totalRecordatorioEnviado ?? '—'} label="Recordatorios" color='#6a64f1' />
-        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(0)}%` : '—'} label="Tasa confirm." color={C.text} />
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+        <StatCard value={postulantes.length} label="Total" color={C.text} />
+        <StatCard value={pendientesInfo} label="Sin info" color={C.orange} />
+        <StatCard value={stats?.totalConfirmados ?? 0} label="Confirmados" color='#2dd36f' />
+        <StatCard value={stats?.porcentajeConfirmacion != null ? `${stats.porcentajeConfirmacion.toFixed(0)}%` : '—'} label="Tasa confirm." color='#6a64f1' />
       </div>
 
       {msg && (
         <div style={msgBox(msg.ok)}>
-          <span style={{ fontSize: '0.875rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
+          <span style={{ fontSize: '0.85rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
           <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
         </div>
       )}
 
-      {/* Formulario info concurso */}
-      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
-        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Enviar info del concurso</p>
-        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>Email con datos del webinar + link de confirmación para postulantes que aún no lo recibieron ({pendientesInfo} pendientes).</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <div>
-            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>URL del Webinar</label>
-            <input value={webinarUrl} onChange={e => setWebinarUrl(e.target.value)} placeholder="https://meet.google.com/..." style={inputCss} />
+      {/* Config de webinar (colapsable) */}
+      {showConfig && (
+        <div style={{ background: C.card, borderRadius: 14, padding: '18px', border: `1px solid ${C.border}`, marginBottom: 14 }}>
+          <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Datos del webinar (para envío masivo primera vez)</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 3 }}>URL Webinar</label>
+              <input value={webinarUrl} onChange={e => setWebinarUrl(e.target.value)} placeholder="https://meet.google.com/..." style={inputCss} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 3 }}>Fecha</label>
+              <input type="datetime-local" value={webinarFecha} onChange={e => setWebinarFecha(e.target.value)} style={inputCss} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 3 }}>URL Canal</label>
+              <input value={canalUrl} onChange={e => setCanalUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputCss} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 3 }}>Canal</label>
+              <select value={canalNombre} onChange={e => setCanalNombre(e.target.value)} style={{ ...inputCss, cursor: 'pointer' }}>
+                <option>WhatsApp</option><option>Telegram</option><option>Discord</option><option>Slack</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Fecha del Webinar</label>
-            <input type="datetime-local" value={webinarFecha} onChange={e => setWebinarFecha(e.target.value)} style={inputCss} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>URL del Canal</label>
-            <input value={canalUrl} onChange={e => setCanalUrl(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputCss} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4 }}>Canal</label>
-            <select value={canalNombre} onChange={e => setCanalNombre(e.target.value)} style={{ ...inputCss, cursor: 'pointer' }}>
-              <option>WhatsApp</option>
-              <option>Telegram</option>
-              <option>Discord</option>
-              <option>Slack</option>
-            </select>
-          </div>
-        </div>
-        <button onClick={enviarInfo} disabled={enviando || !formValido} style={{ ...btnPrimary, opacity: (enviando || !formValido) ? 0.5 : 1 }}>
-          {enviando ? 'Enviando...' : `Enviar a ${pendientesInfo} postulante${pendientesInfo !== 1 ? 's' : ''}`}
-        </button>
-      </div>
-
-      {/* Segunda convocatoria */}
-      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 20 }}>
-        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Segunda convocatoria</p>
-        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>Recordatorio para quienes recibieron la info pero no confirmaron su participación ({pendientes2da} no confirmados).</p>
-        <button onClick={enviar2da} disabled={enviando || pendientes2da === 0} style={{ ...btnPrimary, background: '#92400e', opacity: (enviando || pendientes2da === 0) ? 0.5 : 1 }}>
-          {enviando ? 'Enviando...' : `Enviar a ${pendientes2da} no confirmado${pendientes2da !== 1 ? 's' : ''}`}
-        </button>
-      </div>
-
-      {/* Bienvenida a confirmados */}
-      <div style={{ background: C.card, borderRadius: 14, padding: '20px', border: `1px solid ${C.border}`, marginBottom: 20 }}>
-        <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.95rem', color: C.text }}>Bienvenida a confirmados</p>
-        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: C.muted }}>
-          Envía un email a los postulantes que confirmaron su inscripción pero aún no recibieron la bienvenida.
-          Les avisa que pronto recibirán el link de la charla y sus datos de acceso.
-          También se ejecuta automáticamente cada 1 hora.
-        </p>
-        <button onClick={async () => {
-          if (!confirm('¿Enviar email de bienvenida a todos los confirmados pendientes?')) return;
-          setEnviando(true); setMsg(null);
-          try {
-            const res = await api.campanas.enviarBienvenidaConfirmados();
-            setMsg({ text: `${res.emailsEnviados} bienvenidas enviadas.`, ok: true });
-            cargar();
-          } catch { setMsg({ text: 'Error al enviar bienvenidas.', ok: false }); }
-          finally { setEnviando(false); }
-        }} disabled={enviando} style={{ ...btnPrimary, background: '#16a34a', opacity: enviando ? 0.5 : 1 }}>
-          {enviando ? 'Enviando...' : 'Enviar bienvenida a confirmados'}
-        </button>
-      </div>
-
-      {/* Tabla estado con selección */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Postulantes ({filteredPostulantes().length})</p>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {['todos', 'pendiente', 'enviado', 'confirmado'].map(f => (
-            <button key={f} onClick={() => { setFiltroEstado(f); setSelected(new Set()); }} style={{
-              padding: '4px 12px', borderRadius: 20, border: `1.5px solid ${filtroEstado === f ? C.orange : C.border}`,
-              background: filtroEstado === f ? `${C.orange}15` : 'transparent', color: filtroEstado === f ? C.orange : C.muted,
-              fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-            }}>{f}</button>
-          ))}
-        </div>
-      </div>
-
-      {selected.size > 0 && (
-        <div style={{ background: `${C.orange}10`, border: `1.5px solid ${C.orange}33`, borderRadius: 10, padding: '10px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.85rem', color: C.text, fontWeight: 600 }}>{selected.size} seleccionado{selected.size !== 1 ? 's' : ''}</span>
-          <button onClick={reenviarSeleccionados} disabled={enviando} style={{ ...btnPrimary, padding: '6px 16px', fontSize: '0.8rem', margin: 0, opacity: enviando ? 0.5 : 1 }}>
-            {enviando ? 'Reenviando...' : 'Reenviar info del concurso'}
+          <button onClick={enviarInfoMasivo} disabled={enviando || !webinarUrl.trim() || !webinarFecha || !canalUrl.trim()} style={{ ...btnPrimary, fontSize: '0.82rem', opacity: (enviando || !webinarUrl.trim()) ? 0.5 : 1 }}>
+            {enviando ? 'Enviando...' : `Enviar info a ${pendientesInfo} pendientes`}
           </button>
         </div>
       )}
 
+      {/* Buscador + filtros */}
+      <IonSearchbar value={q} onIonInput={e => setQ(e.detail.value ?? '')} placeholder="Buscar por nombre, DNI, email..." style={{ '--border-radius': '10px', '--background': '#fff', margin: '0 0 10px', padding: 0 }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {['todos', 'pendiente', 'enviado', 'confirmado'].map(f => (
+            <button key={f} onClick={() => { setFiltroEstado(f); setSelected(new Set()); }} style={{
+              padding: '3px 10px', borderRadius: 20, border: `1.5px solid ${filtroEstado === f ? C.orange : C.border}`,
+              background: filtroEstado === f ? `${C.orange}15` : 'transparent', color: filtroEstado === f ? C.orange : C.muted,
+              fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+            }}>{f}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: '0.75rem', color: C.muted }}>{filtrados.length} resultado{filtrados.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Barra de acciones masivas */}
+      {selected.size > 0 && (
+        <div style={{ background: `${C.orange}10`, border: `1.5px solid ${C.orange}33`, borderRadius: 10, padding: '10px 14px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.82rem', color: C.text, fontWeight: 600 }}>{selected.size} seleccionado{selected.size !== 1 ? 's' : ''}:</span>
+          <button onClick={() => enviarA([...selected], 'info')} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.75rem', margin: 0 }}>Info concurso</button>
+          <button onClick={() => enviarA([...selected], '2da')} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.75rem', margin: 0, background: '#92400e' }}>2da convocatoria</button>
+          <button onClick={() => enviarA([...selected], 'bienvenida')} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.75rem', margin: 0, background: '#16a34a' }}>Bienvenida</button>
+        </div>
+      )}
+
+      {/* Tabla */}
       <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                <th style={{ padding: '10px 8px 10px 16px', width: 32 }}>
-                  <input type="checkbox" checked={selected.size === filteredPostulantes().length && filteredPostulantes().length > 0} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+                <th style={{ padding: '8px 6px 8px 14px', width: 28 }}>
+                  <input type="checkbox" checked={selected.size === filtrados.length && filtrados.length > 0} onChange={toggleAll} style={{ cursor: 'pointer' }} />
                 </th>
-                {['Nombre', 'Email', 'DNI', 'Info', 'Estado', ''].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                {['Nombre', 'Email', 'DNI', 'Estado', ''].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: C.muted, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filteredPostulantes().length === 0
-                ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: C.muted }}>Sin postulantes en este filtro</td></tr>
-                : filteredPostulantes().map(p => {
+              {filtrados.length === 0
+                ? <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: C.muted }}>Sin resultados</td></tr>
+                : filtrados.map(p => {
                     const confirmado = !!p.confirmadoEn;
                     const infoEnviada = !!p.infoEnviadaEn;
                     const badge = confirmado ? { bg: '#f0fdf4', color: '#16a34a', label: 'Confirmado' }
                       : infoEnviada ? { bg: '#eff6ff', color: '#1e40af', label: 'Info enviada' }
                       : { bg: '#f3f4f6', color: C.muted, label: 'Pendiente' };
-                    const isExpanded = expandedId === p.id;
+                    const isExp = expandedId === p.id;
                     return (
                       <React.Fragment key={p.id}>
-                        <tr style={{ borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : p.id)}>
-                          <td style={{ padding: '11px 8px 11px 16px' }} onClick={e => e.stopPropagation()}>
+                        <tr style={{ borderBottom: isExp ? 'none' : '1px solid #f3f4f6', cursor: 'pointer' }} onClick={() => setExpandedId(isExp ? null : p.id)}>
+                          <td style={{ padding: '9px 6px 9px 14px' }} onClick={e => e.stopPropagation()}>
                             <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} style={{ cursor: 'pointer' }} />
                           </td>
-                          <td style={{ padding: '11px 12px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
-                          <td style={{ padding: '11px 12px', color: C.muted, fontSize: '0.8rem' }}>{p.correoElectronico}</td>
-                          <td style={{ padding: '11px 12px', color: C.muted, fontSize: '0.8rem' }}>{p.dni || '—'}</td>
-                          <td style={{ padding: '11px 12px', color: C.muted, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>{p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : '—'}</td>
-                          <td style={{ padding: '11px 12px' }}>
-                            <span style={{ background: badge.bg, color: badge.color, padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{badge.label}</span>
+                          <td style={{ padding: '9px 10px', fontWeight: 600 }}>{p.nombres} {p.apellidos}</td>
+                          <td style={{ padding: '9px 10px', color: C.muted, fontSize: '0.78rem' }}>{p.correoElectronico}</td>
+                          <td style={{ padding: '9px 10px', color: C.muted, fontSize: '0.78rem' }}>{p.dni || '—'}</td>
+                          <td style={{ padding: '9px 10px' }}>
+                            <span style={{ background: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700 }}>{badge.label}</span>
                           </td>
-                          <td style={{ padding: '11px 12px', fontSize: '0.75rem', color: C.orange, cursor: 'pointer' }}>
-                            {isExpanded ? '▲' : '▼'}
-                          </td>
+                          <td style={{ padding: '9px 10px', color: C.orange, fontSize: '0.72rem' }}>{isExp ? '▲' : '▼'}</td>
                         </tr>
-                        {isExpanded && (
+                        {isExp && (
                           <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td colSpan={7} style={{ padding: '0 16px 16px', background: '#fafafa' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, padding: '12px 0 8px' }}>
+                            <td colSpan={6} style={{ padding: '0 14px 14px', background: '#fafafa' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, padding: '10px 0 8px' }}>
                                 {[
-                                  { label: 'DNI', val: p.dni || 'Sin completar' },
-                                  { label: 'Celular', val: p.celular || 'Sin completar' },
-                                  { label: 'Universidad', val: p.universidad },
-                                  { label: 'Especialidad', val: p.especialidad || 'Sin completar' },
-                                  { label: 'Registrado', val: formatFechaCorta(p.creadoEn) },
-                                  { label: 'Info enviada', val: p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : 'No' },
-                                  { label: 'Confirmado', val: p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : 'No' },
-                                  { label: 'Recordatorio', val: p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : 'No' },
+                                  { l: 'DNI', v: p.dni || 'Sin completar' }, { l: 'Celular', v: p.celular || 'Sin completar' },
+                                  { l: 'Universidad', v: p.universidad }, { l: 'Especialidad', v: p.especialidad || 'Sin completar' },
+                                  { l: 'Registrado', v: formatFechaCorta(p.creadoEn) }, { l: 'Info enviada', v: p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : 'No' },
+                                  { l: 'Confirmado', v: p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : 'No' }, { l: 'Recordatorio', v: p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : 'No' },
                                 ].map(d => (
-                                  <div key={d.label}>
-                                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{d.label}</p>
-                                    <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: C.text, fontWeight: 500 }}>{d.val}</p>
-                                  </div>
+                                  <div key={d.l}><p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{d.l}</p><p style={{ margin: '1px 0 0', fontSize: '0.82rem', color: C.text, fontWeight: 500 }}>{d.v}</p></div>
                                 ))}
                               </div>
-                              <button onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!confirm(`¿Reenviar info del concurso a ${p.nombres} ${p.apellidos}?`)) return;
-                                setEnviando(true);
-                                try {
-                                  await fetch(`${import.meta.env.VITE_API_URL || 'https://api.habisite.com/api'}/v1/admin/campanas/reenviar/${p.id}`, { method: 'POST' });
-                                  setMsg({ text: `Email reenviado a ${p.nombres}.`, ok: true });
-                                  cargar();
-                                } catch { setMsg({ text: 'Error al reenviar.', ok: false }); }
-                                finally { setEnviando(false); }
-                              }} disabled={enviando} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.78rem', margin: '4px 0 0', opacity: enviando ? 0.5 : 1 }}>
-                                Reenviar info del concurso
-                              </button>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'info'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0 }}>Enviar info</button>
+                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], '2da'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#92400e' }}>2da convocatoria</button>
+                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'bienvenida'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#16a34a' }}>Bienvenida</button>
+                                <button onClick={async e => { e.stopPropagation(); if (!confirm(`Regenerar clave de ${p.nombres}?`)) return; try { await api.postulantes.regenerarClave(p.id); setMsg({ text: 'Clave regenerada y enviada.', ok: true }); } catch { setMsg({ text: 'Error.', ok: false }); }}} style={{ ...btnSm, margin: 0 }}>Regen. clave</button>
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -1202,7 +1084,6 @@ const AdminPage: React.FC = () => {
                 {activeSection === 'dashboard'     && <SecDashboard />}
                 {activeSection === 'concursos'     && <SecConcursos />}
                 {activeSection === 'postulantes'   && <SecPostulantes />}
-                {activeSection === 'campanas'      && <SecCampanas />}
                 {activeSection === 'evaluaciones'  && <SecEvaluaciones />}
                 {activeSection === 'jurado'        && <SecJurado />}
                 {activeSection === 'configuracion' && <SecConfiguracion />}

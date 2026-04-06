@@ -195,6 +195,33 @@ public class CampanaServiceImpl implements CampanaService {
 
     @Override
     @Transactional
+    public void reenviarEmail(Long postulanteId, String tipo) {
+        Postulante p = postulanteRepository.findById(postulanteId)
+                .orElseThrow(() -> new IllegalArgumentException("Postulante no encontrado."));
+
+        switch (tipo) {
+            case "info" -> reenviarInfoConcurso(postulanteId);
+            case "2da" -> {
+                Concurso c = obtenerConcursoActivo();
+                String token = p.getTokenConfirmacion() != null ? p.getTokenConfirmacion() : UUID.randomUUID().toString();
+                if (p.getTokenConfirmacion() == null) { p.setTokenConfirmacion(token); postulanteRepository.save(p); }
+                emailService.enviarSegundaConvocatoria(p, c, frontendUrl + "/confirmar?token=" + token);
+                p.setRecordatorioEnviadoEn(OffsetDateTime.now());
+                postulanteRepository.save(p);
+                log.info("2da convocatoria enviada a {}", p.getCorreoElectronico());
+            }
+            case "bienvenida" -> {
+                emailService.enviarBienvenidaConfirmado(p);
+                p.setBienvenidaEnviadaEn(OffsetDateTime.now());
+                postulanteRepository.save(p);
+                log.info("Bienvenida enviada a {}", p.getCorreoElectronico());
+            }
+            default -> throw new IllegalArgumentException("Tipo de email no válido: " + tipo);
+        }
+    }
+
+    @Override
+    @Transactional
     public void reenviarInfoConcurso(Long postulanteId) {
         Postulante p = postulanteRepository.findById(postulanteId)
                 .orElseThrow(() -> new IllegalArgumentException("Postulante no encontrado."));

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registro de Postulante · Habisite</title>
+  <title>Pre-registro · Habisite Design Challenge 2026</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -58,61 +58,13 @@
       margin-left: 2px;
     }
 
-    .input-group {
-      display: flex;
-      gap: 0.5rem;
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
     }
 
-    .select-box {
-      position: relative;
-      flex: 0 0 90px;
-      border: 1.5px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 .5rem;
-      transition: border-color .15s, box-shadow .15s;
-    }
-
-    .select-box:focus-within {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
-    }
-
-    .select-box.error {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
-    }
-
-    #codigo-visible {
-      font-size: .9375rem;
-      color: #111827;
-      pointer-events: none;
-    }
-
-    .select-icon {
-      width: 1.1rem;
-      height: 1.1rem;
-      color: #6b7280;
-      pointer-events: none;
-    }
-
-    .select-box select {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      opacity: 0;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-    }
-
-    .input-group input {
-      flex: 1;
-    }
-
-    input, select.form-select {
+    input {
       width: 100%;
       padding: .625rem .875rem;
       border: 1.5px solid #d1d5db;
@@ -127,12 +79,12 @@
 
     input::placeholder { color: #9ca3af; }
 
-    input:focus, select.form-select:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    input:focus {
+      border-color: #E85520;
+      box-shadow: 0 0 0 3px rgba(232,85,32,.15);
     }
 
-    input.error, select.form-select.error {
+    input.error {
       border-color: #ef4444;
       box-shadow: 0 0 0 3px rgba(239,68,68,.12);
     }
@@ -146,17 +98,11 @@
 
     .field-error.visible { display: block; }
 
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
     button[type="submit"] {
       width: 100%;
       margin-top: 1.5rem;
       padding: .75rem;
-      background: #2563eb;
+      background: #E85520;
       color: #fff;
       font-size: 1rem;
       font-weight: 600;
@@ -166,9 +112,17 @@
       transition: background .15s, opacity .15s;
     }
 
-    button[type="submit"]:hover  { background: #1d4ed8; }
-    button[type="submit"]:active { background: #1e40af; }
+    button[type="submit"]:hover  { background: #cc4b1c; }
+    button[type="submit"]:active { background: #b3421a; }
     button[type="submit"]:disabled { opacity: .6; cursor: not-allowed; }
+
+    .hint {
+      text-align: center;
+      font-size: .78rem;
+      color: #9ca3af;
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
 
     .alert {
       display: none;
@@ -220,8 +174,8 @@
 <div class="habisite-wrap">
 <div class="card">
   <div class="card-header">
-    <h1>Registro de Postulante</h1>
-    <p>Todos los campos son obligatorios.</p>
+    <h1>Pre-registro · Habisite Design Challenge 2026</h1>
+    <p>Dejá tus datos y te enviaremos toda la información del concurso por email.</p>
   </div>
 
   <form id="form" novalidate>
@@ -239,66 +193,27 @@
       </div>
     </div>
 
-    <div class="row">
-      <div class="form-group">
-        <label for="dni">DNI <span class="req">*</span></label>
-        <input id="dni" name="dni" type="text" placeholder="12345678" maxlength="8" inputmode="numeric" />
-        <span class="field-error" id="err-dni"></span>
-      </div>
-      <div class="form-group">
-        <label for="celular">Celular <span class="req">*</span></label>
-        <div class="input-group">
-          <div class="select-box" id="box-codigo">
-            <span id="codigo-visible">+54</span>
-            <svg class="select-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-            <select id="codigo-pais" name="codigo-pais"></select>
-          </div>
-          <input id="celular" name="celular" type="tel" placeholder="987654321" autocomplete="tel" />
-        </div>
-        <span class="field-error" id="err-celular"></span>
-      </div>
-    </div>
-
     <div class="form-group">
-      <label for="universidad">Universidad <span class="req">*</span></label>
-      <input id="universidad" name="universidad" type="text" placeholder="Tu universidad" autocomplete="organization" />
-      <span class="field-error" id="err-universidad"></span>
-    </div>
-
-    <div class="form-group">
-      <label for="correoElectronico">Correo Electrónico <span class="req">*</span></label>
+      <label for="correoElectronico">Correo electrónico <span class="req">*</span></label>
       <input id="correoElectronico" name="correoElectronico" type="email" placeholder="tu@email.com" autocomplete="email" />
       <span class="field-error" id="err-correoElectronico"></span>
     </div>
 
-    <div class="row">
-      <div class="form-group">
-        <label for="especialidad">Especialidad <span class="req">*</span></label>
-        <select id="especialidad" name="especialidad" class="form-select">
-          <option value="">Selecciona tu especialidad</option>
-          <option value="Arquitectura">Arquitectura</option>
-          <option value="Diseño de Interiores">Diseño de Interiores</option>
-          <option value="Diseño Industrial">Diseño Industrial</option>
-          <option value="Paisajismo">Paisajismo</option>
-          <option value="Otro">Otro</option>
-        </select>
-        <span class="field-error" id="err-especialidad"></span>
-      </div>
-
-      <div class="form-group" id="grupo-otra-especialidad" style="display:none;">
-        <label for="otraEspecialidad">Indique su especialidad <span class="req">*</span></label>
-        <input id="otraEspecialidad" name="otraEspecialidad" type="text" placeholder="Ej: Ingeniería Civil" />
-        <span class="field-error" id="err-otraEspecialidad"></span>
-      </div>
+    <div class="form-group">
+      <label for="universidad">Universidad <span class="req">*</span></label>
+      <input id="universidad" name="universidad" type="text" placeholder="Ej. Universidad Nacional de Ingeniería" autocomplete="organization" />
+      <span class="field-error" id="err-universidad"></span>
     </div>
 
-    <button type="submit" id="btn-submit">Registrarme</button>
+    <button type="submit" id="btn-submit">Pre-registrarme</button>
+
+    <p class="hint">
+      Los datos completos (DNI, celular, especialidad) se solicitan al confirmar la inscripción oficial.
+    </p>
 
     <div class="alert alert-success" id="alert-ok">
-      <strong>¡Registro exitoso!</strong>
-      Tu postulación fue enviada correctamente. Revisá tu correo.
+      <strong>¡Pre-registro exitoso!</strong>
+      Te enviaremos un email con la información del concurso. Revisá tu bandeja de entrada.
     </div>
     <div class="alert alert-error" id="alert-err">
       <strong>Error al registrar</strong>
@@ -312,67 +227,14 @@
 <script>
   const API = 'https://api.habisite.com/api/v1/postulantes';
 
-  // ── País selector ──────────────────────────────────────────────────────────
-  const codigosPais = [
-    { code: '+54',  name: 'ARG' },
-    { code: '+1',   name: 'EE.UU/CAN' },
-    { code: '+34',  name: 'ESP' },
-    { code: '+51',  name: 'PER' },
-    { code: '+52',  name: 'MEX' },
-    { code: '+55',  name: 'BRA' },
-    { code: '+56',  name: 'CHI' },
-    { code: '+57',  name: 'COL' },
-    { code: '+58',  name: 'VEN' },
-    { code: '+591', name: 'BOL' },
-    { code: '+593', name: 'ECU' },
-    { code: '+595', name: 'PAR' },
-    { code: '+598', name: 'URU' },
-  ];
-
-  const selectCodigo  = document.getElementById('codigo-pais');
-  const codigoVisible = document.getElementById('codigo-visible');
-
-  codigosPais.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value       = p.code;
-    opt.textContent = `${p.code} ${p.name}`;
-    if (p.code === '+54') opt.selected = true;
-    selectCodigo.appendChild(opt);
-  });
-
-  selectCodigo.addEventListener('change', e => {
-    codigoVisible.textContent = e.target.value;
-  });
-
-  // ── Especialidad "Otro" ────────────────────────────────────────────────────
-  const selectEspecialidad    = document.getElementById('especialidad');
-  const grupoOtra             = document.getElementById('grupo-otra-especialidad');
-  const inputOtra             = document.getElementById('otraEspecialidad');
-
-  selectEspecialidad.addEventListener('change', e => {
-    const esOtro = e.target.value === 'Otro';
-    grupoOtra.style.display = esOtro ? 'block' : 'none';
-    if (!esOtro) { inputOtra.value = ''; clearError('otraEspecialidad'); }
-    clearError('especialidad');
-  });
-
-  // ── Validación ─────────────────────────────────────────────────────────────
   const rules = {
-    nombres:           { msg: 'Ingresá tus nombres.',         test: v => v.trim().length > 0 },
-    apellidos:         { msg: 'Ingresá tus apellidos.',       test: v => v.trim().length > 0 },
-    dni:               { msg: 'El DNI debe tener 8 dígitos.', test: v => /^\d{8}$/.test(v.trim()) },
-    celular:           { msg: 'Ingresá un celular válido.',   test: v => /^[0-9\-\s]{7,15}$/.test(v.trim()) },
-    universidad:       { msg: 'Ingresá tu universidad.',      test: v => v.trim().length > 0 },
-    correoElectronico: { msg: 'Ingresá un correo válido.',    test: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) },
-    especialidad:      { msg: 'Seleccioná tu especialidad.',  test: v => v !== '' },
-    otraEspecialidad:  { msg: 'Indicá tu especialidad.',      test: v => {
-      if (selectEspecialidad.value !== 'Otro') return true;
-      return v.trim().length > 0;
-    }},
+    nombres:           { msg: 'Ingresá tus nombres.',      test: v => v.trim().length > 0 },
+    apellidos:         { msg: 'Ingresá tus apellidos.',     test: v => v.trim().length > 0 },
+    correoElectronico: { msg: 'Ingresá un correo válido.', test: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) },
+    universidad:       { msg: 'Ingresá tu universidad.',    test: v => v.trim().length > 0 },
   };
 
   function setError(field, msg) {
-    if (field === 'celular') document.getElementById('box-codigo').classList.add('error');
     document.getElementById(field).classList.add('error');
     const el = document.getElementById('err-' + field);
     el.textContent = msg;
@@ -380,7 +242,6 @@
   }
 
   function clearError(field) {
-    if (field === 'celular') document.getElementById('box-codigo').classList.remove('error');
     document.getElementById(field).classList.remove('error');
     const el = document.getElementById('err-' + field);
     el.textContent = '';
@@ -398,12 +259,9 @@
   }
 
   Object.keys(rules).forEach(field => {
-    const el = document.getElementById(field);
-    el.addEventListener('input', () => clearError(field));
-    if (field === 'especialidad') el.addEventListener('change', () => clearError(field));
+    document.getElementById(field).addEventListener('input', () => clearError(field));
   });
 
-  // ── Submit → POST /api/v1/postulantes ─────────────────────────────────────
   document.getElementById('form').addEventListener('submit', async e => {
     e.preventDefault();
     document.getElementById('alert-ok').classList.remove('visible');
@@ -415,36 +273,29 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Enviando...';
 
-    const codigoPais = selectCodigo.value;
-    const numCelular = document.getElementById('celular').value.trim();
-    const espValor   = selectEspecialidad.value;
-
     const body = {
-      nombres:           document.getElementById('nombres').value.trim(),
-      apellidos:         document.getElementById('apellidos').value.trim(),
-      dni:               document.getElementById('dni').value.trim(),
-      celular:           `${codigoPais} ${numCelular}`,
-      universidad:       document.getElementById('universidad').value.trim(),
+      nombres: document.getElementById('nombres').value.trim(),
+      apellidos: document.getElementById('apellidos').value.trim(),
       correoElectronico: document.getElementById('correoElectronico').value.trim(),
-      especialidad:      espValor === 'Otro' ? inputOtra.value.trim() : espValor,
+      universidad: document.getElementById('universidad').value.trim(),
+      dni: '',
+      celular: '',
+      especialidad: '',
     };
 
     try {
       const res = await fetch(API, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(body),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         document.getElementById('form').reset();
-        selectCodigo.value        = '+54';
-        codigoVisible.textContent = '+54';
-        grupoOtra.style.display   = 'none';
         document.getElementById('alert-ok').classList.add('visible');
       } else {
         const data = await res.json().catch(() => ({}));
-        let msg = data.mensaje || data.message || `Error ${res.status}.`;
+        let msg = data.mensaje || data.message || 'Error ' + res.status + '.';
         if (data.errores) msg = Object.values(data.errores).join(' ');
         document.getElementById('alert-err-msg').textContent = msg;
         document.getElementById('alert-err').classList.add('visible');
@@ -453,8 +304,8 @@
       document.getElementById('alert-err-msg').textContent = 'No se pudo conectar con el servidor.';
       document.getElementById('alert-err').classList.add('visible');
     } finally {
-      btn.disabled    = false;
-      btn.textContent = 'Registrarme';
+      btn.disabled = false;
+      btn.textContent = 'Pre-registrarme';
     }
   });
 </script>

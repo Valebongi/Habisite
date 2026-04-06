@@ -26,10 +26,10 @@ public class AdminController {
         var evaluaciones = evaluacionRepository.findAll();
 
         var porEspecialidad = postulantes.stream()
-                .collect(Collectors.groupingBy(p -> p.getEspecialidad(), Collectors.counting()));
+                .collect(Collectors.groupingBy(p -> p.getEspecialidad() != null ? p.getEspecialidad() : "Sin definir", Collectors.counting()));
 
         var porUniversidad = postulantes.stream()
-                .collect(Collectors.groupingBy(p -> p.getUniversidad(), Collectors.counting()));
+                .collect(Collectors.groupingBy(p -> p.getUniversidad() != null ? p.getUniversidad() : "Sin definir", Collectors.counting()));
 
         long infoEnviada = postulanteRepository.countByInfoEnviadaEnIsNotNull();
         long confirmados = postulanteRepository.countByConfirmadoEnIsNotNull();

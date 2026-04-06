@@ -147,16 +147,30 @@ public class CampanaServiceImpl implements CampanaService {
         postulanteRepository.save(postulante);
         log.info("Postulante {} confirmo con datos duros (DNI: {}).", postulante.getNombres(), dniLimpio);
 
-        // Emails asíncronos — no bloquean la confirmación
+        // 1) Email de confirmación exitosa — inmediato
         try {
-            emailService.enviarCredenciales(postulante, plainPassword);
             List<Concurso> activos = concursoRepository.findByEstadoOrderByFechaFinAsc("ACTIVO");
             if (!activos.isEmpty()) {
                 emailService.enviarConfirmacionExitosa(postulante, activos.get(0));
             }
         } catch (Exception e) {
-            log.warn("No se pudo enviar email post-confirmacion para {}: {}", dniLimpio, e.getMessage());
+            log.warn("No se pudo enviar email de confirmacion para {}: {}", dniLimpio, e.getMessage());
         }
+
+        // 2) Email de credenciales — con 5 minutos de delay
+        final Long pId = postulante.getId();
+        final String pass = plainPassword;
+        new Thread(() -> {
+            try {
+                Thread.sleep(5 * 60 * 1000); // 5 minutos
+                postulanteRepository.findById(pId).ifPresent(p -> {
+                    emailService.enviarCredenciales(p, pass);
+                    log.info("Credenciales enviadas (con delay) a DNI: {}", p.getDni());
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
 
     @Override

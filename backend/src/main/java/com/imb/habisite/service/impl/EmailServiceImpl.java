@@ -436,13 +436,51 @@ public class EmailServiceImpl implements EmailService {
                         <!-- Body -->
                         <tr>
                           <td style="padding:36px 40px 28px;">
-                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#16a34a;">
-                              Tu participacion fue confirmada
+
+                            <!-- Badge confirmado -->
+                            <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                              <tr>
+                                <td align="center">
+                                  <table cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:14px;">
+                                    <tr>
+                                      <td style="padding:18px 32px;text-align:center;">
+                                        <p style="margin:0 0 6px;font-size:2rem;line-height:1;">&#10003;</p>
+                                        <p style="margin:0;font-size:16px;font-weight:800;color:#16a34a;">INSCRIPCION CONFIRMADA</p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#111827;">
+                              &#127881; Felicidades, %s
                             </p>
                             <p style="margin:0 0 24px;font-size:15px;color:#4b5563;line-height:1.6;">
-                              <strong>%s</strong>, ya estas oficialmente inscripto/a en el <strong>%s</strong>.
-                              A continuacion te compartimos informacion importante sobre los proximos pasos.
+                              Ya estas oficialmente inscripto/a en el <strong>%s</strong>.
+                              A continuacion te compartimos los proximos pasos.
                             </p>
+
+                            <!-- Divider -->
+                            <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                              <tr><td style="border-bottom:2px solid #e5e7eb;font-size:0;height:1px;">&nbsp;</td></tr>
+                            </table>
+
+                            <!-- Aviso credenciales -->
+                            <table width="100%%" cellpadding="0" cellspacing="0"
+                                   style="background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;margin-bottom:20px;">
+                              <tr>
+                                <td style="padding:18px 22px;">
+                                  <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#92400e;">
+                                    &#128274; TUS CREDENCIALES DE ACCESO
+                                  </p>
+                                  <p style="margin:0;font-size:14px;color:#92400e;line-height:1.5;">
+                                    En los proximos minutos recibiras <strong>otro email</strong> con tu usuario (DNI) y contrasena
+                                    para acceder a la plataforma en <strong>concursos.habisite.com</strong>.
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
 
                             <!-- Webinar -->
                             <table width="100%%" cellpadding="0" cellspacing="0"
@@ -450,12 +488,12 @@ public class EmailServiceImpl implements EmailService {
                               <tr>
                                 <td style="padding:20px 24px;">
                                   <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#1e40af;text-transform:uppercase;letter-spacing:.08em;">
-                                    Reunion explicativa — Webinar
+                                    &#127916; Reunion explicativa — Webinar
                                   </p>
                                   %s
                                   <a href="%s"
                                      style="display:inline-block;margin-top:12px;background:#1e40af;color:#ffffff;padding:10px 28px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">
-                                    Unirme al Webinar
+                                    &#128640; Unirme al Webinar
                                   </a>
                                 </td>
                               </tr>
@@ -467,7 +505,7 @@ public class EmailServiceImpl implements EmailService {
                               <tr>
                                 <td style="padding:20px 24px;">
                                   <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.08em;">
-                                    Canal de comunicacion — %s
+                                    &#128172; Canal de comunicacion — %s
                                   </p>
                                   <p style="margin:0 0 12px;font-size:14px;color:#374151;line-height:1.5;">
                                     Unite al canal oficial donde compartiremos novedades, material de apoyo y
@@ -475,15 +513,20 @@ public class EmailServiceImpl implements EmailService {
                                   </p>
                                   <a href="%s"
                                      style="display:inline-block;background:#16a34a;color:#ffffff;padding:10px 28px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;">
-                                    Unirme al %s
+                                    &#9989; Unirme al %s
                                   </a>
                                 </td>
                               </tr>
                             </table>
 
+                            <!-- Divider -->
+                            <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                              <tr><td style="border-bottom:2px solid #e5e7eb;font-size:0;height:1px;">&nbsp;</td></tr>
+                            </table>
+
                             <p style="margin:0;font-size:15px;color:#4b5563;line-height:1.6;">
                               Ante cualquier consulta podes responder este correo.<br/><br/>
-                              <strong style="color:#111827;">El equipo de Habisite</strong>
+                              &#128075; <strong style="color:#111827;">El equipo de Habisite</strong>
                             </p>
                           </td>
                         </tr>

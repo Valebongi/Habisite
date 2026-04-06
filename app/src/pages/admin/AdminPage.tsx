@@ -514,6 +514,11 @@ const SecPostulantes: React.FC = () => {
   const [canalUrl, setCanalUrl] = useState('');
   const [canalNombre, setCanalNombre] = useState('WhatsApp');
   const [showConfig, setShowConfig] = useState(false);
+  const [showAlta, setShowAlta] = useState(false);
+  const [altaForm, setAltaForm] = useState({ nombres: '', apellidos: '', correoElectronico: '', universidad: '', dni: '', celular: '', especialidad: '' });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ nombres: '', apellidos: '', correoElectronico: '', universidad: '', dni: '', celular: '', especialidad: '' });
+  const [saving, setSaving] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -584,6 +589,49 @@ const SecPostulantes: React.FC = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'postulantes.csv'; a.click();
   };
 
+  // Alta
+  const crearPostulante = async () => {
+    if (!altaForm.nombres.trim() || !altaForm.apellidos.trim() || !altaForm.correoElectronico.trim() || !altaForm.universidad.trim()) {
+      setMsg({ text: 'Nombres, apellidos, email y universidad son obligatorios.', ok: false }); return;
+    }
+    setSaving(true); setMsg(null);
+    try {
+      await api.postulantes.registrar(altaForm as any);
+      setMsg({ text: 'Postulante creado exitosamente.', ok: true });
+      setShowAlta(false); setAltaForm({ nombres: '', apellidos: '', correoElectronico: '', universidad: '', dni: '', celular: '', especialidad: '' });
+      cargar();
+    } catch (err: any) { setMsg({ text: err?.message || 'Error al crear.', ok: false }); }
+    finally { setSaving(false); }
+  };
+
+  // Modificación
+  const startEdit = (p: Postulante) => {
+    setEditId(p.id);
+    setEditForm({ nombres: p.nombres, apellidos: p.apellidos, correoElectronico: p.correoElectronico, universidad: p.universidad, dni: p.dni || '', celular: p.celular || '', especialidad: p.especialidad || '' });
+  };
+
+  const guardarEdit = async () => {
+    if (!editId) return;
+    setSaving(true); setMsg(null);
+    try {
+      await api.postulantes.actualizar(editId, editForm as any);
+      setMsg({ text: 'Postulante actualizado.', ok: true });
+      setEditId(null); cargar();
+    } catch (err: any) { setMsg({ text: err?.message || 'Error al actualizar.', ok: false }); }
+    finally { setSaving(false); }
+  };
+
+  // Baja
+  const eliminarPostulante = async (p: Postulante) => {
+    if (!confirm(`¿Eliminar a ${p.nombres} ${p.apellidos}? Esta acción no se puede deshacer.`)) return;
+    setMsg(null);
+    try {
+      await api.postulantes.eliminar(p.id);
+      setMsg({ text: `${p.nombres} eliminado.`, ok: true });
+      setExpandedId(null); cargar();
+    } catch (err: any) { setMsg({ text: err?.message || 'Error al eliminar.', ok: false }); }
+  };
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
 
   const pendientesInfo = postulantes.filter(p => !p.infoEnviadaEn).length;
@@ -592,6 +640,7 @@ const SecPostulantes: React.FC = () => {
     <>
       <SectionHeader title={`Postulantes (${postulantes.length})`} action={
         <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => setShowAlta(a => !a)} style={{ ...btnPrimary, padding: '5px 14px', fontSize: '0.78rem', margin: 0 }}>{showAlta ? 'Cancelar' : '+ Nuevo'}</button>
           <button onClick={() => setShowConfig(c => !c)} style={btnSm}>{showConfig ? 'Ocultar config' : 'Config envío'}</button>
           <button onClick={exportCSV} style={btnSm}>CSV</button>
         </div>
@@ -609,6 +658,35 @@ const SecPostulantes: React.FC = () => {
         <div style={msgBox(msg.ok)}>
           <span style={{ fontSize: '0.85rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
           <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
+        </div>
+      )}
+
+      {/* Formulario de alta */}
+      {showAlta && (
+        <div style={{ background: C.card, borderRadius: 14, padding: '18px', border: `1.5px solid ${C.orange}44`, marginBottom: 14 }}>
+          <p style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '0.9rem', color: C.text }}>Nuevo postulante</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
+            {[
+              { k: 'nombres', l: 'Nombres *', ph: 'Juan Carlos' },
+              { k: 'apellidos', l: 'Apellidos *', ph: 'Pérez García' },
+              { k: 'correoElectronico', l: 'Email *', ph: 'correo@ejemplo.com' },
+              { k: 'universidad', l: 'Universidad *', ph: 'UNI' },
+              { k: 'dni', l: 'DNI', ph: '12345678' },
+              { k: 'celular', l: 'Celular', ph: '+54 11...' },
+              { k: 'especialidad', l: 'Especialidad', ph: 'Arquitectura' },
+            ].map(f => (
+              <div key={f.k}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 3 }}>{f.l}</label>
+                <input value={(altaForm as any)[f.k]} onChange={e => setAltaForm(prev => ({ ...prev, [f.k]: e.target.value }))} placeholder={f.ph} style={inputCss} />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={crearPostulante} disabled={saving} style={{ ...btnPrimary, padding: '7px 20px', fontSize: '0.82rem', margin: 0, opacity: saving ? 0.5 : 1 }}>
+              {saving ? 'Creando...' : 'Crear postulante'}
+            </button>
+            <button onClick={() => setShowAlta(false)} style={{ ...btnSm, margin: 0 }}>Cancelar</button>
+          </div>
         </div>
       )}
 
@@ -709,22 +787,51 @@ const SecPostulantes: React.FC = () => {
                         {isExp && (
                           <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                             <td colSpan={6} style={{ padding: '0 14px 14px', background: '#fafafa' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, padding: '10px 0 8px' }}>
-                                {[
-                                  { l: 'DNI', v: p.dni || 'Sin completar' }, { l: 'Celular', v: p.celular || 'Sin completar' },
-                                  { l: 'Universidad', v: p.universidad }, { l: 'Especialidad', v: p.especialidad || 'Sin completar' },
-                                  { l: 'Registrado', v: formatFechaCorta(p.creadoEn) }, { l: 'Info enviada', v: p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : 'No' },
-                                  { l: 'Confirmado', v: p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : 'No' }, { l: 'Recordatorio', v: p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : 'No' },
-                                ].map(d => (
-                                  <div key={d.l}><p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{d.l}</p><p style={{ margin: '1px 0 0', fontSize: '0.82rem', color: C.text, fontWeight: 500 }}>{d.v}</p></div>
-                                ))}
-                              </div>
-                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'info'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0 }}>Enviar info</button>
-                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], '2da'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#92400e' }}>2da convocatoria</button>
-                                <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'bienvenida'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#16a34a' }}>Bienvenida</button>
-                                <button onClick={async e => { e.stopPropagation(); if (!confirm(`Regenerar clave de ${p.nombres}?`)) return; try { await api.postulantes.regenerarClave(p.id); setMsg({ text: 'Clave regenerada y enviada.', ok: true }); } catch { setMsg({ text: 'Error.', ok: false }); }}} style={{ ...btnSm, margin: 0 }}>Regen. clave</button>
-                              </div>
+
+                              {/* Modo lectura o edición */}
+                              {editId === p.id ? (
+                                <div style={{ padding: '10px 0 8px' }}>
+                                  <p style={{ margin: '0 0 8px', fontSize: '0.78rem', fontWeight: 700, color: C.orange }}>Editando datos</p>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginBottom: 10 }}>
+                                    {[
+                                      { k: 'nombres', l: 'Nombres' }, { k: 'apellidos', l: 'Apellidos' },
+                                      { k: 'dni', l: 'DNI' }, { k: 'celular', l: 'Celular' },
+                                      { k: 'correoElectronico', l: 'Email' }, { k: 'universidad', l: 'Universidad' },
+                                      { k: 'especialidad', l: 'Especialidad' },
+                                    ].map(f => (
+                                      <div key={f.k}>
+                                        <label style={{ fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: 2 }}>{f.l}</label>
+                                        <input value={(editForm as any)[f.k]} onChange={e => setEditForm(prev => ({ ...prev, [f.k]: e.target.value }))} style={{ ...inputCss, padding: '5px 8px', fontSize: '0.82rem' }} />
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button onClick={e => { e.stopPropagation(); guardarEdit(); }} disabled={saving} style={{ ...btnPrimary, padding: '5px 14px', fontSize: '0.72rem', margin: 0, opacity: saving ? 0.5 : 1 }}>{saving ? 'Guardando...' : 'Guardar'}</button>
+                                    <button onClick={e => { e.stopPropagation(); setEditId(null); }} style={{ ...btnSm, margin: 0 }}>Cancelar</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, padding: '10px 0 8px' }}>
+                                    {[
+                                      { l: 'DNI', v: p.dni || 'Sin completar' }, { l: 'Celular', v: p.celular || 'Sin completar' },
+                                      { l: 'Universidad', v: p.universidad }, { l: 'Especialidad', v: p.especialidad || 'Sin completar' },
+                                      { l: 'Registrado', v: formatFechaCorta(p.creadoEn) }, { l: 'Info enviada', v: p.infoEnviadaEn ? formatFechaCorta(p.infoEnviadaEn) : 'No' },
+                                      { l: 'Confirmado', v: p.confirmadoEn ? formatFechaCorta(p.confirmadoEn) : 'No' }, { l: 'Recordatorio', v: p.recordatorioEnviadoEn ? formatFechaCorta(p.recordatorioEnviadoEn) : 'No' },
+                                    ].map(d => (
+                                      <div key={d.l}><p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{d.l}</p><p style={{ margin: '1px 0 0', fontSize: '0.82rem', color: C.text, fontWeight: 500 }}>{d.v}</p></div>
+                                    ))}
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                                    <button onClick={e => { e.stopPropagation(); startEdit(p); }} style={{ ...btnSm, margin: 0, borderColor: '#3b82f6', color: '#3b82f6' }}>Editar</button>
+                                    <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'info'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0 }}>Info concurso</button>
+                                    <button onClick={e => { e.stopPropagation(); enviarA([p.id], '2da'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#92400e' }}>2da convocatoria</button>
+                                    <button onClick={e => { e.stopPropagation(); enviarA([p.id], 'bienvenida'); }} disabled={enviando} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.72rem', margin: 0, background: '#16a34a' }}>Bienvenida</button>
+                                    <button onClick={async e => { e.stopPropagation(); if (!confirm(`Regenerar clave de ${p.nombres}?`)) return; try { await api.postulantes.regenerarClave(p.id); setMsg({ text: 'Clave regenerada.', ok: true }); } catch { setMsg({ text: 'Error.', ok: false }); }}} style={{ ...btnSm, margin: 0 }}>Clave</button>
+                                    <button onClick={e => { e.stopPropagation(); eliminarPostulante(p); }} style={{ ...btnSm, margin: 0, borderColor: '#dc2626', color: '#dc2626' }}>Eliminar</button>
+                                  </div>
+                                </>
+                              )}
                             </td>
                           </tr>
                         )}

@@ -33,4 +33,15 @@ public class CampanaController {
     public ResponseEntity<CampanaResultDTO> enviarBienvenidaConfirmados() {
         return ResponseEntity.ok(campanaService.enviarBienvenidaConfirmados());
     }
+
+    /** POST /api/v1/admin/campanas/reenviar/{postulanteId} — Reenvía info del concurso a un postulante específico */
+    @PostMapping("/reenviar/{postulanteId}")
+    public ResponseEntity<java.util.Map<String, Object>> reenviar(@PathVariable Long postulanteId) {
+        try {
+            campanaService.reenviarInfoConcurso(postulanteId);
+            return ResponseEntity.ok(java.util.Map.of("ok", true, "mensaje", "Email reenviado."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("ok", false, "mensaje", e.getMessage()));
+        }
+    }
 }

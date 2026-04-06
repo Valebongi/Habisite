@@ -33,8 +33,7 @@ public class Resolucion {
     @Column(name = "archivo_nombre", length = 255)
     private String archivoNombre;
 
-    @Lob
-    @Column(name = "archivo_datos")
+    @Column(name = "archivo_datos", columnDefinition = "BYTEA")
     private byte[] archivoDatos;
 
     @Column(name = "url_externo", length = 500)

@@ -21,6 +21,9 @@ public class CorsConfig {
         config.setAllowedOriginPatterns(List.of(
                 frontendUrl,
                 "https://concursos.habisite.com",
+                "https://habisite.com",
+                "https://www.habisite.com",
+                "https://*.habisite.com",
                 "http://localhost:5173"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

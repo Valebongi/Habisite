@@ -18,12 +18,12 @@ public class PostulanteRequestDTO {
     @Size(max = 100, message = "Los apellidos no pueden superar los 100 caracteres")
     private String apellidos;
 
-    @NotBlank(message = "El DNI es obligatorio")
-    @Pattern(regexp = "^\\d{8}$", message = "El DNI debe tener exactamente 8 dígitos")
+    // Opcional en pre-registro — se completa en la confirmación
+    @Size(max = 8, message = "El DNI no puede superar los 8 caracteres")
     private String dni;
 
-    @NotBlank(message = "El celular es obligatorio")
-    @Pattern(regexp = "^[0-9+\\-\\s]{7,15}$", message = "Formato de celular inválido")
+    // Opcional en pre-registro
+    @Size(max = 15, message = "El celular no puede superar los 15 caracteres")
     private String celular;
 
     @NotBlank(message = "La universidad es obligatoria")
@@ -35,7 +35,7 @@ public class PostulanteRequestDTO {
     @Size(max = 150)
     private String correoElectronico;
 
-    @NotBlank(message = "La especialidad es obligatoria")
+    // Opcional en pre-registro — se completa en la confirmación
     @Size(max = 100, message = "La especialidad no puede superar los 100 caracteres")
     private String especialidad;
 }

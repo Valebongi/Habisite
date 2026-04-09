@@ -20,7 +20,7 @@ PORT=${PORT:-80}\n\
 sed -i "s/__PORT__/$PORT/g" /etc/nginx/conf.d/default.conf\n\
 nginx -g "daemon off;"\n' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
-RUN printf 'server {\n  listen __PORT__;\n  root /usr/share/nginx/html;\n  index index.html;\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n' > /etc/nginx/conf.d/default.conf
+RUN printf 'server {\n  listen __PORT__;\n  root /usr/share/nginx/html;\n  index index.html;\n\n  location = /concursos-2026 {\n    try_files /concursos-2026/index.html =404;\n  }\n\n  location = /concursos-2026/ {\n    try_files /concursos-2026/index.html =404;\n  }\n\n  location / {\n    try_files $uri $uri/ /index.html;\n  }\n}\n' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
 CMD ["/docker-entrypoint.sh"]

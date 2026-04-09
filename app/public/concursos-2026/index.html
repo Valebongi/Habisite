@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Habisite Design Challenge 2026 — Complejo de Inmersión Paisajística</title>
+  <meta name="description" content="Concurso Internacional de Arquitectura para Nuevas Formas de Habitar y Contemplar el Espacio. Inscribite ahora." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --red: #E85520; --dark: #0d0e10; --text: #111827; --white: #ffffff; --gray: #6b7280; --light: #f8f9fa; --border: #e5e7eb; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; color: var(--text); background: var(--white); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: var(--red); text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* ── Animations ──────────────────────────────── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,85,32,0.4); } 50% { box-shadow: 0 0 0 12px rgba(232,85,32,0); } }
+    .fade-up { animation: fadeUp 0.7s ease both; }
+
+    /* ── Nav ─────────────────────────────────────── */
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(13,14,16,0.95); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .nav-logo { font-size: 1.15rem; font-weight: 900; color: var(--white); letter-spacing: 0.1em; }
+    .nav-logo span { color: var(--red); }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a { color: #fff8; font-size: 0.8rem; font-weight: 500; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; }
+    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .nav-cta { background: var(--red) !important; color: #fff !important; font-weight: 700 !important; }
+
+    /* ── Hero ────────────────────────────────────── */
+    .hero { margin-top: 54px; min-height: 620px; background: linear-gradient(135deg, var(--dark) 0%, #141618 40%, #1a1208 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 60px 40px; position: relative; overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; opacity: 0.04; background: repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(232,85,32,0.08) 40px, rgba(232,85,32,0.08) 80px); }
+    .hero-glow-1 { position: absolute; top: -100px; right: -50px; width: 400px; height: 400px; background: rgba(232,85,32,0.08); border-radius: 999px; filter: blur(80px); }
+    .hero-glow-2 { position: absolute; bottom: -80px; left: 10%; width: 300px; height: 300px; background: rgba(232,85,32,0.05); border-radius: 999px; filter: blur(60px); }
+    .hero-shape { position: absolute; border: 1.5px solid rgba(232,85,32,0.1); border-radius: 8px; }
+    .hero-grid { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: center; position: relative; z-index: 1; }
+    .hero-left { animation: fadeUp 0.8s ease; }
+    .hero-left .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,85,32,0.15); color: var(--red); padding: 6px 16px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 20px; }
+    .hero-left h1 { font-size: 3rem; font-weight: 900; line-height: 1.05; margin-bottom: 10px; letter-spacing: -1px; }
+    .hero-left h1 span { color: var(--red); display: block; }
+    .hero-left .sub { font-size: 0.78rem; color: var(--red); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 20px; }
+    .hero-left .tagline { font-size: 1.05rem; color: #ffffff66; line-height: 1.65; max-width: 480px; }
+    .hero-left .stats { display: flex; gap: 32px; margin-top: 28px; }
+    .hero-left .stat { text-align: center; }
+    .hero-left .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--red); }
+    .hero-left .stat-label { font-size: 0.68rem; color: #fff6; text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .hero-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px 28px; backdrop-filter: blur(8px); animation: fadeUp 1s ease 0.2s both; }
+    .hero-form h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
+    .hero-form .form-sub { font-size: 0.82rem; color: #ffffff77; margin-bottom: 20px; }
+    .hero-form label { display: block; font-size: 0.68rem; font-weight: 700; color: #ffffffaa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .hero-form input { width: 100%; padding: 12px 16px; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.06); color: #fff; font-size: 0.95rem; outline: none; font-family: inherit; margin-bottom: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .hero-form input::placeholder { color: #ffffff44; }
+    .hero-form input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,85,32,0.15); }
+    .hero-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hero-form button { width: 100%; padding: 14px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 4px; letter-spacing: 0.02em; }
+    .hero-form button:hover { background: #cc4b1c; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,85,32,0.3); }
+    .hero-form button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .hero-form .hint { text-align: center; margin-top: 10px; font-size: 0.7rem; color: #ffffff44; }
+    .f-msg { display: none; margin-top: 14px; padding: 12px 16px; border-radius: 10px; text-align: center; font-size: 0.88rem; font-weight: 600; }
+    .f-ok { background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.3); color: #4ade80; }
+    .f-err { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
+
+    /* ── Red bar ─────────────────────────────────── */
+    .red-bar { background: var(--red); display: flex; justify-content: center; gap: 16px; padding: 16px 24px; flex-wrap: wrap; }
+    .red-bar a { color: #fff; border: 2px solid rgba(255,255,255,0.6); padding: 10px 32px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 4px; transition: all 0.2s; }
+    .red-bar a:hover { background: #fff; color: var(--red); text-decoration: none; }
+
+    /* ── Design Challenge section (con fondo.png) ── */
+    .dc-section { display: flex; min-height: 500px; position: relative; overflow: hidden; }
+    .dc-text { flex: 0 0 55%; padding: 64px 48px; background: rgba(255,255,255,0.96); display: flex; gap: 32px; }
+    .dc-vertical { writing-mode: vertical-rl; font-size: 4.5rem; font-weight: 900; color: var(--red); line-height: 1; letter-spacing: -3px; flex-shrink: 0; opacity: 0.9; }
+    .dc-body { flex: 1; }
+    .dc-body h2 { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .dc-body h3 { font-size: 0.92rem; font-weight: 700; text-transform: uppercase; color: var(--gray); margin-bottom: 20px; letter-spacing: 0.05em; }
+    .dc-body p { font-size: 0.95rem; color: #374151; line-height: 1.75; margin-bottom: 16px; }
+    .dc-img { flex: 1; background: url('fondo.png') center/cover no-repeat; position: relative; }
+    .dc-img::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgba(255,255,255,0.3), transparent); }
+
+    /* ── Section styling ─────────────────────────── */
+    .separator { background: var(--red); text-align: center; padding: 18px 24px; }
+    .separator h2 { color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; border: 2px solid rgba(255,255,255,0.5); display: inline-block; padding: 8px 36px; }
+
+    .section { max-width: 960px; margin: 0 auto; padding: 64px 32px; }
+    .section-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--red); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+    .section h2 { font-size: 2rem; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
+    .section .lead { font-size: 1rem; color: var(--gray); margin-bottom: 36px; max-width: 600px; }
+
+    /* ── Participantes cards ─────────────────────── */
+    .part-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .part-card { background: var(--light); border-radius: 14px; padding: 28px 22px; text-align: center; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; }
+    .part-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.06); }
+    .part-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 900; margin: 0 auto 14px; }
+    .part-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .part-card p { font-size: 0.82rem; color: var(--gray); }
+
+    /* ── Cronograma ──────────────────────────────── */
+    .crono { position: relative; padding-left: 180px; text-align: left; max-width: 700px; margin: 0 auto; }
+    .crono::before { content: ''; position: absolute; left: 168px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(to bottom, var(--red), var(--border)); }
+    .crono-item { position: relative; padding-bottom: 40px; }
+    .crono-item:last-child { padding-bottom: 0; }
+    .crono-dot { position: absolute; left: -19px; top: 3px; width: 14px; height: 14px; border-radius: 999px; background: #fff; border: 3px solid var(--red); animation: pulse 2s infinite; }
+    .crono-date { position: absolute; left: -180px; top: 0; width: 148px; text-align: right; font-size: 0.78rem; font-weight: 800; color: var(--red); letter-spacing: 0.05em; }
+    .crono-body { padding-left: 18px; }
+    .crono-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 5px; }
+    .crono-body p { font-size: 0.85rem; color: var(--gray); line-height: 1.55; }
+
+    /* ── Fases ────────────────────────────────────── */
+    .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+    .ph { background: var(--light); border-radius: 14px; padding: 26px 22px; border: 1px solid var(--border); transition: transform 0.2s; }
+    .ph:hover { transform: translateY(-3px); }
+    .ph-num { display: inline-flex; align-items: center; justify-content: center; background: var(--red); color: #fff; width: 32px; height: 32px; border-radius: 8px; font-weight: 900; font-size: 0.88rem; margin-bottom: 12px; }
+    .ph h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; }
+    .ph p { font-size: 0.82rem; color: var(--gray); }
+    .ph-icon { font-size: 1.3rem; margin-bottom: 8px; }
+
+    /* ── Criterios ────────────────────────────────── */
+    .crit { display: flex; flex-direction: column; gap: 8px; }
+    .crit-row { display: flex; align-items: center; background: var(--light); border-radius: 10px; padding: 16px 20px; border: 1px solid var(--border); transition: transform 0.15s; }
+    .crit-row:hover { transform: translateX(4px); }
+    .crit-icon { font-size: 1.3rem; margin-right: 14px; flex-shrink: 0; }
+    .crit-name { flex: 1; font-weight: 600; font-size: 0.95rem; }
+    .crit-pct { background: var(--red); color: #fff; padding: 4px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 800; flex-shrink: 0; }
+
+    /* ── Entregables ──────────────────────────────── */
+    .ent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .ent-card { background: var(--light); border-radius: 12px; padding: 22px 18px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+    .ent-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+    .ent-letter { width: 36px; height: 36px; border-radius: 8px; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 900; }
+    .ent-card h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 3px; }
+    .ent-card p { font-size: 0.78rem; color: var(--gray); }
+
+    /* ── Premios ──────────────────────────────────── */
+    .prizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .pr { background: var(--light); border-radius: 14px; padding: 28px 20px; text-align: center; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; }
+    .pr:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.06); }
+    .pr-medal { width: 48px; height: 48px; border-radius: 999px; color: #fff; font-size: 1.1rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+    .pr-amount { font-size: 1.6rem; font-weight: 900; }
+    .pr-detail { font-size: 0.8rem; color: var(--gray); margin-top: 8px; line-height: 1.5; }
+
+    /* ── Video section ────────────────────────────── */
+    .video-section { background: var(--dark); padding: 64px 32px; text-align: center; }
+    .video-section h2 { color: #fff; font-size: 1.8rem; font-weight: 900; margin-bottom: 8px; }
+    .video-section p { color: #fff6; margin-bottom: 32px; font-size: 0.95rem; }
+    .video-wrap { max-width: 800px; margin: 0 auto; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); aspect-ratio: 16/9; }
+    .video-wrap iframe { width: 100%; height: 100%; border: 0; }
+
+    /* ── Gallery ──────────────────────────────────── */
+    .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .gallery img { width: 100%; height: 240px; object-fit: cover; transition: transform 0.3s; }
+    .gallery img:hover { transform: scale(1.03); }
+
+    /* ── Orgs ─────────────────────────────────────── */
+    .orgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .org-card { background: var(--light); border-radius: 12px; padding: 24px 20px; border: 1px solid var(--border); }
+    .org-card .org-label { font-size: 0.68rem; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .org-card .org-name { font-size: 0.95rem; font-weight: 700; }
+    .org-card .org-desc { font-size: 0.82rem; color: var(--gray); margin-top: 4px; }
+
+    /* ── CTA final ────────────────────────────────── */
+    .cta-final { background: var(--red); padding: 48px 24px; text-align: center; }
+    .cta-final h2 { color: #fff; font-size: 1.8rem; font-weight: 900; margin-bottom: 6px; }
+    .cta-final p { color: rgba(255,255,255,0.8); margin-bottom: 24px; }
+    .cta-final a { display: inline-block; background: #fff; color: var(--red); padding: 14px 48px; border-radius: 8px; font-size: 1.05rem; font-weight: 800; transition: transform 0.2s, box-shadow 0.2s; }
+    .cta-final a:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); text-decoration: none; }
+
+    /* ── Footer ───────────────────────────────────── */
+    .footer { background: var(--dark); color: #fff7; padding: 40px 32px; text-align: center; font-size: 0.82rem; }
+    .footer a { color: var(--red); }
+    .footer-brand { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.2em; color: #fff3; margin-top: 14px; display: block; }
+
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .hero-left h1 { font-size: 2rem; }
+      .hero-left .stats { gap: 20px; }
+      .dc-section { flex-direction: column; }
+      .dc-text { flex: none; padding: 40px 24px; }
+      .dc-img { min-height: 300px; }
+      .dc-vertical { font-size: 2.5rem; writing-mode: horizontal-tb; }
+      .part-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav { padding: 10px 16px; }
+      .nav-links { display: none; }
+      .hero { padding: 40px 20px; min-height: auto; }
+      .hero-left h1 { font-size: 1.6rem; }
+      .hero-form .row { grid-template-columns: 1fr; }
+      .section { padding: 40px 20px; }
+      .crono { padding-left: 28px; }
+      .crono::before { left: 6px; }
+      .crono-dot { left: 0; }
+      .crono-date { position: static; width: auto; text-align: left; padding-left: 18px; margin-bottom: 2px; }
+      .gallery { grid-template-columns: 1fr; }
+      .gallery img { height: 200px; }
+      .red-bar a { padding: 8px 16px; font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ───────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-logo">HABI<span>SITE</span></div>
+  <div class="nav-links">
+    <a href="#objetivo">Objetivo</a>
+    <a href="#cronograma">Cronograma</a>
+    <a href="#fases">Fases</a>
+    <a href="#premios">Premios</a>
+    <a href="#form" class="nav-cta">Inscribite</a>
+  </div>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+  <div class="hero-shape" style="top:12%;right:18%;width:120px;height:120px;transform:rotate(25deg);"></div>
+  <div class="hero-shape" style="bottom:20%;left:5%;width:80px;height:80px;transform:rotate(-18deg);"></div>
+
+  <div class="hero-grid">
+    <div class="hero-left">
+      <div class="badge">Concurso Internacional 2026</div>
+      <h1>HABISITE <span>DESIGN CHALLENGE</span></h1>
+      <p class="sub">Complejo de Inmersión Paisajística</p>
+      <p class="tagline">Concurso Internacional de Arquitectura para Nuevas Formas de Habitar y Contemplar el Espacio. Conectá con jóvenes talentos de la arquitectura en Latinoamérica.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-num">50</div><div class="stat-label">Días</div></div>
+        <div class="stat"><div class="stat-num">6</div><div class="stat-label">Fases</div></div>
+        <div class="stat"><div class="stat-num">3</div><div class="stat-label">Premios</div></div>
+        <div class="stat"><div class="stat-num">&#8734;</div><div class="stat-label">Creatividad</div></div>
+      </div>
+    </div>
+
+    <div class="hero-form" id="form">
+      <h2>Inscribite ahora</h2>
+      <p class="form-sub">Dejá tus datos y te enviaremos toda la info del concurso.</p>
+      <form id="frm" novalidate>
+        <div class="row">
+          <div><label>Nombres *</label><input id="f-nom" type="text" placeholder="Juan Carlos" required /></div>
+          <div><label>Apellidos *</label><input id="f-ape" type="text" placeholder="Pérez García" required /></div>
+        </div>
+        <label>Correo electrónico *</label>
+        <input id="f-email" type="email" placeholder="tu@email.com" required />
+        <button type="submit" id="f-btn">Pre-registrarme &#8594;</button>
+        <p class="hint">Los datos completos se solicitan al confirmar la inscripción.</p>
+        <div id="f-ok" class="f-msg f-ok"><strong>Pre-registro exitoso.</strong> Revisá tu email.</div>
+        <div id="f-err" class="f-msg f-err"></div>
+      </form>
+    </div>
+  </div>
+</header>
+
+<!-- ── Red bar ───────────────────────────────────── -->
+<div class="red-bar">
+  <a href="#bases">Bases y Condiciones</a>
+  <a href="mailto:Habisitechallenge@habisite.com">Consultas</a>
+</div>
+
+<!-- ── Design Challenge + fondo.png ──────────────── -->
+<section class="dc-section" id="objetivo">
+  <div class="dc-text">
+    <div class="dc-vertical">DESIGN<br/>CHALLENGE</div>
+    <div class="dc-body">
+      <h2>Concurso Arquitectura</h2>
+      <h3>Complejo de Inmersión Paisajística</h3>
+      <p>HABISITE DESIGN CHALLENGE 2026 es un concurso internacional que busca descubrir y conectar a <strong>jóvenes talentos de la arquitectura</strong> en Latinoamérica.</p>
+      <p>Su propósito es detectar <strong>soluciones arquitectónicas replicables</strong> para el desarrollo turístico sostenible en entornos naturales. A su vez retar a estudiantes avanzados y recién egresados a demostrar su <strong>creatividad, capacidad conceptual y habilidades de diseño</strong> frente a un desafío arquitectónico real.</p>
+    </div>
+  </div>
+  <div class="dc-img"></div>
+</section>
+
+<!-- ── Participantes ─────────────────────────────── -->
+<div class="separator" id="participantes"><h2>cómo participar</h2></div>
+<div class="section">
+  <div class="part-grid">
+    <div class="part-card">
+      <div class="part-icon">E</div>
+      <h3>Elegibilidad</h3>
+      <p>Estudiantes avanzados y egresados de arquitectura, civil, diseño, diseño industrial y carreras afines.</p>
+    </div>
+    <div class="part-card">
+      <div class="part-icon">A</div>
+      <h3>Ámbito</h3>
+      <p>Abierto a participantes de toda <strong>Latinoamérica</strong>.</p>
+    </div>
+    <div class="part-card">
+      <div class="part-icon">M</div>
+      <h3>Modalidad</h3>
+      <p>Individual o equipo de <strong>máximo 3 personas</strong>. Una única propuesta por grupo.</p>
+    </div>
+  </div>
+
+  <div style="background: linear-gradient(135deg, #fef7f5, #fff5f0); border-left: 4px solid var(--red); border-radius: 8px; padding: 24px 28px;">
+    <p style="font-size: 0.72rem; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 6px;">El reto</p>
+    <p style="font-size: 1.05rem; color: #374151; font-weight: 500; line-height: 1.65;">El desafío pondrá a prueba la capacidad de imaginar <strong>nuevas formas de habitar espacios en entornos no urbanos y de diálogo con la naturaleza</strong>, combinando creatividad, viabilidad y una mirada sostenible.</p>
+  </div>
+</div>
+
+<!-- ── Cronograma ─────────────────────────────────── -->
+<div class="separator" id="cronograma"><h2>cronograma</h2></div>
+<div class="section" style="text-align: center;">
+  <p class="section-badge">Fechas importantes</p>
+  <h2>Cronograma</h2>
+  <p class="lead" style="margin: 8px auto 44px;">Duración total: 50 días</p>
+
+  <div class="crono">
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">15 ABR 2026</div><div class="crono-body"><h3>Lanzamiento de Convocatoria</h3><p>Difusión en afiches, redes sociales y envío de invitaciones a universidades e instituciones.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">01 MAY 2026</div><div class="crono-body"><h3>Cierre de Inscripciones</h3><p>Charla informativa sobre el concurso y orientación técnica para los participantes inscritos.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">04 MAY 2026</div><div class="crono-body"><h3>Webinar Introductorio &amp; Bootcamp</h3><p>Sesión virtual con ponentes especializados y presentación oficial del reto.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">25 MAY 2026</div><div class="crono-body"><h3>Fecha límite de entrega</h3><p>Fecha límite para enviar la propuesta final con todos los entregables requeridos.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">26 MAY 2026</div><div class="crono-body"><h3>Evaluación del Jurado</h3><p>Revisión de proyectos por el jurado especializado y notificación de resultados.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">03 JUN 2026</div><div class="crono-body"><h3>Anuncio de Ganadores</h3><p>Publicación de resultados, premiación oficial y celebración de los proyectos seleccionados.</p></div></div>
+  </div>
+</div>
+
+<!-- ── Fases ──────────────────────────────────────── -->
+<div class="separator" id="fases"><h2>fases del concurso</h2></div>
+<div class="section">
+  <div class="phases">
+    <div class="ph"><span class="ph-num">1</span><h3>Convocatoria y registro</h3><p>Inscripción individual o en equipo a través de la plataforma oficial.</p></div>
+    <div class="ph"><span class="ph-num">2</span><h3>Plan de comunicación</h3><p>Difusión internacional. Grupo de WhatsApp y comunicaciones periódicas.</p></div>
+    <div class="ph"><span class="ph-num">3</span><h3>Webinar formativo</h3><p>Bases, fundamentos, documentación técnica y recursos gráficos necesarios.</p></div>
+    <div class="ph"><span class="ph-num">4</span><h3>Anuncio del reto</h3><p>Se revela el desafío arquitectónico oficial que todos deberán resolver.</p></div>
+    <div class="ph"><span class="ph-num">5</span><h3>Entrega de propuestas</h3><p>Los participantes presentan su trabajo final dentro del plazo.</p></div>
+    <div class="ph"><span class="ph-num">6</span><h3>Evaluación y ganadores</h3><p>El jurado revisa. Se anuncian ganadores, menciones y exposición.</p></div>
+  </div>
+</div>
+
+<!-- ── Criterios ──────────────────────────────────── -->
+<div class="section" id="bases">
+  <p class="section-badge">Evaluación</p>
+  <h2>Criterios de evaluación</h2>
+  <p class="lead">Cómo se evaluarán las propuestas presentadas.</p>
+  <div class="crit">
+    <div class="crit-row"><span class="crit-name">Creatividad y originalidad</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-name">Concepto y propuesta</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-name">Relación Entorno</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-name">Resolución Funcional</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-name">Sostenibilidad y enfoque ambiental</span><span class="crit-pct">10%</span></div>
+    <div class="crit-row"><span class="crit-name">Cumplimiento y Calidad de presentación</span><span class="crit-pct">10%</span></div>
+  </div>
+</div>
+
+<!-- ── Entregables ────────────────────────────────── -->
+<div class="section" style="padding-top:0;">
+  <p class="section-badge">Entrega</p>
+  <h2>Entregables</h2>
+  <p class="lead">Detalles técnicos se publicarán con el reto oficial.</p>
+  <div class="ent-grid">
+    <div class="ent-card"><div class="ent-icon ent-letter">01</div><div><h4>Planos básicos</h4><p>Plantas, cortes, fachadas y planimetría general.</p></div></div>
+    <div class="ent-card"><div class="ent-icon ent-letter">02</div><div><h4>Memoria conceptual</h4><p>Narrativa del diseño: el "por qué" de las decisiones.</p></div></div>
+    <div class="ent-card"><div class="ent-icon ent-letter">03</div><div><h4>Esquemas explicativos</h4><p>Síntesis visual de intenciones: circulación, programa, clima.</p></div></div>
+    <div class="ent-card"><div class="ent-icon ent-letter">04</div><div><h4>Imágenes representativas</h4><p>Renders, perspectivas, collages o fotomontajes.</p></div></div>
+    <div class="ent-card"><div class="ent-icon ent-letter">05</div><div><h4>Panel 2 hojas</h4><p>Diagramación con lógica constructiva integrada.</p></div></div>
+  </div>
+</div>
+
+<!-- ── Premios ────────────────────────────────────── -->
+<div class="section" style="padding-top:0;" id="premios">
+  <p class="section-badge">Reconocimiento</p>
+  <h2>Premios</h2>
+  <div class="prizes">
+    <div class="pr" style="border-top:4px solid #ffc409;"><p class="pr-medal" style="background:#ffc409;">1&ordm;</p><p class="pr-amount">USD 300</p><p class="pr-detail">Pasantía remunerada + Certificado LinkedIn avalado por IMB + Reconocimiento</p></div>
+    <div class="pr" style="border-top:4px solid #c0c0c0;"><p class="pr-medal" style="background:#c0c0c0;">2&ordm;</p><p class="pr-amount">USD 150</p><p class="pr-detail">Certificado LinkedIn avalado por IMB</p></div>
+    <div class="pr" style="border-top:4px solid #cd7f32;"><p class="pr-medal" style="background:#cd7f32;">3&ordm;</p><p class="pr-amount">USD 100</p><p class="pr-detail">Certificado LinkedIn avalado por IMB</p></div>
+    <div class="pr"><p class="pr-medal" style="background:var(--red);">M</p><p class="pr-amount" style="font-size:1.1rem;">Menciones especiales</p><p class="pr-detail">Publicación en medios y exposición virtual</p></div>
+  </div>
+</div>
+
+<!-- ── Video ──────────────────────────────────────── -->
+<div class="video-section">
+  <p class="section-badge" style="color: var(--red);">Inspiración</p>
+  <h2>Arquitectura que dialoga con la naturaleza</h2>
+  <p>Proyectos que redefinen cómo habitamos el paisaje.</p>
+  <div class="video-wrap">
+    <iframe src="https://www.youtube.com/embed/y9BUQW6dHCg?rel=0&modestbranding=1" title="Arquitectura paisajística" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" allowfullscreen loading="lazy"></iframe>
+  </div>
+</div>
+
+<!-- ── Gallery ────────────────────────────────────── -->
+<div class="gallery">
+  <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop" alt="Arquitectura moderna en naturaleza" loading="lazy" />
+  <img src="https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&h=400&fit=crop" alt="Diseño paisajístico" loading="lazy" />
+  <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=600&h=400&fit=crop" alt="Arquitectura contemporánea" loading="lazy" />
+</div>
+
+<!-- ── Organizadores ──────────────────────────────── -->
+<div class="section">
+  <p class="section-badge">Organizadores</p>
+  <h2>Organizadores y aliados</h2>
+  <div class="orgs">
+    <div class="org-card"><p class="org-label">Organiza</p><p class="org-name">HABISITE</p><p class="org-desc">Plataforma de innovación arquitectónica</p></div>
+    <div class="org-card"><p class="org-label">Respaldo</p><p class="org-name">IMB | International Management & Business Institute</p></div>
+    <div class="org-card"><p class="org-label">Aliados académicos</p><p class="org-name">Univ. Católica de Santa María · Universidad La Salle</p><p class="org-desc">Vicerrectorado de Investigación</p></div>
+  </div>
+</div>
+
+<!-- ── CTA final ──────────────────────────────────── -->
+<div class="cta-final">
+  <h2>Sumate al desafío</h2>
+  <p>Demostrá tu creatividad y diseñá el espacio que el futuro necesita.</p>
+  <a href="#form">INSCRIBITE AHORA</a>
+</div>
+
+<!-- ── Legal ──────────────────────────────────────── -->
+<div style="max-width:900px;margin:0 auto;padding:24px 32px;">
+  <p style="font-size:0.72rem;color:var(--gray);line-height:1.8;">Las propuestas deben ser originales y no infringir derechos de terceros. La organización podrá difundir los proyectos reconociendo siempre la autoría. Al inscribirse, los participantes aceptan todas las condiciones de estas bases. Los autores podrán ser convocados para mentorías, incubación o desarrollo real.</p>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────── -->
+<footer class="footer">
+  <p><a href="mailto:Habisitechallenge@habisite.com">Habisitechallenge@habisite.com</a> &middot; <a href="https://www.facebook.com/profile.php?id=61576007729736" target="_blank" rel="noreferrer">Facebook</a> &middot; <a href="https://concursos.habisite.com">Plataforma</a></p>
+  <span class="footer-brand">HABISITE DESIGN CHALLENGE | 2026</span>
+</footer>
+
+<!-- ── Script ─────────────────────────────────────── -->
+<script>
+(function() {
+  var API = 'https://api.habisite.com/api/v1/postulantes';
+  var form = document.getElementById('frm');
+  var btn = document.getElementById('f-btn');
+  var ok = document.getElementById('f-ok');
+  var err = document.getElementById('f-err');
+  form.addEventListener('submit', function(e) {
+    e.preventDefault(); ok.style.display='none'; err.style.display='none';
+    var n = document.getElementById('f-nom').value.trim();
+    var a = document.getElementById('f-ape').value.trim();
+    var m = document.getElementById('f-email').value.trim();
+    if (!n||!a||!m) { err.textContent='Completá todos los campos.'; err.style.display='block'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { err.textContent='Correo inválido.'; err.style.display='block'; return; }
+    btn.disabled=true; btn.textContent='Enviando...';
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nombres:n,apellidos:a,correoElectronico:m,universidad:'',dni:'',celular:'',especialidad:''})
+    }).then(function(r){
+      if(r.ok){form.reset();ok.style.display='block';}
+      else{return r.json().then(function(d){throw new Error(d.mensaje||d.message||'Error '+r.status);});}
+    }).catch(function(ex){err.textContent=ex.message||'Error al conectar.';err.style.display='block';})
+    .finally(function(){btn.disabled=false;btn.textContent='Pre-registrarme \u2192';});
+  });
+})();
+</script>
+
+</body>
+</html>

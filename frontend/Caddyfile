@@ -1,4 +1,4 @@
-:{$PORT:80}
+:{$PORT}
 
 root * /app
 file_server

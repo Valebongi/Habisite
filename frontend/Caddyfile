@@ -3,7 +3,4 @@
 root * /app
 file_server
 
-route /concursos-2026 {
-    rewrite * /concursos-2026.html
-    file_server
-}
+rewrite /concursos-2026 /concursos-2026.html

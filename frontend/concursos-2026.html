@@ -23,72 +23,74 @@
     .fade-up { animation: fadeUp 0.7s ease both; }
 
     /* ── Nav ─────────────────────────────────────── */
-    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(13,14,16,0.95); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .nav-logo { font-size: 1.15rem; font-weight: 900; color: var(--white); letter-spacing: 0.1em; }
-    .nav-logo span { color: var(--red); }
+    .nav { position: absolute; top: 0; left: 0; right: 0; z-index: 10; background: transparent; display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; }
+    .nav-logo { font-size: 1.8rem; font-weight: 900; color: var(--white); letter-spacing: 0.02em; }
+    .nav-logo span { color: var(--white); }
     .nav-links { display: flex; gap: 4px; }
-    .nav-links a { color: #fff8; font-size: 0.8rem; font-weight: 500; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; }
-    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
-    .nav-cta { background: var(--red) !important; color: #fff !important; font-weight: 700 !important; }
+    .nav-links a { color: rgba(255,255,255,0.85); font-size: 0.85rem; font-weight: 600; padding: 8px 16px; transition: color 0.2s; }
+    .nav-links a:hover { color: #fff; }
+    .nav-cta { color: var(--red) !important; font-weight: 700 !important; }
 
     /* ── Hero ────────────────────────────────────── */
-    .hero { margin-top: 54px; min-height: 620px; background: linear-gradient(135deg, var(--dark) 0%, #141618 40%, #1a1208 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 60px 40px; position: relative; overflow: hidden; }
-    .hero-bg { position: absolute; inset: 0; opacity: 0.04; background: repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(232,85,32,0.08) 40px, rgba(232,85,32,0.08) 80px); }
-    .hero-glow-1 { position: absolute; top: -100px; right: -50px; width: 400px; height: 400px; background: rgba(232,85,32,0.08); border-radius: 999px; filter: blur(80px); }
-    .hero-glow-2 { position: absolute; bottom: -80px; left: 10%; width: 300px; height: 300px; background: rgba(232,85,32,0.05); border-radius: 999px; filter: blur(60px); }
-    .hero-shape { position: absolute; border: 1.5px solid rgba(232,85,32,0.1); border-radius: 8px; }
-    .hero-grid { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: center; position: relative; z-index: 1; }
+    .hero { min-height: 100vh; color: #fff; display: flex; align-items: center; justify-content: center; padding: 100px 40px 60px; position: relative; overflow: hidden; }
+    .hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(13,14,16,0.72) 0%, rgba(20,22,24,0.60) 50%, rgba(26,18,8,0.65) 100%); z-index: 1; }
+    .hero-shape { position: absolute; border: 1.5px solid rgba(232,85,32,0.15); border-radius: 8px; z-index: 2; }
+    .hero-grid { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: center; position: relative; z-index: 3; }
     .hero-left { animation: fadeUp 0.8s ease; }
-    .hero-left .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,85,32,0.15); color: var(--red); padding: 6px 16px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 20px; }
-    .hero-left h1 { font-size: 3rem; font-weight: 900; line-height: 1.05; margin-bottom: 10px; letter-spacing: -1px; }
+    .hero-left .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(232,85,32,0.18); color: #ffcbb5; padding: 6px 16px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 20px; border: 1px solid rgba(232,85,32,0.3); }
+    .hero-left h1 { font-size: 3rem; font-weight: 900; line-height: 1.05; margin-bottom: 10px; letter-spacing: -1px; text-shadow: 0 2px 12px rgba(0,0,0,0.4); }
     .hero-left h1 span { color: var(--red); display: block; }
-    .hero-left .sub { font-size: 0.78rem; color: var(--red); font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 20px; }
-    .hero-left .tagline { font-size: 1.05rem; color: #ffffff66; line-height: 1.65; max-width: 480px; }
+    .hero-left .sub { font-size: 0.78rem; color: #ffcbb5; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 20px; }
+    .hero-left .tagline { font-size: 1.05rem; color: rgba(255,255,255,0.82); line-height: 1.65; max-width: 480px; text-shadow: 0 1px 6px rgba(0,0,0,0.3); }
     .hero-left .stats { display: flex; gap: 32px; margin-top: 28px; }
     .hero-left .stat { text-align: center; }
     .hero-left .stat-num { font-size: 1.8rem; font-weight: 900; color: var(--red); }
-    .hero-left .stat-label { font-size: 0.68rem; color: #fff6; text-transform: uppercase; letter-spacing: 0.1em; }
+    .hero-left .stat-label { font-size: 0.68rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; }
 
-    .hero-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px 28px; backdrop-filter: blur(8px); animation: fadeUp 1s ease 0.2s both; }
-    .hero-form h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; }
-    .hero-form .form-sub { font-size: 0.82rem; color: #ffffff77; margin-bottom: 20px; }
-    .hero-form label { display: block; font-size: 0.68rem; font-weight: 700; color: #ffffffaa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
-    .hero-form input { width: 100%; padding: 12px 16px; border: 1.5px solid rgba(255,255,255,0.15); border-radius: 10px; background: rgba(255,255,255,0.06); color: #fff; font-size: 0.95rem; outline: none; font-family: inherit; margin-bottom: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
-    .hero-form input::placeholder { color: #ffffff44; }
-    .hero-form input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,85,32,0.15); }
+    /* ── Hero form — colores claros ─────────────── */
+    .hero-form { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeUp 1s ease 0.2s both; }
+    .hero-form h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; color: var(--text); }
+    .hero-form .form-sub { font-size: 0.82rem; color: var(--gray); margin-bottom: 20px; }
+    .hero-form label { display: block; font-size: 0.68rem; font-weight: 700; color: #374151; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .hero-form input { width: 100%; padding: 12px 16px; border: 1.5px solid #d1d5db; border-radius: 10px; background: #f9fafb; color: var(--text); font-size: 0.95rem; outline: none; font-family: inherit; margin-bottom: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .hero-form input::placeholder { color: #9ca3af; }
+    .hero-form input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,85,32,0.12); background: #fff; }
     .hero-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .hero-form button { width: 100%; padding: 14px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 4px; letter-spacing: 0.02em; }
     .hero-form button:hover { background: #cc4b1c; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,85,32,0.3); }
     .hero-form button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-    .hero-form .hint { text-align: center; margin-top: 10px; font-size: 0.7rem; color: #ffffff44; }
+    .hero-form .hint { text-align: center; margin-top: 10px; font-size: 0.7rem; color: #9ca3af; }
     .f-msg { display: none; margin-top: 14px; padding: 12px 16px; border-radius: 10px; text-align: center; font-size: 0.88rem; font-weight: 600; }
     .f-ok { background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.3); color: #4ade80; }
     .f-err { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
 
     /* ── Red bar ─────────────────────────────────── */
-    .red-bar { background: var(--red); display: flex; justify-content: center; gap: 16px; padding: 16px 24px; flex-wrap: wrap; }
+    .red-bar { background: var(--red); display: flex; justify-content: center; gap: 16px; padding: 18px 24px; flex-wrap: wrap; }
     .red-bar a { color: #fff; border: 2px solid rgba(255,255,255,0.6); padding: 10px 32px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 4px; transition: all 0.2s; }
     .red-bar a:hover { background: #fff; color: var(--red); text-decoration: none; }
 
     /* ── Design Challenge section (con fondo.png) ── */
-    .dc-section { display: flex; min-height: 500px; position: relative; overflow: hidden; }
-    .dc-text { flex: 0 0 55%; padding: 64px 48px; background: rgba(255,255,255,0.96); display: flex; gap: 32px; }
-    .dc-vertical { writing-mode: vertical-rl; font-size: 4.5rem; font-weight: 900; color: var(--red); line-height: 1; letter-spacing: -3px; flex-shrink: 0; opacity: 0.9; }
-    .dc-body { flex: 1; }
+    .dc-section { display: flex; align-items: stretch; position: relative; overflow: hidden; }
+    .dc-text { flex: 0 0 45%; padding: 56px 40px; background: #fff; display: flex; gap: 0; }
+    .dc-vertical { writing-mode: vertical-rl; font-size: 4.5rem; font-weight: 900; color: var(--red); line-height: 1; letter-spacing: -3px; flex-shrink: 0; opacity: 0.9; margin-right: 32px; }
+    .dc-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
     .dc-body h2 { font-size: 1.6rem; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; letter-spacing: -0.5px; }
     .dc-body h3 { font-size: 0.92rem; font-weight: 700; text-transform: uppercase; color: var(--gray); margin-bottom: 20px; letter-spacing: 0.05em; }
     .dc-body p { font-size: 0.95rem; color: #374151; line-height: 1.75; margin-bottom: 16px; }
-    .dc-img { flex: 1; background: url('fondo.png') center/cover no-repeat; position: relative; }
-    .dc-img::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgba(255,255,255,0.3), transparent); }
+    .dc-img { flex: 1; min-height: 100%; background: url('fondo.png') center center/cover no-repeat; position: relative; }
+    .dc-img::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgba(255,255,255,0.1), transparent); }
 
     /* ── Section styling ─────────────────────────── */
-    .separator { background: var(--red); text-align: center; padding: 18px 24px; }
-    .separator h2 { color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; border: 2px solid rgba(255,255,255,0.5); display: inline-block; padding: 8px 36px; }
+    .separator { background: var(--red); text-align: center; padding: 20px 24px; }
+    .separator h2 { color: #fff; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; border: 2px solid rgba(255,255,255,0.5); display: inline-block; padding: 8px 40px; }
 
-    .section { max-width: 960px; margin: 0 auto; padding: 64px 32px; }
-    .section-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--red); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
-    .section h2 { font-size: 2rem; font-weight: 900; margin-bottom: 12px; letter-spacing: -0.5px; }
-    .section .lead { font-size: 1rem; color: var(--gray); margin-bottom: 36px; max-width: 600px; }
+    .section-wrap { background: #fff; }
+    .section-wrap.alt { background: #f4f6f8; }
+    .section { max-width: 960px; margin: 0 auto; padding: 72px 32px; }
+    .section-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--red); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 10px; }
+    .section h2 { font-size: 2rem; font-weight: 900; margin-bottom: 14px; letter-spacing: -0.5px; }
+    .section .lead { font-size: 1rem; color: var(--gray); margin-bottom: 40px; max-width: 600px; }
 
     /* ── Participantes cards ─────────────────────── */
     .part-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
@@ -119,12 +121,12 @@
     .ph-icon { font-size: 1.3rem; margin-bottom: 8px; }
 
     /* ── Criterios ────────────────────────────────── */
-    .crit { display: flex; flex-direction: column; gap: 8px; }
-    .crit-row { display: flex; align-items: center; background: var(--light); border-radius: 10px; padding: 16px 20px; border: 1px solid var(--border); transition: transform 0.15s; }
-    .crit-row:hover { transform: translateX(4px); }
-    .crit-icon { font-size: 1.3rem; margin-right: 14px; flex-shrink: 0; }
+    .crit { display: flex; flex-direction: column; gap: 10px; }
+    .crit-row { display: flex; align-items: center; background: #fff; border-radius: 10px; padding: 18px 22px; border: 1px solid var(--border); transition: transform 0.15s, box-shadow 0.15s; }
+    .crit-row:hover { transform: translateX(5px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .crit-icon { font-size: 1.3rem; margin-right: 16px; flex-shrink: 0; }
     .crit-name { flex: 1; font-weight: 600; font-size: 0.95rem; }
-    .crit-pct { background: var(--red); color: #fff; padding: 4px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 800; flex-shrink: 0; }
+    .crit-pct { background: var(--red); color: #fff; padding: 5px 16px; border-radius: 999px; font-size: 0.82rem; font-weight: 800; flex-shrink: 0; }
 
     /* ── Entregables ──────────────────────────────── */
     .ent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
@@ -187,7 +189,7 @@
     @media (max-width: 640px) {
       .nav { padding: 10px 16px; }
       .nav-links { display: none; }
-      .hero { padding: 40px 20px; min-height: auto; }
+      .hero { padding: 40px 20px; min-height: 80vh; }
       .hero-left h1 { font-size: 1.6rem; }
       .hero-form .row { grid-template-columns: 1fr; }
       .section { padding: 40px 20px; }
@@ -217,9 +219,10 @@
 
 <!-- ── Hero ──────────────────────────────────────── -->
 <header class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-glow-1"></div>
-  <div class="hero-glow-2"></div>
+  <video class="hero-video" autoplay muted loop playsinline>
+    <source src="videohero.mp4" type="video/mp4" />
+  </video>
+  <div class="hero-overlay"></div>
   <div class="hero-shape" style="top:12%;right:18%;width:120px;height:120px;transform:rotate(25deg);"></div>
   <div class="hero-shape" style="bottom:20%;left:5%;width:80px;height:80px;transform:rotate(-18deg);"></div>
 
@@ -247,6 +250,8 @@
         </div>
         <label>Correo electrónico *</label>
         <input id="f-email" type="email" placeholder="tu@email.com" required />
+        <label>Universidad / Institución *</label>
+        <input id="f-uni" type="text" placeholder="Ej: UBA, FADU, IED..." required />
         <button type="submit" id="f-btn">Pre-registrarme &#8594;</button>
         <p class="hint">Los datos completos se solicitan al confirmar la inscripción.</p>
         <div id="f-ok" class="f-msg f-ok"><strong>Pre-registro exitoso.</strong> Revisá tu email.</div>
@@ -278,7 +283,7 @@
 
 <!-- ── Participantes ─────────────────────────────── -->
 <div class="separator" id="participantes"><h2>cómo participar</h2></div>
-<div class="section">
+<div class="section-wrap alt"><div class="section">
   <div class="part-grid">
     <div class="part-card">
       <div class="part-icon">E</div>
@@ -301,11 +306,11 @@
     <p style="font-size: 0.72rem; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 6px;">El reto</p>
     <p style="font-size: 1.05rem; color: #374151; font-weight: 500; line-height: 1.65;">El desafío pondrá a prueba la capacidad de imaginar <strong>nuevas formas de habitar espacios en entornos no urbanos y de diálogo con la naturaleza</strong>, combinando creatividad, viabilidad y una mirada sostenible.</p>
   </div>
-</div>
+</div></div>
 
 <!-- ── Cronograma ─────────────────────────────────── -->
 <div class="separator" id="cronograma"><h2>cronograma</h2></div>
-<div class="section" style="text-align: center;">
+<div class="section-wrap"><div class="section" style="text-align: center;">
   <p class="section-badge">Fechas importantes</p>
   <h2>Cronograma</h2>
   <p class="lead" style="margin: 8px auto 44px;">Duración total: 50 días</p>
@@ -318,11 +323,11 @@
     <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">26 MAY 2026</div><div class="crono-body"><h3>Evaluación del Jurado</h3><p>Revisión de proyectos por el jurado especializado y notificación de resultados.</p></div></div>
     <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">03 JUN 2026</div><div class="crono-body"><h3>Anuncio de Ganadores</h3><p>Publicación de resultados, premiación oficial y celebración de los proyectos seleccionados.</p></div></div>
   </div>
-</div>
+</div></div>
 
 <!-- ── Fases ──────────────────────────────────────── -->
 <div class="separator" id="fases"><h2>fases del concurso</h2></div>
-<div class="section">
+<div class="section-wrap alt"><div class="section">
   <div class="phases">
     <div class="ph"><span class="ph-num">1</span><h3>Convocatoria y registro</h3><p>Inscripción individual o en equipo a través de la plataforma oficial.</p></div>
     <div class="ph"><span class="ph-num">2</span><h3>Plan de comunicación</h3><p>Difusión internacional. Grupo de WhatsApp y comunicaciones periódicas.</p></div>
@@ -331,25 +336,24 @@
     <div class="ph"><span class="ph-num">5</span><h3>Entrega de propuestas</h3><p>Los participantes presentan su trabajo final dentro del plazo.</p></div>
     <div class="ph"><span class="ph-num">6</span><h3>Evaluación y ganadores</h3><p>El jurado revisa. Se anuncian ganadores, menciones y exposición.</p></div>
   </div>
-</div>
+</div></div>
 
 <!-- ── Criterios ──────────────────────────────────── -->
-<div class="section" id="bases">
+<div class="section-wrap"><div class="section" id="bases">
   <p class="section-badge">Evaluación</p>
   <h2>Criterios de evaluación</h2>
   <p class="lead">Cómo se evaluarán las propuestas presentadas.</p>
   <div class="crit">
-    <div class="crit-row"><span class="crit-name">Creatividad y originalidad</span><span class="crit-pct">20%</span></div>
-    <div class="crit-row"><span class="crit-name">Concepto y propuesta</span><span class="crit-pct">20%</span></div>
-    <div class="crit-row"><span class="crit-name">Relación Entorno</span><span class="crit-pct">20%</span></div>
-    <div class="crit-row"><span class="crit-name">Resolución Funcional</span><span class="crit-pct">20%</span></div>
-    <div class="crit-row"><span class="crit-name">Sostenibilidad y enfoque ambiental</span><span class="crit-pct">10%</span></div>
-    <div class="crit-row"><span class="crit-name">Cumplimiento y Calidad de presentación</span><span class="crit-pct">10%</span></div>
+    <div class="crit-row"><span class="crit-icon">💡</span><span class="crit-name">Creatividad y originalidad</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-icon">🧠</span><span class="crit-name">Concepto y propuesta</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-icon">🌿</span><span class="crit-name">Relación Entorno</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-icon">📐</span><span class="crit-name">Resolución Funcional</span><span class="crit-pct">20%</span></div>
+    <div class="crit-row"><span class="crit-icon">♻️</span><span class="crit-name">Sostenibilidad y enfoque ambiental</span><span class="crit-pct">10%</span></div>
+    <div class="crit-row"><span class="crit-icon">✅</span><span class="crit-name">Cumplimiento y Calidad de presentación</span><span class="crit-pct">10%</span></div>
   </div>
-</div>
 
-<!-- ── Entregables ────────────────────────────────── -->
-<div class="section" style="padding-top:0;">
+  <!-- ── Entregables ──────────────────────────────── -->
+  <div class="section" style="padding-top:0;">
   <p class="section-badge">Entrega</p>
   <h2>Entregables</h2>
   <p class="lead">Detalles técnicos se publicarán con el reto oficial.</p>
@@ -360,10 +364,10 @@
     <div class="ent-card"><div class="ent-icon ent-letter">04</div><div><h4>Imágenes representativas</h4><p>Renders, perspectivas, collages o fotomontajes.</p></div></div>
     <div class="ent-card"><div class="ent-icon ent-letter">05</div><div><h4>Panel 2 hojas</h4><p>Diagramación con lógica constructiva integrada.</p></div></div>
   </div>
-</div>
+</div></div>
 
 <!-- ── Premios ────────────────────────────────────── -->
-<div class="section" style="padding-top:0;" id="premios">
+<div class="section-wrap alt"><div class="section" id="premios">
   <p class="section-badge">Reconocimiento</p>
   <h2>Premios</h2>
   <div class="prizes">
@@ -372,7 +376,7 @@
     <div class="pr" style="border-top:4px solid #cd7f32;"><p class="pr-medal" style="background:#cd7f32;">3&ordm;</p><p class="pr-amount">USD 100</p><p class="pr-detail">Certificado LinkedIn avalado por IMB</p></div>
     <div class="pr"><p class="pr-medal" style="background:var(--red);">M</p><p class="pr-amount" style="font-size:1.1rem;">Menciones especiales</p><p class="pr-detail">Publicación en medios y exposición virtual</p></div>
   </div>
-</div>
+</div></div>
 
 <!-- ── Video ──────────────────────────────────────── -->
 <div class="video-section">
@@ -392,7 +396,7 @@
 </div>
 
 <!-- ── Organizadores ──────────────────────────────── -->
-<div class="section">
+<div class="section-wrap"><div class="section">
   <p class="section-badge">Organizadores</p>
   <h2>Organizadores y aliados</h2>
   <div class="orgs">
@@ -400,7 +404,7 @@
     <div class="org-card"><p class="org-label">Respaldo</p><p class="org-name">IMB | International Management & Business Institute</p></div>
     <div class="org-card"><p class="org-label">Aliados académicos</p><p class="org-name">Univ. Católica de Santa María · Universidad La Salle</p><p class="org-desc">Vicerrectorado de Investigación</p></div>
   </div>
-</div>
+</div></div>
 
 <!-- ── CTA final ──────────────────────────────────── -->
 <div class="cta-final">
@@ -433,11 +437,12 @@
     var n = document.getElementById('f-nom').value.trim();
     var a = document.getElementById('f-ape').value.trim();
     var m = document.getElementById('f-email').value.trim();
-    if (!n||!a||!m) { err.textContent='Completá todos los campos.'; err.style.display='block'; return; }
+    var u = document.getElementById('f-uni').value.trim();
+    if (!n||!a||!m||!u) { err.textContent='Completá todos los campos.'; err.style.display='block'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { err.textContent='Correo inválido.'; err.style.display='block'; return; }
     btn.disabled=true; btn.textContent='Enviando...';
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nombres:n,apellidos:a,correoElectronico:m,universidad:'',dni:'',celular:'',especialidad:''})
+      body:JSON.stringify({nombres:n,apellidos:a,correoElectronico:m,universidad:u,dni:'',celular:'',especialidad:''})
     }).then(function(r){
       if(r.ok){form.reset();ok.style.display='block';}
       else{return r.json().then(function(d){throw new Error(d.mensaje||d.message||'Error '+r.status);});}

@@ -254,7 +254,7 @@
         <input id="f-uni" type="text" placeholder="Ej: UBA, FADU, IED..." required />
         <button type="submit" id="f-btn">Pre-registrarme &#8594;</button>
         <p class="hint">Los datos completos se solicitan al confirmar la inscripción.</p>
-        <div id="f-ok" class="f-msg f-ok"><strong>Pre-registro exitoso.</strong> Revisá tu email.</div>
+        <div id="f-ok" class="f-msg f-ok"><strong>¡Listo!</strong> Te abrimos WhatsApp para completar el pre-registro.</div>
         <div id="f-err" class="f-msg f-err"></div>
       </form>
     </div>
@@ -427,7 +427,7 @@
 <!-- ── Script ─────────────────────────────────────── -->
 <script>
 (function() {
-  var API = 'https://api.habisite.com/api/v1/postulantes';
+  var WSP = '5493513326838';
   var form = document.getElementById('frm');
   var btn = document.getElementById('f-btn');
   var ok = document.getElementById('f-ok');
@@ -440,14 +440,14 @@
     var u = document.getElementById('f-uni').value.trim();
     if (!n||!a||!m||!u) { err.textContent='Completá todos los campos.'; err.style.display='block'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { err.textContent='Correo inválido.'; err.style.display='block'; return; }
-    btn.disabled=true; btn.textContent='Enviando...';
-    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nombres:n,apellidos:a,correoElectronico:m,universidad:u,dni:'',celular:'',especialidad:''})
-    }).then(function(r){
-      if(r.ok){form.reset();ok.style.display='block';}
-      else{return r.json().then(function(d){throw new Error(d.mensaje||d.message||'Error '+r.status);});}
-    }).catch(function(ex){err.textContent=ex.message||'Error al conectar.';err.style.display='block';})
-    .finally(function(){btn.disabled=false;btn.textContent='Pre-registrarme \u2192';});
+    var msg = 'Hola! Quiero pre-registrarme al Habisite Design Challenge 2026.\n\n'
+      + 'Nombre: ' + n + ' ' + a + '\n'
+      + 'Email: ' + m + '\n'
+      + 'Universidad: ' + u;
+    var url = 'https://wa.me/' + WSP + '?text=' + encodeURIComponent(msg);
+    form.reset();
+    ok.style.display='block';
+    window.open(url, '_blank');
   });
 })();
 </script>

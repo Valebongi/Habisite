@@ -49,21 +49,46 @@
     .hero-left .stat-label { font-size: 0.68rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; }
 
     /* ── Hero form — colores claros ─────────────── */
-    .hero-form { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeUp 1s ease 0.2s both; }
+    .hero-form { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 28px 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); animation: fadeUp 1s ease 0.2s both; max-height: 90vh; overflow-y: auto; }
     .hero-form h2 { font-size: 1.2rem; font-weight: 800; margin-bottom: 4px; color: var(--text); }
-    .hero-form .form-sub { font-size: 0.82rem; color: var(--gray); margin-bottom: 20px; }
+    .hero-form .form-sub { font-size: 0.82rem; color: var(--gray); margin-bottom: 18px; }
     .hero-form label { display: block; font-size: 0.68rem; font-weight: 700; color: #374151; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
-    .hero-form input { width: 100%; padding: 12px 16px; border: 1.5px solid #d1d5db; border-radius: 10px; background: #f9fafb; color: var(--text); font-size: 0.95rem; outline: none; font-family: inherit; margin-bottom: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .hero-form input, .hero-form select { width: 100%; padding: 11px 14px; border: 1.5px solid #d1d5db; border-radius: 10px; background: #f9fafb; color: var(--text); font-size: 0.9rem; outline: none; font-family: inherit; margin-bottom: 12px; transition: border-color 0.2s, box-shadow 0.2s; appearance: none; -webkit-appearance: none; }
     .hero-form input::placeholder { color: #9ca3af; }
-    .hero-form input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,85,32,0.12); background: #fff; }
-    .hero-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .hero-form button { width: 100%; padding: 14px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 4px; letter-spacing: 0.02em; }
-    .hero-form button:hover { background: #cc4b1c; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,85,32,0.3); }
+    .hero-form input:focus, .hero-form select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,85,32,0.12); background: #fff; }
+    .hero-form select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+    .hero-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hero-form .tel-row { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+    .hero-form button { width: 100%; padding: 14px; background: var(--red); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 4px; letter-spacing: 0.02em; }
+    .hero-form button:hover:not(:disabled) { background: #cc4b1c; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,85,32,0.3); }
     .hero-form button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
     .hero-form .hint { text-align: center; margin-top: 10px; font-size: 0.7rem; color: #9ca3af; }
-    .f-msg { display: none; margin-top: 14px; padding: 12px 16px; border-radius: 10px; text-align: center; font-size: 0.88rem; font-weight: 600; }
+    .f-msg { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 10px; text-align: center; font-size: 0.85rem; font-weight: 600; }
     .f-ok { background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.3); color: #4ade80; }
     .f-err { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); color: #fca5a5; }
+    /* Checkbox politicas */
+    .policy-row { display: flex; align-items: flex-start; gap: 10px; margin: 8px 0 14px; }
+    .policy-row input[type=checkbox] { width: 18px; height: 18px; min-width: 18px; margin: 1px 0 0; accent-color: var(--red); cursor: pointer; }
+    .policy-row span { font-size: 0.78rem; color: #374151; line-height: 1.5; }
+    .policy-row a { color: var(--red); text-decoration: underline; cursor: pointer; }
+    /* Modal politicas */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 14px; max-width: 560px; width: 100%; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.3); }
+    .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .modal-header h3 { font-size: 1rem; font-weight: 800; color: var(--text); margin: 0; }
+    .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; font-size: 0.83rem; color: #374151; line-height: 1.75; }
+    .modal-body h4 { font-size: 0.85rem; font-weight: 700; margin: 16px 0 6px; color: var(--text); }
+    .modal-body p, .modal-body li { margin-bottom: 8px; }
+    .modal-body ul { padding-left: 18px; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid #e5e7eb; flex-shrink: 0; display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+    .modal-footer .scroll-hint { font-size: 0.72rem; color: #9ca3af; flex: 1; }
+    .modal-btn { padding: 10px 24px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+    .modal-btn-cancel { background: #f3f4f6; color: #374151; }
+    .modal-btn-cancel:hover { background: #e5e7eb; }
+    .modal-btn-accept { background: var(--red); color: #fff; }
+    .modal-btn-accept:hover:not(:disabled) { background: #cc4b1c; }
+    .modal-btn-accept:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── Red bar ─────────────────────────────────── */
     .red-bar { background: var(--red); display: flex; justify-content: center; gap: 16px; padding: 18px 24px; flex-wrap: wrap; }
@@ -241,20 +266,68 @@
     </div>
 
     <div class="hero-form" id="form">
-      <h2>Inscribite ahora</h2>
-      <p class="form-sub">Dejá tus datos y te enviaremos toda la info del concurso.</p>
+      <h2>Inscripción oficial</h2>
+      <p class="form-sub">Completá tus datos para inscribirte al Habisite Design Challenge 2026.</p>
       <form id="frm" novalidate>
         <div class="row">
-          <div><label>Nombres *</label><input id="f-nom" type="text" placeholder="Juan Carlos" required /></div>
-          <div><label>Apellidos *</label><input id="f-ape" type="text" placeholder="Pérez García" required /></div>
+          <div><label>Nombres *</label><input id="f-nom" type="text" placeholder="Juan Carlos" required autocomplete="given-name" /></div>
+          <div><label>Apellidos *</label><input id="f-ape" type="text" placeholder="Pérez García" required autocomplete="family-name" /></div>
         </div>
         <label>Correo electrónico *</label>
-        <input id="f-email" type="email" placeholder="tu@email.com" required />
+        <input id="f-email" type="email" placeholder="tu@email.com" required autocomplete="email" />
+        <label>Teléfono *</label>
+        <div class="tel-row">
+          <select id="f-telcode" aria-label="Código de país"></select>
+          <input id="f-tel" type="tel" placeholder="1155443322" required autocomplete="tel-national" />
+        </div>
+        <div class="row">
+          <div>
+            <label>Sexo *</label>
+            <select id="f-sexo" required>
+              <option value="">Seleccioná</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="No binario">No binario</option>
+              <option value="Prefiero no decir">Prefiero no decir</option>
+            </select>
+          </div>
+          <div>
+            <label>Profesión *</label>
+            <select id="f-prof" required>
+              <option value="">Seleccioná</option>
+              <option value="Arquitectura">Arquitectura</option>
+              <option value="Diseño de Interiores">Diseño de Interiores</option>
+              <option value="Diseño Industrial">Diseño Industrial</option>
+              <option value="Paisajismo">Paisajismo</option>
+              <option value="Ingeniería Civil">Ingeniería Civil</option>
+              <option value="Urbanismo">Urbanismo</option>
+              <option value="Otra">Otra</option>
+            </select>
+          </div>
+        </div>
         <label>Universidad / Institución *</label>
-        <input id="f-uni" type="text" placeholder="Ej: UBA, FADU, IED..." required />
-        <button type="submit" id="f-btn">Pre-registrarme &#8594;</button>
-        <p class="hint">Los datos completos se solicitan al confirmar la inscripción.</p>
-        <div id="f-ok" class="f-msg f-ok"><strong>¡Listo!</strong> Te abrimos WhatsApp para completar el pre-registro.</div>
+        <input id="f-uni" type="text" placeholder="Ej: UBA, FADU, PUCP..." required autocomplete="organization" />
+        <div class="row">
+          <div>
+            <label>País *</label>
+            <select id="f-pais" required>
+              <option value="">Seleccioná</option>
+            </select>
+          </div>
+          <div>
+            <label id="f-prov-label">Provincia / Estado *</label>
+            <select id="f-prov" required>
+              <option value="">Primero elegí país</option>
+            </select>
+          </div>
+        </div>
+        <div class="policy-row">
+          <input type="checkbox" id="f-policy" />
+          <span>Leí las <a id="open-policy">políticas de privacidad</a> y acepto los términos y condiciones.</span>
+        </div>
+        <button type="submit" id="f-btn">Inscribirme al concurso &#8594;</button>
+        <p class="hint">Al registrarte accedés al grupo oficial del concurso.</p>
+        <div id="f-ok" class="f-msg f-ok"><strong>¡Inscripción enviada!</strong> Te abrimos el grupo de WhatsApp del concurso.</div>
         <div id="f-err" class="f-msg f-err"></div>
       </form>
     </div>
@@ -316,8 +389,8 @@
   <p class="lead" style="margin: 8px auto 44px;">Duración total: 50 días</p>
 
   <div class="crono">
-    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">15 ABR 2026</div><div class="crono-body"><h3>Lanzamiento de Convocatoria</h3><p>Difusión en afiches, redes sociales y envío de invitaciones a universidades e instituciones.</p></div></div>
-    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">01 MAY 2026</div><div class="crono-body"><h3>Cierre de Inscripciones</h3><p>Charla informativa sobre el concurso y orientación técnica para los participantes inscritos.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">15 ABR 2026</div><div class="crono-body"><h3>Lanzamiento y apertura de inscripciones</h3><p>Difusión en redes sociales y apertura del formulario de inscripción oficial con acceso directo al grupo de WhatsApp.</p></div></div>
+    <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">01 MAY 2026</div><div class="crono-body"><h3>Cierre de Inscripciones</h3><p>Plazo límite para completar la inscripción oficial en el formulario.</p></div></div>
     <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">04 MAY 2026</div><div class="crono-body"><h3>Webinar Introductorio &amp; Bootcamp</h3><p>Sesión virtual con ponentes especializados y presentación oficial del reto.</p></div></div>
     <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">25 MAY 2026</div><div class="crono-body"><h3>Fecha límite de entrega</h3><p>Fecha límite para enviar la propuesta final con todos los entregables requeridos.</p></div></div>
     <div class="crono-item"><div class="crono-dot"></div><div class="crono-date">26 MAY 2026</div><div class="crono-body"><h3>Evaluación del Jurado</h3><p>Revisión de proyectos por el jurado especializado y notificación de resultados.</p></div></div>
@@ -329,8 +402,8 @@
 <div class="separator" id="fases"><h2>fases del concurso</h2></div>
 <div class="section-wrap alt"><div class="section">
   <div class="phases">
-    <div class="ph"><span class="ph-num">1</span><h3>Convocatoria y registro</h3><p>Inscripción individual o en equipo a través de la plataforma oficial.</p></div>
-    <div class="ph"><span class="ph-num">2</span><h3>Plan de comunicación</h3><p>Difusión internacional. Grupo de WhatsApp y comunicaciones periódicas.</p></div>
+    <div class="ph"><span class="ph-num">1</span><h3>Inscripción oficial</h3><p>Completá el formulario con tus datos. Al inscribirte accedés directamente al grupo de WhatsApp del concurso.</p></div>
+    <div class="ph"><span class="ph-num">2</span><h3>Canal de comunicación</h3><p>Canal oficial de WhatsApp con toda la información, novedades y comunicaciones del concurso.</p></div>
     <div class="ph"><span class="ph-num">3</span><h3>Webinar formativo</h3><p>Bases, fundamentos, documentación técnica y recursos gráficos necesarios.</p></div>
     <div class="ph"><span class="ph-num">4</span><h3>Anuncio del reto</h3><p>Se revela el desafío arquitectónico oficial que todos deberán resolver.</p></div>
     <div class="ph"><span class="ph-num">5</span><h3>Entrega de propuestas</h3><p>Los participantes presentan su trabajo final dentro del plazo.</p></div>
@@ -409,8 +482,8 @@
 <!-- ── CTA final ──────────────────────────────────── -->
 <div class="cta-final">
   <h2>Sumate al desafío</h2>
-  <p>Demostrá tu creatividad y diseñá el espacio que el futuro necesita.</p>
-  <a href="#form">INSCRIBITE AHORA</a>
+  <p>Inscribite oficialmente y unite al grupo del concurso.</p>
+  <a href="#form">INSCRIBIRME AHORA</a>
 </div>
 
 <!-- ── Legal ──────────────────────────────────────── -->
@@ -424,33 +497,256 @@
   <span class="footer-brand">HABISITE DESIGN CHALLENGE | 2026</span>
 </footer>
 
-<!-- ── Script ─────────────────────────────────────── -->
+<!-- Modal políticas de privacidad -->
+<div class="modal-overlay" id="modal-policy">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Políticas de Privacidad y Términos del Concurso</h3>
+    </div>
+    <div class="modal-body" id="modal-body-scroll">
+      <h4>Quiénes Somos</h4>
+      <p>Bienvenido/a a HabiSite. Al acceder y utilizar este sitio web (https://habisite.com), usted acepta cumplir y quedar sujeto a los presentes Términos y Condiciones. Si no está de acuerdo con alguno de estos términos, le recomendamos no utilizar este sitio.</p>
+      <h4>Media</h4>
+      <p>Si usted carga imágenes al sitio web (por ejemplo, a través de un formulario), debe evitar subir imágenes con datos de ubicación (EXIF GPS). Los visitantes pueden descargar y extraer datos de ubicación de cualquier imagen presente en el sitio.</p>
+      <h4>Cookies</h4>
+      <p><strong>Cookies de Comentarios:</strong> Si deja un comentario en el sitio, puede elegir guardar su nombre, email y web en cookies. Esto es para su comodidad y evitar completar estos datos nuevamente. Estas cookies duran 1 año.</p>
+      <p><strong>Cookies de Login:</strong> Si visita la página de inicio de sesión, se genera una cookie temporal para verificar si su navegador acepta cookies. No contiene datos personales. Al iniciar sesión se crean cookies para guardar datos de acceso (duran 2 días). Opciones de pantalla duran 1 año. Si selecciona "Recordarme", el acceso dura 2 semanas. Al cerrar sesión, estas cookies se eliminan.</p>
+      <p><strong>Cookies de Edición:</strong> Si edita o publica un artículo, una cookie adicional se guarda por 1 día, sin datos personales, solo el ID del post editado.</p>
+      <h4>Contenido Embebido desde Otros Sitios</h4>
+      <p>Los artículos pueden incluir contenido incrustado (videos, imágenes, artículos, etc.). Este contenido funciona como si el usuario visitara directamente la web externa. Dichos sitios pueden monitorear interacción, recopilar datos del usuario, utilizar cookies e incorporar seguimiento de terceros.</p>
+      <h4>Con quién Compartimos Sus Datos</h4>
+      <p>Si solicita un restablecimiento de contraseña, su dirección IP se incluirá en el correo de recuperación. No compartimos datos con terceros salvo obligación legal.</p>
+      <h4>Tiempo que Conservamos sus Datos</h4>
+      <p>Los comentarios y sus metadatos se conservan indefinidamente para permitir la aprobación automática de futuros comentarios. Si algún usuario crea una cuenta en el sitio, los administradores también pueden editar esa información. Puede ver, editar o eliminar su información en cualquier momento (excepto el nombre de usuario).</p>
+      <h4>Derechos sobre sus Datos</h4>
+      <p>Si tiene una cuenta en este sitio o ha dejado comentarios, puede solicitar un archivo exportado con sus datos personales. También puede solicitar la eliminación de sus datos, excepto aquellos que debamos conservar por razones legales, administrativas o de seguridad.</p>
+      <h4>Dónde se Envían sus Datos</h4>
+      <p>Los comentarios de los visitantes pueden ser revisados mediante un servicio automático de detección de spam.</p>
+      <h4>Limitación de Responsabilidad</h4>
+      <p>HabiSite no garantiza la disponibilidad permanente del sitio, la ausencia total de errores, ni la exactitud absoluta del contenido informativo. No somos responsables de daños derivados del uso de la web.</p>
+      <h4>Enlaces Externos</h4>
+      <p>El sitio puede contener enlaces hacia terceros. No somos responsables por contenido externo, políticas de privacidad ajenas ni disponibilidad de dichos sitios.</p>
+      <h4>Términos del Concurso HABISITE DESIGN CHALLENGE 2026</h4>
+      <p>El presente documento también regula la participación en el concurso Habisite Design Challenge 2026, cuyo tema es "Arquitectura que habita y representa paisajes remotos".</p>
+      <p><strong>1. Participación:</strong> Libre y gratuita. Dirigida a estudiantes o egresados de arquitectura. El participante garantiza la originalidad de su propuesta.</p>
+      <p><strong>2. Entregables:</strong> Los participantes deberán presentar un PDF horizontal A3 (máx. 8 MB) con planta, corte, renders y memoria conceptual (máx. 400 palabras). Título: "HABISITE DESIGN CHALLENGE 2026" y firma del participante.</p>
+      <p><strong>3. Evaluación:</strong> El jurado calificará: Creatividad, Experiencia arquitectónica, Integración con el entorno, Viabilidad técnica, Sostenibilidad y Presentación general.</p>
+      <p><strong>4. Propiedad Intelectual:</strong> El proyecto sigue siendo del autor. HabiSite puede publicar y difundir el trabajo con fines académicos o promocionales, respetando la autoría.</p>
+      <p><strong>5. Datos Personales:</strong> Solo se usarán para gestionar el concurso. No se compartirán con terceros.</p>
+      <p><strong>6. Aceptación:</strong> Al enviar su inscripción, el participante acepta estos términos en su totalidad.</p>
+      <h4>Legislación Aplicable</h4>
+      <p>Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia será atendida por los tribunales competentes de Arequipa.</p>
+    </div>
+    <div class="modal-footer">
+      <span class="scroll-hint" id="scroll-hint">Desplazate hasta el final para aceptar.</span>
+      <button class="modal-btn modal-btn-cancel" id="btn-cancel-policy">Cancelar</button>
+      <button class="modal-btn modal-btn-accept" id="btn-accept-policy" disabled>Aceptar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
-  var GRUPO_WA = 'https://chat.whatsapp.com/CE7trPF8mso8OJDSTKa1Qg?mode=gi_t';
+  'use strict';
+
+  var GRUPO_WA = 'https://chat.whatsapp.com/CE7trPF8mso8OJDSTKa1Qg';
   var API = 'https://api.habisite.com/api/v1/postulantes';
-  var form = document.getElementById('frm');
-  var btn = document.getElementById('f-btn');
-  var ok = document.getElementById('f-ok');
-  var err = document.getElementById('f-err');
+
+  var PAISES = [
+    { v:'Argentina',   l:'\u{1F1E6}\u{1F1F7} Argentina',   prov:['Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'], tel:'+54' },
+    { v:'Bolivia',     l:'\u{1F1E7}\u{1F1F4} Bolivia',     prov:['Beni','Chuquisaca','Cochabamba','La Paz','Oruro','Pando','Potosí','Santa Cruz','Tarija'], tel:'+591' },
+    { v:'Brasil',      l:'\u{1F1E7}\u{1F1F7} Brasil',      prov:['Acre','Alagoas','Amapá','Amazonas','Bahia','Ceará','Distrito Federal','Espírito Santo','Goiás','Maranhão','Mato Grosso','Mato Grosso do Sul','Minas Gerais','Pará','Paraíba','Paraná','Pernambuco','Piauí','Rio de Janeiro','Rio Grande do Norte','Rio Grande do Sul','Rondônia','Roraima','Santa Catarina','São Paulo','Sergipe','Tocantins'], tel:'+55' },
+    { v:'Chile',       l:'\u{1F1E8}\u{1F1F1} Chile',       prov:['Antofagasta','Araucanía','Arica y Parinacota','Atacama','Aysén','Biobío','Coquimbo','Los Lagos','Los Ríos','Magallanes','Maule','Metropolitana','Ñuble',"O'Higgins",'Tarapacá','Valparaíso'], tel:'+56' },
+    { v:'Colombia',    l:'\u{1F1E8}\u{1F1F4} Colombia',    prov:['Amazonas','Antioquia','Arauca','Atlántico','Bogotá D.C.','Bolívar','Boyacá','Caldas','Caquetá','Casanare','Cauca','Cesar','Chocó','Córdoba','Cundinamarca','Guainía','Guaviare','Huila','La Guajira','Magdalena','Meta','Nariño','Norte de Santander','Putumayo','Quindío','Risaralda','San Andrés y Providencia','Santander','Sucre','Tolima','Valle del Cauca','Vaupés','Vichada'], tel:'+57' },
+    { v:'Costa Rica',  l:'\u{1F1E8}\u{1F1F7} Costa Rica',  prov:['Alajuela','Cartago','Guanacaste','Heredia','Limón','Puntarenas','San José'], tel:'+506' },
+    { v:'Cuba',        l:'\u{1F1E8}\u{1F1FA} Cuba',        prov:['Artemisa','Camagüey','Ciego de Ávila','Cienfuegos','Granma','Guantánamo','Holguín','La Habana','Las Tunas','Matanzas','Mayabeque','Pinar del Río','Sancti Spíritus','Santiago de Cuba','Villa Clara'], tel:'+53' },
+    { v:'Ecuador',     l:'\u{1F1EA}\u{1F1E8} Ecuador',     prov:['Azuay','Bolívar','Cañar','Carchi','Chimborazo','Cotopaxi','El Oro','Esmeraldas','Galápagos','Guayas','Imbabura','Loja','Los Ríos','Manabí','Morona Santiago','Napo','Orellana','Pastaza','Pichincha','Santa Elena','Santo Domingo','Sucumbíos','Tungurahua','Zamora Chinchipe'], tel:'+593' },
+    { v:'El Salvador', l:'\u{1F1F8}\u{1F1FB} El Salvador', prov:['Ahuachapán','Cabañas','Chalatenango','Cuscatlán','La Libertad','La Paz','La Unión','Morazán','San Miguel','San Salvador','San Vicente','Santa Ana','Sonsonate','Usulután'], tel:'+503' },
+    { v:'España',      l:'\u{1F1EA}\u{1F1F8} España',      prov:['Andalucía','Aragón','Asturias','Baleares','Canarias','Cantabria','Castilla-La Mancha','Castilla y León','Cataluña','Comunidad de Madrid','Comunidad Foral de Navarra','Comunidad Valenciana','Extremadura','Galicia','La Rioja','País Vasco','Región de Murcia'], tel:'+34' },
+    { v:'Guatemala',   l:'\u{1F1EC}\u{1F1F9} Guatemala',   prov:['Alta Verapaz','Baja Verapaz','Chimaltenango','Chiquimula','El Progreso','Escuintla','Guatemala','Huehuetenango','Izabal','Jalapa','Jutiapa','Petén','Quetzaltenango','Quiché','Retalhuleu','Sacatepéquez','San Marcos','Santa Rosa','Sololá','Suchitepéquez','Totonicapán','Zacapa'], tel:'+502' },
+    { v:'Honduras',    l:'\u{1F1ED}\u{1F1F3} Honduras',    prov:['Atlántida','Choluteca','Colón','Comayagua','Copán','Cortés','El Paraíso','Francisco Morazán','Gracias a Dios','Intibucá','Islas de la Bahía','La Paz','Lempira','Ocotepeque','Olancho','Santa Bárbara','Valle','Yoro'], tel:'+504' },
+    { v:'México',      l:'\u{1F1F2}\u{1F1FD} México',      prov:['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Ciudad de México','Coahuila','Colima','Durango','Estado de México','Guanajuato','Guerrero','Hidalgo','Jalisco','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'], tel:'+52' },
+    { v:'Nicaragua',   l:'\u{1F1F3}\u{1F1EE} Nicaragua',   prov:['Boaco','Carazo','Chinandega','Chontales','Estelí','Granada','Jinotega','León','Madriz','Managua','Masaya','Matagalpa','Nueva Segovia','Río San Juan','Rivas'], tel:'+505' },
+    { v:'Panamá',      l:'\u{1F1F5}\u{1F1E6} Panamá',      prov:['Bocas del Toro','Chiriquí','Coclé','Colón','Darién','Herrera','Los Santos','Panamá','Panamá Oeste','Veraguas'], tel:'+507' },
+    { v:'Paraguay',    l:'\u{1F1F5}\u{1F1FE} Paraguay',    prov:['Alto Paraguay','Alto Paraná','Amambay','Asunción','Boquerón','Caaguazú','Caazapá','Canindeyú','Central','Concepción','Cordillera','Guairá','Itapúa','Misiones','Ñeembucú','Paraguarí','Presidente Hayes','San Pedro'], tel:'+595' },
+    { v:'Perú',        l:'\u{1F1F5}\u{1F1EA} Perú',        prov:['Amazonas','Áncash','Apurímac','Arequipa','Ayacucho','Cajamarca','Callao','Cusco','Huancavelica','Huánuco','Ica','Junín','La Libertad','Lambayeque','Lima','Loreto','Madre de Dios','Moquegua','Pasco','Piura','Puno','San Martín','Tacna','Tumbes','Ucayali'], tel:'+51' },
+    { v:'Puerto Rico', l:'\u{1F1F5}\u{1F1F7} Puerto Rico', prov:['Aguadilla','Arecibo','Bayamón','Caguas','Carolina','Guaynabo','Mayagüez','Ponce','San Juan','Toa Baja'], tel:'+1' },
+    { v:'Rep. Dominicana', l:'\u{1F1E9}\u{1F1F4} R. Dominicana', prov:['Azua','Bahoruco','Barahona','Dajabón','Distrito Nacional','Duarte','El Seibo','Elías Piña','Espaillat','Hato Mayor','Hermanas Mirabal','Independencia','La Altagracia','La Romana','La Vega','María Trinidad Sánchez','Monseñor Nouel','Monte Cristi','Monte Plata','Pedernales','Peravia','Puerto Plata','Samaná','San Cristóbal','San José de Ocoa','San Juan','San Pedro de Macorís','Sánchez Ramírez','Santiago','Santiago Rodríguez','Santo Domingo','Valverde'], tel:'+1' },
+    { v:'Uruguay',     l:'\u{1F1FA}\u{1F1FE} Uruguay',     prov:['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres'], tel:'+598' },
+    { v:'Venezuela',   l:'\u{1F1FB}\u{1F1EA} Venezuela',   prov:['Amazonas','Anzoátegui','Apure','Aragua','Barinas','Bolívar','Carabobo','Cojedes','Delta Amacuro','Dependencias Federales','Distrito Capital','Falcón','Guárico','La Guaira','Lara','Mérida','Miranda','Monagas','Nueva Esparta','Portuguesa','Sucre','Táchira','Trujillo','Yaracuy','Zulia'], tel:'+58' },
+    { v:'Otro', l:'🌍 Otro país', prov:[], tel:'' }
+  ];
+
+  var selCode = document.getElementById('f-telcode');
+  var codesAdded = {};
+  PAISES.forEach(function(p) {
+    if (!p.tel || codesAdded[p.tel]) return;
+    codesAdded[p.tel] = true;
+    var o = document.createElement('option');
+    o.value = p.tel; o.textContent = p.tel;
+    selCode.appendChild(o);
+  });
+
+  var selPais = document.getElementById('f-pais');
+  var selProv = document.getElementById('f-prov');
+  var lblProv = document.getElementById('f-prov-label');
+
+  PAISES.forEach(function(p) {
+    var o = document.createElement('option');
+    o.value = p.v; o.textContent = p.l;
+    selPais.appendChild(o);
+  });
+
+  var PROV_LABELS = {
+    'Argentina':'Provincia','Bolivia':'Departamento','Brasil':'Estado','Chile':'Región',
+    'Colombia':'Departamento','Costa Rica':'Provincia','Cuba':'Provincia','Ecuador':'Provincia',
+    'El Salvador':'Departamento','España':'Comunidad Autónoma','Guatemala':'Departamento',
+    'Honduras':'Departamento','México':'Estado','Nicaragua':'Departamento','Panamá':'Provincia',
+    'Paraguay':'Departamento','Perú':'Departamento','Puerto Rico':'Municipio',
+    'Rep. Dominicana':'Provincia','Uruguay':'Departamento','Venezuela':'Estado'
+  };
+
+  function getProvInput() { return document.getElementById('f-prov-text'); }
+
+  selPais.addEventListener('change', function() {
+    var val = selPais.value;
+    var entry = null;
+    for (var i = 0; i < PAISES.length; i++) { if (PAISES[i].v === val) { entry = PAISES[i]; break; } }
+    if (entry && entry.tel) {
+      for (var j = 0; j < selCode.options.length; j++) {
+        if (selCode.options[j].value === entry.tel) { selCode.selectedIndex = j; break; }
+      }
+    }
+    lblProv.textContent = (PROV_LABELS[val] || 'Provincia / Estado') + ' *';
+    var provText = getProvInput();
+    if (!entry || !entry.prov.length) {
+      selProv.style.display = 'none';
+      if (!provText) {
+        provText = document.createElement('input');
+        provText.id = 'f-prov-text'; provText.type = 'text';
+        provText.placeholder = 'Tu provincia / estado / región';
+        selProv.parentNode.insertBefore(provText, selProv.nextSibling);
+      }
+      provText.style.display = '';
+    } else {
+      if (provText) provText.style.display = 'none';
+      selProv.style.display = '';
+      selProv.innerHTML = '<option value="">Seleccioná</option>';
+      entry.prov.forEach(function(pv) {
+        var o = document.createElement('option'); o.value = pv; o.textContent = pv;
+        selProv.appendChild(o);
+      });
+    }
+  });
+
+  var modal      = document.getElementById('modal-policy');
+  var bodyScroll = document.getElementById('modal-body-scroll');
+  var btnAccept  = document.getElementById('btn-accept-policy');
+  var btnCancel  = document.getElementById('btn-cancel-policy');
+  var scrollHint = document.getElementById('scroll-hint');
+  var chkPolicy  = document.getElementById('f-policy');
+
+  document.getElementById('open-policy').addEventListener('click', function(e) {
+    e.preventDefault();
+    modal.classList.add('open');
+    btnAccept.disabled = true;
+    scrollHint.style.display = '';
+    bodyScroll.scrollTop = 0;
+  });
+
+  bodyScroll.addEventListener('scroll', function() {
+    if (bodyScroll.scrollHeight - bodyScroll.scrollTop <= bodyScroll.clientHeight + 10) {
+      btnAccept.disabled = false;
+      scrollHint.style.display = 'none';
+    }
+  });
+
+  btnAccept.addEventListener('click', function() { chkPolicy.checked = true; modal.classList.remove('open'); });
+  btnCancel.addEventListener('click', function() { modal.classList.remove('open'); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('open'); });
+
+  var form  = document.getElementById('frm');
+  var btn   = document.getElementById('f-btn');
+  var ok    = document.getElementById('f-ok');
+  var errEl = document.getElementById('f-err');
+
+  function showErr(msg) {
+    errEl.textContent = msg; errEl.style.display = 'block';
+    ok.style.display = 'none';
+    btn.disabled = false; btn.textContent = 'Inscribirme al concurso →';
+  }
+
+  function sanitize(str) { return (str || '').replace(/[<>"'`]/g, '').trim().slice(0, 200); }
+  function validEmail(e) { return /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(e); }
+  function validTel(t)   { return /^\d{6,15}$/.test(t.replace(/[\s\-().+]/g, '')); }
+  function validName(n)  { return n.length >= 2 && n.length <= 100 && /^[À-ɏḀ-ỿa-zA-Z\s'\-]+$/.test(n); }
+
   form.addEventListener('submit', function(e) {
-    e.preventDefault(); ok.style.display='none'; err.style.display='none';
-    var n = document.getElementById('f-nom').value.trim();
-    var a = document.getElementById('f-ape').value.trim();
-    var m = document.getElementById('f-email').value.trim();
-    var u = document.getElementById('f-uni').value.trim();
-    if (!n||!a||!m||!u) { err.textContent='Completá todos los campos.'; err.style.display='block'; return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m)) { err.textContent='Correo inválido.'; err.style.display='block'; return; }
-    btn.disabled=true; btn.textContent='Enviando...';
-    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nombres:n,apellidos:a,correoElectronico:m,universidad:u,dni:'',celular:'',especialidad:''})
-    }).finally(function(){
+    e.preventDefault();
+    ok.style.display = 'none'; errEl.style.display = 'none';
+
+    var nom    = sanitize(document.getElementById('f-nom').value);
+    var ape    = sanitize(document.getElementById('f-ape').value);
+    var email  = (document.getElementById('f-email').value || '').trim().toLowerCase().slice(0,150);
+    var telCod = selCode.value || '';
+    var telNum = (document.getElementById('f-tel').value || '').trim();
+    var sexo   = document.getElementById('f-sexo').value;
+    var prof   = document.getElementById('f-prof').value;
+    var uni    = sanitize(document.getElementById('f-uni').value);
+    var pais   = document.getElementById('f-pais').value;
+    var provText = getProvInput();
+    var provEl   = (provText && provText.style.display !== 'none') ? provText : selProv;
+    var prov     = sanitize(provEl.value || '');
+
+    if (!nom)               return showErr('Ingresá tu nombre.');
+    if (!validName(nom))    return showErr('El nombre solo puede contener letras y espacios.');
+    if (!ape)               return showErr('Ingresá tu apellido.');
+    if (!validName(ape))    return showErr('El apellido solo puede contener letras y espacios.');
+    if (!email)             return showErr('Ingresá tu correo electrónico.');
+    if (!validEmail(email)) return showErr('El correo electrónico no es válido.');
+    if (!telNum)            return showErr('Ingresá tu número de teléfono.');
+    if (!validTel(telNum))  return showErr('El teléfono debe tener entre 6 y 15 dígitos numéricos.');
+    if (!sexo)              return showErr('Seleccioná tu sexo.');
+    if (!prof)              return showErr('Seleccioná tu profesión.');
+    if (!uni)               return showErr('Ingresá tu universidad o institución.');
+    if (!pais)              return showErr('Seleccioná tu país.');
+    if (!prov)              return showErr('Seleccioná o ingresá tu provincia / estado.');
+    if (!chkPolicy.checked) return showErr('Debés leer y aceptar las políticas de privacidad.');
+
+    var celularFull = (telCod + telNum.replace(/[\s\-().]/g, '')).slice(0, 20);
+    btn.disabled = true; btn.textContent = 'Enviando...';
+
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombres: nom, apellidos: ape, correoElectronico: email,
+        celular: celularFull, universidad: uni,
+        sexo: sexo, profesion: prof, pais: pais, provincia: prov,
+        dni: '', especialidad: prof
+      })
+    })
+    .then(function(res) {
+      if (!res.ok) {
+        return res.json().then(function(d) {
+          throw new Error(d.message || d.error || 'Error al registrar (cód. ' + res.status + ').');
+        }).catch(function(err2) { if (err2 instanceof Error) throw err2; throw new Error('Error ' + res.status); });
+      }
+      return res.json();
+    })
+    .then(function() {
       form.reset();
-      ok.style.display='block';
-      btn.disabled=false; btn.textContent='Pre-registrarme \u2192';
+      selProv.innerHTML = '<option value="">Primero elegí país</option>';
+      var pt = getProvInput(); if (pt) { pt.value = ''; pt.style.display = 'none'; }
+      ok.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Inscribirme al concurso →';
       window.open(GRUPO_WA, '_blank');
+    })
+    .catch(function(error) {
+      showErr(error.message || 'Error inesperado. Intentá de nuevo.');
     });
   });
+
 })();
 </script>
 

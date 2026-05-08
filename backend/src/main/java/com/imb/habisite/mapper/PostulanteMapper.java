@@ -8,15 +8,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostulanteMapper {
 
+    private static String trim(String s) { return s != null ? s.trim() : null; }
+
     public Postulante toEntity(PostulanteRequestDTO dto) {
         return Postulante.builder()
                 .nombres(dto.getNombres().trim())
                 .apellidos(dto.getApellidos().trim())
-                .dni(dto.getDni().trim())
-                .celular(dto.getCelular().trim())
-                .universidad(dto.getUniversidad().trim())
+                .dni(trim(dto.getDni()))
+                .celular(trim(dto.getCelular()))
+                .universidad(trim(dto.getUniversidad()))
                 .correoElectronico(dto.getCorreoElectronico().trim().toLowerCase())
-                .especialidad(dto.getEspecialidad().trim())
+                .especialidad(trim(dto.getEspecialidad()))
+                .sexo(trim(dto.getSexo()))
+                .profesion(trim(dto.getProfesion()))
+                .pais(trim(dto.getPais()))
+                .provincia(trim(dto.getProvincia()))
                 .build();
     }
 
@@ -30,6 +36,10 @@ public class PostulanteMapper {
                 .universidad(entity.getUniversidad())
                 .correoElectronico(entity.getCorreoElectronico())
                 .especialidad(entity.getEspecialidad())
+                .sexo(entity.getSexo())
+                .profesion(entity.getProfesion())
+                .pais(entity.getPais())
+                .provincia(entity.getProvincia())
                 .creadoEn(entity.getCreadoEn())
                 .infoEnviadaEn(entity.getInfoEnviadaEn())
                 .confirmadoEn(entity.getConfirmadoEn())

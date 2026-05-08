@@ -150,6 +150,12 @@ ALTER TABLE concurso ADD CONSTRAINT concurso_estado_check
 -- Permitir múltiples entregas por postulante por concurso (equipo)
 ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_postulante_id_concurso_id_key;
 
+-- ── Campos de registro ampliado (mayo 2026) ─────────────────────────────────
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS sexo      VARCHAR(20);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS profesion VARCHAR(100);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS pais      VARCHAR(80);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS provincia VARCHAR(100);
+
 -- ── Criterios de evaluación dinámicos ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS criterio_evaluacion (
     id              BIGSERIAL       PRIMARY KEY,

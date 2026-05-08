@@ -10,7 +10,7 @@ import JuradoPage from './pages/jurado/JuradoPage';
 import PostulantePage from './pages/postulante/PostulantePage';
 
 const FormularioRedirect: React.FC = () => {
-  window.location.replace('/concursos-2026/index.html');
+  window.location.href = '/concursos-2026/index.html';
   return null;
 };
 

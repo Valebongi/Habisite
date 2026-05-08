@@ -323,10 +323,10 @@
           </div>
         </div>
         <div class="policy-row">
-          <input type="checkbox" id="f-policy" />
+          <input type="checkbox" id="f-policy" disabled style="pointer-events:none;" />
           <span>Leí las <a id="open-policy">políticas de privacidad</a> y acepto los términos y condiciones.</span>
         </div>
-        <button type="submit" id="f-btn">Inscribirme al concurso &#8594;</button>
+        <button type="submit" id="f-btn" disabled>Inscribirme al concurso &#8594;</button>
         <p class="hint">Al registrarte accedés al grupo oficial del concurso.</p>
         <div id="f-ok" class="f-msg f-ok"><strong>¡Inscripción enviada!</strong> Te abrimos el grupo de WhatsApp del concurso.</div>
         <div id="f-err" class="f-msg f-err"></div>
@@ -652,7 +652,11 @@
     }
   });
 
-  btnAccept.addEventListener('click', function() { chkPolicy.checked = true; modal.classList.remove('open'); });
+  btnAccept.addEventListener('click', function() {
+    chkPolicy.checked = true;
+    document.getElementById('f-btn').disabled = false;
+    modal.classList.remove('open');
+  });
   btnCancel.addEventListener('click', function() { modal.classList.remove('open'); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('open'); });
 
@@ -733,7 +737,7 @@
       selProv.innerHTML = '<option value="">Primero elegí país</option>';
       var pt = getProvInput(); if (pt) { pt.value = ''; pt.style.display = 'none'; }
       ok.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Inscribirme al concurso →';
+      btn.disabled = true; btn.textContent = 'Inscribirme al concurso →';
       window.open(GRUPO_WA, '_blank');
     })
     .catch(function(error) {

@@ -13,14 +13,12 @@ RUN npm run build
 # Stage 2: serve with nginx
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Entrypoint: reemplaza $PORT en la config de nginx al arrancar
-RUN printf '#!/bin/sh\n\
-PORT=${PORT:-80}\n\
-sed -i "s/__PORT__/$PORT/g" /etc/nginx/conf.d/default.conf\n\
-nginx -g "daemon off;"\n' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
-
 COPY nginx.template.conf /etc/nginx/conf.d/default.conf
+
+RUN printf '#!/bin/sh\n\
+PORT=${PORT:-8080}\n\
+sed -i "s/__PORT__/$PORT/g" /etc/nginx/conf.d/default.conf\n\
+exec nginx -g "daemon off;"\n' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 EXPOSE 8080
 CMD ["/docker-entrypoint.sh"]

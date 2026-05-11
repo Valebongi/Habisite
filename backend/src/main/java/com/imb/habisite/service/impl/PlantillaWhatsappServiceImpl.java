@@ -36,6 +36,9 @@ public class PlantillaWhatsappServiceImpl implements PlantillaWhatsappService {
     @Value("${meta.whatsapp.waba-id}")
     private String wabaId;
 
+    @Value("${meta.whatsapp.phone-number-id}")
+    private String phoneNumberId;
+
     @Value("${meta.whatsapp.token}")
     private String metaToken;
 

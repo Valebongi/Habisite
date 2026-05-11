@@ -114,7 +114,7 @@ public class PlantillaWhatsappServiceImpl implements PlantillaWhatsappService {
         existente.setHeaderContenido(request.getHeaderContenido() != null ? request.getHeaderContenido().trim() : null);
         existente.setBody(request.getBody().trim());
         existente.setFooter(request.getFooter() != null ? request.getFooter().trim() : null);
-        existente.setBotones(request.getBotones());
+        existente.setBotones(mapper.serializarBotones(request.getBotones()));
 
         PlantillaWhatsapp updated = repository.save(existente);
         log.info("Plantilla WhatsApp actualizada con ID: {}", updated.getId());
@@ -159,9 +159,10 @@ public class PlantillaWhatsappServiceImpl implements PlantillaWhatsappService {
         }
 
         // Botones (opcional)
-        if (plantilla.getBotones() != null && !plantilla.getBotones().isEmpty()) {
+        List<Map<String, String>> botonesDeserializados = mapper.deserializarBotonesPublic(plantilla.getBotones());
+        if (botonesDeserializados != null && !botonesDeserializados.isEmpty()) {
             List<Map<String, Object>> buttons = new ArrayList<>();
-            for (Map<String, String> btn : plantilla.getBotones()) {
+            for (Map<String, String> btn : botonesDeserializados) {
                 String tipo = btn.getOrDefault("tipo", "");
                 Map<String, Object> b = new LinkedHashMap<>();
                 switch (tipo) {

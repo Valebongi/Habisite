@@ -22,10 +22,10 @@ public class PlantillaWhatsappResponseDTO {
     private String headerContenido;
     private String body;
     private String footer;
+    private List<Map<String, String>> botones;
     private String estado;
     private String metaTemplateId;
     private String motivoRechazo;
-    private List<Map<String, String>> botones;
     private OffsetDateTime creadoEn;
     private OffsetDateTime actualizadoEn;
 }

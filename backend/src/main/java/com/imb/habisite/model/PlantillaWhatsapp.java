@@ -2,12 +2,8 @@ package com.imb.habisite.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(name = "plantilla_whatsapp")
@@ -46,9 +42,8 @@ public class PlantillaWhatsapp {
     @Column(length = 200)
     private String footer;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<Map<String, String>> botones;
+    @Column(columnDefinition = "TEXT")
+    private String botones;
 
     @Column(nullable = false, length = 20)
     private String estado;

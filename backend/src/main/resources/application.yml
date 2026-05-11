@@ -49,6 +49,11 @@ management:
     health:
       show-details: never
 
+meta:
+  whatsapp:
+    waba-id: 945216591637715
+    token: EAASYA8O74QkBRUPsZBFvwIvZCzxNFIKgm9wsZAZCZBPhsZCPo5BimCb71JhnwXNobP1ZCUky55ZAMyqtZCvEzDcG7xcA6gZAGb9O27klGKcuy4fwlrQPHIdABrZAtoE76fhD7N5EIjY1OYJultMrerSmyJAACXUwp3wgNScBY9YfF1ZBtVcWxCphQTuwHts4ZApD45XWZC4VP3oRfCXdvZBvDSLOpF9gpYMqQr7X95GMccwWeAlyafbZB8sDmbjTnJkgvk9QI2qP7zYccBiQp5nKgDKwcAftd8DR1AZDZD
+
 logging:
   level:
     com.imb.habisite: DEBUG

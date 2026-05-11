@@ -344,6 +344,18 @@ export const api = {
     resolverTicket: (id: number) =>
       req<SoporteTicket>(`/soporte/tickets/${id}/resolver`, { method: 'PATCH' }),
   },
+
+  plantillas: {
+    listar: () => req<PlantillaWhatsapp[]>('/plantillas'),
+    obtener: (id: number) => req<PlantillaWhatsapp>(`/plantillas/${id}`),
+    crear: (data: PlantillaRequest) =>
+      req<PlantillaWhatsapp>('/plantillas', { method: 'POST', body: JSON.stringify(data) }),
+    actualizar: (id: number, data: PlantillaRequest) =>
+      req<PlantillaWhatsapp>(`/plantillas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    enviarAMeta: (id: number) =>
+      req<PlantillaWhatsapp>(`/plantillas/${id}/enviar-meta`, { method: 'POST' }),
+    eliminar: (id: number) => req<void>(`/plantillas/${id}`, { method: 'DELETE' }),
+  },
 };
 
 export interface SoporteTicket {
@@ -381,4 +393,34 @@ export interface RecursoInfo {
   contentType: string;
   tamanio: number;
   creadoEn: string;
+}
+
+// ─── Plantillas WhatsApp ──────────────────────────────────────────────────────
+
+export interface PlantillaWhatsapp {
+  id: number;
+  nombre: string;
+  categoria: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  uso: 'DIFUSION' | 'POST_VENTA' | 'AMBAS';
+  idioma: string;
+  headerTipo?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  headerContenido?: string;
+  body: string;
+  footer?: string;
+  estado: 'BORRADOR' | 'EN_REVISION' | 'APROBADA' | 'RECHAZADA' | 'PAUSADA';
+  metaTemplateId?: string;
+  motivoRechazo?: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface PlantillaRequest {
+  nombre: string;
+  categoria: string;
+  uso: string;
+  idioma: string;
+  headerTipo?: string;
+  headerContenido?: string;
+  body: string;
+  footer?: string;
 }

@@ -174,3 +174,21 @@ CREATE TABLE IF NOT EXISTS evaluacion_criterio (
     puntaje             INTEGER     NOT NULL CHECK (puntaje BETWEEN 1 AND 10),
     UNIQUE (evaluacion_id, criterio_id)
 );
+
+-- ── Plantillas de WhatsApp ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS plantilla_whatsapp (
+    id                  BIGSERIAL       PRIMARY KEY,
+    nombre              VARCHAR(100)    NOT NULL UNIQUE,
+    categoria           VARCHAR(20)     NOT NULL CHECK (categoria IN ('MARKETING','UTILITY','AUTHENTICATION')),
+    uso                 VARCHAR(20)     NOT NULL DEFAULT 'AMBAS' CHECK (uso IN ('DIFUSION','POST_VENTA','AMBAS')),
+    idioma              VARCHAR(10)     NOT NULL DEFAULT 'es_AR',
+    header_tipo         VARCHAR(10)     CHECK (header_tipo IN ('TEXT','IMAGE','VIDEO','DOCUMENT')),
+    header_contenido    TEXT,
+    body                TEXT            NOT NULL,
+    footer              VARCHAR(200),
+    estado              VARCHAR(20)     NOT NULL DEFAULT 'BORRADOR' CHECK (estado IN ('BORRADOR','EN_REVISION','APROBADA','RECHAZADA','PAUSADA')),
+    meta_template_id    VARCHAR(100),
+    motivo_rechazo      TEXT,
+    creado_en           TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    actualizado_en      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);

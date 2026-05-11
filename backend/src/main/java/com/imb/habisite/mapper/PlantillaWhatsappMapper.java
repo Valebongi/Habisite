@@ -20,6 +20,7 @@ public class PlantillaWhatsappMapper {
                 .headerContenido(trim(dto.getHeaderContenido()))
                 .body(dto.getBody().trim())
                 .footer(trim(dto.getFooter()))
+                .botones(dto.getBotones())
                 .estado("BORRADOR")
                 .build();
     }
@@ -38,6 +39,7 @@ public class PlantillaWhatsappMapper {
                 .estado(entity.getEstado())
                 .metaTemplateId(entity.getMetaTemplateId())
                 .motivoRechazo(entity.getMotivoRechazo())
+                .botones(entity.getBotones())
                 .creadoEn(entity.getCreadoEn())
                 .actualizadoEn(entity.getActualizadoEn())
                 .build();

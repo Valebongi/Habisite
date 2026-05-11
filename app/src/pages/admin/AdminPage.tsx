@@ -15,7 +15,7 @@ import { useHistory } from 'react-router-dom';
 import {
   api, AdminStats, Postulante, Evaluacion, Concurso,
   UsuarioInfo, Resolucion, CampanaInfoRequest,
-  PlantillaWhatsapp, PlantillaRequest,
+  PlantillaWhatsapp, PlantillaRequest, PlantillaBoton,
 } from '../../services/api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -1114,24 +1114,48 @@ const categoriaBadge = (cat: PlantillaWhatsapp['categoria']) => {
 };
 
 const FORM_VACÍO: PlantillaRequest = {
-  nombre: '', categoria: 'MARKETING', uso: 'AMBAS', idioma: 'es_AR', body: '', footer: '',
+  nombre: '', categoria: 'MARKETING', uso: 'AMBAS', idioma: 'es_AR', body: '', footer: '', botones: [],
 };
+
+const BTN_VACÍO: PlantillaBoton = { tipo: 'URL', texto: '', url: '' };
 
 const WhatsappPreview: React.FC<{ form: PlantillaRequest }> = ({ form }) => (
   <div style={{ background: '#e5ddd5', borderRadius: 12, padding: '16px', minHeight: 120 }}>
     <p style={{ margin: '0 0 10px', fontSize: '0.65rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vista previa</p>
-    <div style={{ background: '#dcf8c6', borderRadius: '12px 12px 0 12px', padding: '10px 14px', maxWidth: 320, fontSize: '0.9rem', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', display: 'inline-block', minWidth: 200 }}>
-      {form.headerTipo === 'TEXT' && form.headerContenido && (
-        <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#111827', fontSize: '0.88rem' }}>{form.headerContenido}</p>
-      )}
-      {form.headerTipo && form.headerTipo !== 'TEXT' && form.headerContenido && (
-        <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
-          [{form.headerTipo}: {form.headerContenido}]
+    <div style={{ maxWidth: 320, display: 'inline-block', minWidth: 200 }}>
+      <div style={{ background: '#dcf8c6', borderRadius: '12px 12px 0 12px', padding: '10px 14px', fontSize: '0.9rem', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+        {form.headerTipo === 'TEXT' && form.headerContenido && (
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#111827', fontSize: '0.88rem' }}>{form.headerContenido}</p>
+        )}
+        {form.headerTipo === 'DOCUMENT' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            📄 {form.headerContenido || 'Documento'}
+          </div>
+        )}
+        {form.headerTipo === 'IMAGE' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            🖼 Imagen
+          </div>
+        )}
+        {form.headerTipo === 'VIDEO' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            🎬 Video
+          </div>
+        )}
+        <p style={{ margin: 0, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{form.body || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Escribí el cuerpo del mensaje…</span>}</p>
+        {form.footer && <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#6b7280' }}>{form.footer}</p>}
+        <p style={{ margin: '4px 0 0', fontSize: '0.65rem', color: '#9ca3af', textAlign: 'right' }}>✓✓</p>
+      </div>
+      {form.botones && form.botones.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+          {form.botones.map((b, i) => (
+            <div key={i} style={{ background: '#dcf8c6', borderRadius: 8, padding: '8px 14px', fontSize: '0.82rem', color: '#075e54', fontWeight: 600, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              {b.tipo === 'URL' && '🔗 '}{b.tipo === 'PHONE_NUMBER' && '📞 '}{b.tipo === 'QUICK_REPLY' && '↩ '}
+              {b.texto || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Texto del botón</span>}
+            </div>
+          ))}
         </div>
       )}
-      <p style={{ margin: 0, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{form.body || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Escribí el cuerpo del mensaje…</span>}</p>
-      {form.footer && <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#6b7280' }}>{form.footer}</p>}
-      <p style={{ margin: '4px 0 0', fontSize: '0.65rem', color: '#9ca3af', textAlign: 'right' }}>✓✓</p>
     </div>
   </div>
 );
@@ -1160,7 +1184,7 @@ const SecPlantillas: React.FC = () => {
   const abrirNueva = () => { setEditandoId(null); setForm(FORM_VACÍO); setShowModal(true); };
   const abrirEditar = (p: PlantillaWhatsapp) => {
     setEditandoId(p.id);
-    setForm({ nombre: p.nombre, categoria: p.categoria, uso: p.uso, idioma: p.idioma, headerTipo: p.headerTipo ?? '', headerContenido: p.headerContenido ?? '', body: p.body, footer: p.footer ?? '' });
+    setForm({ nombre: p.nombre, categoria: p.categoria, uso: p.uso, idioma: p.idioma, headerTipo: p.headerTipo ?? '', headerContenido: p.headerContenido ?? '', body: p.body, footer: p.footer ?? '', botones: p.botones ?? [] });
     setShowModal(true);
     setDetalle(null);
   };
@@ -1264,6 +1288,21 @@ const SecPlantillas: React.FC = () => {
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ margin: '0 0 4px', fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Footer</p>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>{detalle.footer}</p>
+                </div>
+              )}
+              {detalle.botones && detalle.botones.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 6px', fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Botones</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {detalle.botones.map((b, i) => (
+                      <div key={i} style={{ background: '#f3f4f6', borderRadius: 8, padding: '6px 12px', fontSize: '0.82rem', display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, color: '#374151', minWidth: 90 }}>{b.tipo === 'URL' ? '🔗 URL' : b.tipo === 'PHONE_NUMBER' ? '📞 Teléfono' : '↩ Respuesta'}</span>
+                        <span style={{ color: C.text, fontWeight: 600 }}>{b.texto}</span>
+                        {b.url && <span style={{ color: '#6b7280', fontSize: '0.75rem', marginLeft: 4 }}>{b.url}</span>}
+                        {b.telefono && <span style={{ color: '#6b7280', fontSize: '0.75rem', marginLeft: 4 }}>{b.telefono}</span>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {detalle.estado === 'RECHAZADA' && detalle.motivoRechazo && (
@@ -1443,6 +1482,38 @@ const SecPlantillas: React.FC = () => {
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Footer (opcional)</label>
                   <input value={form.footer ?? ''} onChange={e => setForm(f => ({ ...f, footer: e.target.value }))} placeholder="ej. Habisite · No respondas este mensaje" style={inputCss} />
+                </div>
+
+                {/* Editor de botones */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Botones <span style={{ fontWeight: 400, textTransform: 'none' }}>({(form.botones ?? []).length}/3)</span>
+                    </label>
+                    {(form.botones ?? []).length < 3 && (
+                      <button type="button" onClick={() => setForm(f => ({ ...f, botones: [...(f.botones ?? []), { ...BTN_VACÍO }] }))}
+                        style={{ ...btnSm, fontSize: '0.72rem', padding: '3px 10px' }}>+ Agregar botón</button>
+                    )}
+                  </div>
+                  {(form.botones ?? []).map((btn, idx) => (
+                    <div key={idx} style={{ background: '#f9fafb', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <select value={btn.tipo} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { tipo: e.target.value as PlantillaBoton['tipo'], texto: bs[idx].texto }; return { ...f, botones: bs }; })} style={{ ...inputCss, flex: '0 0 auto', width: 'auto', cursor: 'pointer' }}>
+                          <option value="URL">URL</option>
+                          <option value="PHONE_NUMBER">Teléfono</option>
+                          <option value="QUICK_REPLY">Respuesta rápida</option>
+                        </select>
+                        <input value={btn.texto} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], texto: e.target.value }; return { ...f, botones: bs }; })} placeholder="Texto del botón" style={{ ...inputCss, flex: 1 }} maxLength={25} />
+                        <button type="button" onClick={() => setForm(f => ({ ...f, botones: (f.botones ?? []).filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '1rem', padding: '0 4px' }}>✕</button>
+                      </div>
+                      {btn.tipo === 'URL' && (
+                        <input value={btn.url ?? ''} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], url: e.target.value }; return { ...f, botones: bs }; })} placeholder="https://..." style={inputCss} />
+                      )}
+                      {btn.tipo === 'PHONE_NUMBER' && (
+                        <input value={btn.telefono ?? ''} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], telefono: e.target.value }; return { ...f, botones: bs }; })} placeholder="+54 9 11 1234-5678" style={inputCss} />
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 

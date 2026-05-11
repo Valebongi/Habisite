@@ -114,6 +114,7 @@ public class PlantillaWhatsappServiceImpl implements PlantillaWhatsappService {
         existente.setHeaderContenido(request.getHeaderContenido() != null ? request.getHeaderContenido().trim() : null);
         existente.setBody(request.getBody().trim());
         existente.setFooter(request.getFooter() != null ? request.getFooter().trim() : null);
+        existente.setBotones(request.getBotones());
 
         PlantillaWhatsapp updated = repository.save(existente);
         log.info("Plantilla WhatsApp actualizada con ID: {}", updated.getId());
@@ -155,6 +156,39 @@ public class PlantillaWhatsappServiceImpl implements PlantillaWhatsappService {
             footer.put("type", "FOOTER");
             footer.put("text", plantilla.getFooter());
             components.add(footer);
+        }
+
+        // Botones (opcional)
+        if (plantilla.getBotones() != null && !plantilla.getBotones().isEmpty()) {
+            List<Map<String, Object>> buttons = new ArrayList<>();
+            for (Map<String, String> btn : plantilla.getBotones()) {
+                String tipo = btn.getOrDefault("tipo", "");
+                Map<String, Object> b = new LinkedHashMap<>();
+                switch (tipo) {
+                    case "URL" -> {
+                        b.put("type", "URL");
+                        b.put("text", btn.getOrDefault("texto", "Ver más"));
+                        b.put("url", btn.getOrDefault("url", ""));
+                    }
+                    case "PHONE_NUMBER" -> {
+                        b.put("type", "PHONE_NUMBER");
+                        b.put("text", btn.getOrDefault("texto", "Llamar"));
+                        b.put("phone_number", btn.getOrDefault("telefono", ""));
+                    }
+                    case "QUICK_REPLY" -> {
+                        b.put("type", "QUICK_REPLY");
+                        b.put("text", btn.getOrDefault("texto", "Responder"));
+                    }
+                    default -> { continue; }
+                }
+                buttons.add(b);
+            }
+            if (!buttons.isEmpty()) {
+                Map<String, Object> btnsComponent = new LinkedHashMap<>();
+                btnsComponent.put("type", "BUTTONS");
+                btnsComponent.put("buttons", buttons);
+                components.add(btnsComponent);
+            }
         }
 
         // Armar payload

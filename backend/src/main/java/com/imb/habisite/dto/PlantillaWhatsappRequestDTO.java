@@ -3,6 +3,9 @@ package com.imb.habisite.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.util.List;
+import java.util.Map;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,4 +35,6 @@ public class PlantillaWhatsappRequestDTO {
 
     @Size(max = 200, message = "El footer no puede superar los 200 caracteres")
     private String footer;
+
+    private List<Map<String, String>> botones;
 }

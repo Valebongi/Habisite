@@ -186,9 +186,11 @@ CREATE TABLE IF NOT EXISTS plantilla_whatsapp (
     header_contenido    TEXT,
     body                TEXT            NOT NULL,
     footer              VARCHAR(200),
+    botones             JSONB,
     estado              VARCHAR(20)     NOT NULL DEFAULT 'BORRADOR' CHECK (estado IN ('BORRADOR','EN_REVISION','APROBADA','RECHAZADA','PAUSADA')),
     meta_template_id    VARCHAR(100),
     motivo_rechazo      TEXT,
     creado_en           TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     actualizado_en      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
+ALTER TABLE plantilla_whatsapp ADD COLUMN IF NOT EXISTS botones JSONB;

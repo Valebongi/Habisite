@@ -397,6 +397,13 @@ export interface RecursoInfo {
 
 // ─── Plantillas WhatsApp ──────────────────────────────────────────────────────
 
+export interface PlantillaBoton {
+  tipo: 'URL' | 'PHONE_NUMBER' | 'QUICK_REPLY';
+  texto: string;
+  url?: string;
+  telefono?: string;
+}
+
 export interface PlantillaWhatsapp {
   id: number;
   nombre: string;
@@ -407,6 +414,7 @@ export interface PlantillaWhatsapp {
   headerContenido?: string;
   body: string;
   footer?: string;
+  botones?: PlantillaBoton[];
   estado: 'BORRADOR' | 'EN_REVISION' | 'APROBADA' | 'RECHAZADA' | 'PAUSADA';
   metaTemplateId?: string;
   motivoRechazo?: string;
@@ -423,4 +431,5 @@ export interface PlantillaRequest {
   headerContenido?: string;
   body: string;
   footer?: string;
+  botones?: PlantillaBoton[];
 }

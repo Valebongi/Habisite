@@ -3,6 +3,8 @@ package com.imb.habisite.dto;
 import lombok.*;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -23,6 +25,7 @@ public class PlantillaWhatsappResponseDTO {
     private String estado;
     private String metaTemplateId;
     private String motivoRechazo;
+    private List<Map<String, String>> botones;
     private OffsetDateTime creadoEn;
     private OffsetDateTime actualizadoEn;
 }

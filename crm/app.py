@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, render_template_string
 import json, os, requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+ARG = timezone(timedelta(hours=-3))
 
 app = Flask(__name__)
 
@@ -32,7 +34,7 @@ def agregar_mensaje(numero, texto, direccion, nombre=None):
     db[numero]["mensajes"].append({
         "texto": texto,
         "dir": direccion,  # "in" o "out"
-        "hora": datetime.now().isoformat()
+        "hora": datetime.now(ARG).isoformat()
     })
     guardar_db(db)
 

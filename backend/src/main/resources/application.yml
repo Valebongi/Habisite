@@ -49,6 +49,12 @@ management:
     health:
       show-details: never
 
+meta:
+  whatsapp:
+    waba-id: 945216591637715
+    phone-number-id: 1048585421672246
+    token: EAASYA8O74QkBReMLztH5178aXZAtrd5iz40PZAminO7zt0iu7M9YwQjZAylNLwLTAPpafBtIhj0ewy9q85D7SSTXvhWZANHW5On9VrJFOMHi8ZBewTA23Rnh1r6a4y2NlDwYuFHiPw0G9XBGaVmWI809UwNevjlg8ZCJZBlo3LbKSmLAnM2SA01SMF6RZCNpYioRXQZDZD
+
 logging:
   level:
     com.imb.habisite: DEBUG

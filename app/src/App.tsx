@@ -9,13 +9,17 @@ import AdminPage from './pages/admin/AdminPage';
 import JuradoPage from './pages/jurado/JuradoPage';
 import PostulantePage from './pages/postulante/PostulantePage';
 
+const FormularioRedirect: React.FC = () => {
+  window.location.href = '/concursos-2026/index.html';
+  return null;
+};
+
 const App: React.FC = () => (
   <IonApp>
     <IonReactRouter>
       <IonRouterOutlet>
-        <Route exact path="/">
-          <Redirect to="/login" />
-        </Route>
+        <Route exact path="/" component={FormularioRedirect} />
+        <Route exact path="/concursos-2026" component={FormularioRedirect} />
         <Route exact path="/login" component={LoginPage} />
         <Route exact path="/confirmar" component={ConfirmacionPage} />
         <Route exact path="/baja" component={BajaPage} />

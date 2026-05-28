@@ -1,0 +1,6 @@
+:{$PORT}
+
+root * /app
+file_server
+
+rewrite /concursos-2026 /concursos-2026.html

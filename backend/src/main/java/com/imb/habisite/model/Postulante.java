@@ -39,6 +39,18 @@ public class Postulante {
     @Column(length = 100)
     private String especialidad;
 
+    @Column(length = 20)
+    private String sexo;
+
+    @Column(length = 100)
+    private String profesion;
+
+    @Column(length = 80)
+    private String pais;
+
+    @Column(length = 100)
+    private String provincia;
+
     @Column(name = "password_hash")
     private String passwordHash;
 

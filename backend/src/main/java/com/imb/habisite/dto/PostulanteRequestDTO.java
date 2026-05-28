@@ -26,7 +26,6 @@ public class PostulanteRequestDTO {
     @Size(max = 15, message = "El celular no puede superar los 15 caracteres")
     private String celular;
 
-    @NotBlank(message = "La universidad es obligatoria")
     @Size(max = 150, message = "El nombre de la universidad no puede superar los 150 caracteres")
     private String universidad;
 
@@ -38,4 +37,16 @@ public class PostulanteRequestDTO {
     // Opcional en pre-registro — se completa en la confirmación
     @Size(max = 100, message = "La especialidad no puede superar los 100 caracteres")
     private String especialidad;
+
+    @Size(max = 20)
+    private String sexo;
+
+    @Size(max = 100)
+    private String profesion;
+
+    @Size(max = 80)
+    private String pais;
+
+    @Size(max = 100)
+    private String provincia;
 }

@@ -19,6 +19,10 @@ public class PostulanteResponseDTO {
     private String universidad;
     private String correoElectronico;
     private String especialidad;
+    private String sexo;
+    private String profesion;
+    private String pais;
+    private String provincia;
     private OffsetDateTime creadoEn;
     private OffsetDateTime infoEnviadaEn;
     private OffsetDateTime confirmadoEn;

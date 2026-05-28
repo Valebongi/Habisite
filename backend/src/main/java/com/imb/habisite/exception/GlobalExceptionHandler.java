@@ -19,6 +19,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(PlantillaWhatsappNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePlantillaNotFound(PlantillaWhatsappNotFoundException ex) {
+        log.warn("Plantilla no encontrada: {}", ex.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicate(DuplicateResourceException ex) {
         log.warn("Recurso duplicado: {}", ex.getMessage());

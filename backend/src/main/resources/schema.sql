@@ -150,6 +150,12 @@ ALTER TABLE concurso ADD CONSTRAINT concurso_estado_check
 -- Permitir múltiples entregas por postulante por concurso (equipo)
 ALTER TABLE resolucion DROP CONSTRAINT IF EXISTS resolucion_postulante_id_concurso_id_key;
 
+-- ── Campos de registro ampliado (mayo 2026) ─────────────────────────────────
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS sexo      VARCHAR(20);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS profesion VARCHAR(100);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS pais      VARCHAR(80);
+ALTER TABLE postulante ADD COLUMN IF NOT EXISTS provincia VARCHAR(100);
+
 -- ── Criterios de evaluación dinámicos ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS criterio_evaluacion (
     id              BIGSERIAL       PRIMARY KEY,
@@ -168,3 +174,23 @@ CREATE TABLE IF NOT EXISTS evaluacion_criterio (
     puntaje             INTEGER     NOT NULL CHECK (puntaje BETWEEN 1 AND 10),
     UNIQUE (evaluacion_id, criterio_id)
 );
+
+-- ── Plantillas de WhatsApp ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS plantilla_whatsapp (
+    id                  BIGSERIAL       PRIMARY KEY,
+    nombre              VARCHAR(100)    NOT NULL UNIQUE,
+    categoria           VARCHAR(20)     NOT NULL CHECK (categoria IN ('MARKETING','UTILITY','AUTHENTICATION')),
+    uso                 VARCHAR(20)     NOT NULL DEFAULT 'AMBAS' CHECK (uso IN ('DIFUSION','POST_VENTA','AMBAS')),
+    idioma              VARCHAR(10)     NOT NULL DEFAULT 'es_AR',
+    header_tipo         VARCHAR(10)     CHECK (header_tipo IN ('TEXT','IMAGE','VIDEO','DOCUMENT')),
+    header_contenido    TEXT,
+    body                TEXT            NOT NULL,
+    footer              VARCHAR(200),
+    botones             JSONB,
+    estado              VARCHAR(20)     NOT NULL DEFAULT 'BORRADOR' CHECK (estado IN ('BORRADOR','EN_REVISION','APROBADA','RECHAZADA','PAUSADA')),
+    meta_template_id    VARCHAR(100),
+    motivo_rechazo      TEXT,
+    creado_en           TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    actualizado_en      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+ALTER TABLE plantilla_whatsapp ADD COLUMN IF NOT EXISTS botones JSONB;

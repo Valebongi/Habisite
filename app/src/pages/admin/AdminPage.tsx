@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  IonPage, IonContent, IonIcon, IonSpinner, IonSearchbar, IonToast,
+  IonPage, IonContent, IonIcon, IonSpinner, IonSearchbar, IonToast, IonModal,
 } from '@ionic/react';
 import {
   gridOutline, trophyOutline, peopleOutline, mailOutline,
@@ -9,12 +9,13 @@ import {
   rocketOutline, arrowForwardOutline, checkmarkDoneOutline,
   sparklesOutline, alertCircleOutline, timeOutline,
   addOutline, trashOutline, createOutline, closeOutline,
-  personOutline,
+  personOutline, chatbubblesOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import {
   api, AdminStats, Postulante, Evaluacion, Concurso,
   UsuarioInfo, Resolucion, CampanaInfoRequest,
+  PlantillaWhatsapp, PlantillaRequest, PlantillaBoton,
 } from '../../services/api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ const MENU: MenuItem[] = [
   { id: 'postulantes', icon: peopleOutline,            label: 'Postulantes' },
   { id: 'evaluaciones',icon: checkmarkCircleOutline,   label: 'Evaluaciones' },
   { id: 'jurado',      icon: ribbonOutline,            label: 'Jurado' },
+  { id: 'plantillas',  icon: chatbubblesOutline,       label: 'Plantillas' },
   { id: 'configuracion',icon: settingsOutline,         label: 'Configuración' },
 ];
 
@@ -1089,6 +1091,454 @@ const SecConfiguracion: React.FC = () => {
   );
 };
 
+// ─── Sección: Plantillas WhatsApp ────────────────────────────────────────────
+
+const estadoPlantillaBadge = (estado: PlantillaWhatsapp['estado']) => {
+  const map: Record<string, { bg: string; color: string }> = {
+    APROBADA:    { bg: '#f0fdf4', color: '#16a34a' },
+    EN_REVISION: { bg: '#fefce8', color: '#854d0e' },
+    RECHAZADA:   { bg: '#fef2f2', color: '#991b1b' },
+    BORRADOR:    { bg: '#f3f4f6', color: '#6b7280' },
+    PAUSADA:     { bg: '#fff7ed', color: '#92400e' },
+  };
+  return map[estado] ?? map.BORRADOR;
+};
+
+const categoriaBadge = (cat: PlantillaWhatsapp['categoria']) => {
+  const map: Record<string, { bg: string; color: string }> = {
+    MARKETING:      { bg: '#eff6ff', color: '#1e40af' },
+    UTILITY:        { bg: '#f3f4f6', color: '#374151' },
+    AUTHENTICATION: { bg: '#f0fdf4', color: '#166534' },
+  };
+  return map[cat] ?? map.UTILITY;
+};
+
+const FORM_VACÍO: PlantillaRequest = {
+  nombre: '', categoria: 'MARKETING', uso: 'AMBAS', idioma: 'es_AR', body: '', footer: '', botones: [],
+};
+
+const BTN_VACÍO: PlantillaBoton = { tipo: 'URL', texto: '', url: '' };
+
+const WhatsappPreview: React.FC<{ form: PlantillaRequest }> = ({ form }) => (
+  <div style={{ background: '#e5ddd5', borderRadius: 12, padding: '16px', minHeight: 120 }}>
+    <p style={{ margin: '0 0 10px', fontSize: '0.65rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vista previa</p>
+    <div style={{ maxWidth: 320, display: 'inline-block', minWidth: 200 }}>
+      <div style={{ background: '#dcf8c6', borderRadius: '12px 12px 0 12px', padding: '10px 14px', fontSize: '0.9rem', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
+        {form.headerTipo === 'TEXT' && form.headerContenido && (
+          <p style={{ margin: '0 0 6px', fontWeight: 700, color: '#111827', fontSize: '0.88rem' }}>{form.headerContenido}</p>
+        )}
+        {form.headerTipo === 'DOCUMENT' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            📄 {form.headerContenido || 'Documento'}
+          </div>
+        )}
+        {form.headerTipo === 'IMAGE' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            🖼 Imagen
+          </div>
+        )}
+        {form.headerTipo === 'VIDEO' && (
+          <div style={{ background: '#b2dfdb', borderRadius: 8, padding: '8px 12px', marginBottom: 8, fontSize: '0.75rem', color: '#004d40', textAlign: 'center' }}>
+            🎬 Video
+          </div>
+        )}
+        <p style={{ margin: 0, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{form.body || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Escribí el cuerpo del mensaje…</span>}</p>
+        {form.footer && <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#6b7280' }}>{form.footer}</p>}
+        <p style={{ margin: '4px 0 0', fontSize: '0.65rem', color: '#9ca3af', textAlign: 'right' }}>✓✓</p>
+      </div>
+      {form.botones && form.botones.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+          {form.botones.map((b, i) => (
+            <div key={i} style={{ background: '#dcf8c6', borderRadius: 8, padding: '8px 14px', fontSize: '0.82rem', color: '#075e54', fontWeight: 600, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              {b.tipo === 'URL' && '🔗 '}{b.tipo === 'PHONE_NUMBER' && '📞 '}{b.tipo === 'QUICK_REPLY' && '↩ '}
+              {b.texto || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Texto del botón</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+const SecPlantillas: React.FC = () => {
+  const [plantillas, setPlantillas] = useState<PlantillaWhatsapp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [detalle, setDetalle] = useState<PlantillaWhatsapp | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [form, setForm] = useState<PlantillaRequest>(FORM_VACÍO);
+  const [saving, setSaving] = useState(false);
+  const [enviandoMeta, setEnviandoMeta] = useState<number | null>(null);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try { setPlantillas(await api.plantillas.listar()); }
+    catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const abrirNueva = () => { setEditandoId(null); setForm(FORM_VACÍO); setShowModal(true); };
+  const abrirEditar = (p: PlantillaWhatsapp) => {
+    setEditandoId(p.id);
+    setForm({ nombre: p.nombre, categoria: p.categoria, uso: p.uso, idioma: p.idioma, headerTipo: p.headerTipo ?? '', headerContenido: p.headerContenido ?? '', body: p.body, footer: p.footer ?? '', botones: p.botones ?? [] });
+    setShowModal(true);
+    setDetalle(null);
+  };
+
+  const guardar = async () => {
+    if (!form.nombre.trim() || !form.body.trim()) { setMsg({ text: 'El nombre y el cuerpo son obligatorios.', ok: false }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const payload: PlantillaRequest = { ...form, headerTipo: form.headerTipo || undefined, headerContenido: form.headerContenido || undefined, footer: form.footer || undefined };
+      if (editandoId) {
+        await api.plantillas.actualizar(editandoId, payload);
+      } else {
+        await api.plantillas.crear(payload);
+      }
+      setShowModal(false);
+      setToast({ msg: editandoId ? 'Plantilla actualizada.' : 'Plantilla creada correctamente.', ok: true });
+      cargar();
+    } catch (e: any) { setMsg({ text: e?.message || 'Error al guardar.', ok: false }); }
+    finally { setSaving(false); }
+  };
+
+  const eliminar = async (p: PlantillaWhatsapp) => {
+    if (!confirm(`¿Eliminar la plantilla "${p.nombre}"?`)) return;
+    try {
+      await api.plantillas.eliminar(p.id);
+      setToast({ msg: 'Plantilla eliminada.', ok: true });
+      if (detalle?.id === p.id) setDetalle(null);
+      cargar();
+    } catch { setToast({ msg: 'Error al eliminar.', ok: false }); }
+  };
+
+  const enviarMeta = async (id: number) => {
+    setEnviandoMeta(id);
+    try {
+      await api.plantillas.enviarAMeta(id);
+      setToast({ msg: 'Plantilla enviada a Meta para revisión.', ok: true });
+      cargar();
+      if (detalle?.id === id) {
+        const updated = await api.plantillas.obtener(id);
+        setDetalle(updated);
+      }
+    } catch (e: any) { setToast({ msg: e?.message || 'Error al enviar a Meta.', ok: false }); }
+    finally { setEnviandoMeta(null); }
+  };
+
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><IonSpinner name="crescent" color="primary" /></div>;
+
+  // ── Vista Detalle ──────────────────────────────────────────────────────────
+  if (detalle) {
+    const estadoBadge = estadoPlantillaBadge(detalle.estado);
+    const catBadge = categoriaBadge(detalle.categoria);
+    const puedeEnviar = detalle.estado === 'BORRADOR' || detalle.estado === 'RECHAZADA';
+    return (
+      <>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <button onClick={() => setDetalle(null)} style={{ ...btnSm, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IonIcon icon={chevronBackOutline} style={{ fontSize: '0.85rem' }} /> Volver
+          </button>
+          <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', color: C.text }}>{detalle.nombre}</h2>
+        </div>
+
+        {toast && (
+          <div style={msgBox(toast.ok)}>
+            <span style={{ fontSize: '0.85rem', color: toast.ok ? '#166534' : '#991b1b' }}>{toast.msg}</span>
+            <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 20, alignItems: 'start' }}>
+          {/* Info panel */}
+          <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+            <div style={{ background: `linear-gradient(135deg, ${C.dark} 0%, #1e1208 100%)`, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>{detalle.nombre}</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: estadoBadge.bg, color: estadoBadge.color }}>{detalle.estado}</span>
+                <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, background: catBadge.bg, color: catBadge.color }}>{detalle.categoria}</span>
+              </div>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
+                {[
+                  { l: 'Uso', v: detalle.uso },
+                  { l: 'Idioma', v: detalle.idioma },
+                  { l: 'Tipo de header', v: detalle.headerTipo ?? '—' },
+                  { l: 'Header contenido', v: detalle.headerContenido ?? '—' },
+                  { l: 'Creado', v: formatFechaCorta(detalle.creadoEn) },
+                  { l: 'Actualizado', v: formatFechaCorta(detalle.actualizadoEn) },
+                  ...(detalle.metaTemplateId ? [{ l: 'Meta Template ID', v: detalle.metaTemplateId }] : []),
+                ].map(d => (
+                  <div key={d.l}>
+                    <p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{d.l}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: C.text, fontWeight: 500 }}>{d.v}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ margin: '0 0 4px', fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Body</p>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: C.text, lineHeight: 1.6, background: '#f9fafb', borderRadius: 8, padding: '10px 14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{detalle.body}</p>
+              </div>
+              {detalle.footer && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Footer</p>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>{detalle.footer}</p>
+                </div>
+              )}
+              {detalle.botones && detalle.botones.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 6px', fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Botones</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {detalle.botones.map((b, i) => (
+                      <div key={i} style={{ background: '#f3f4f6', borderRadius: 8, padding: '6px 12px', fontSize: '0.82rem', display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, color: '#374151', minWidth: 90 }}>{b.tipo === 'URL' ? '🔗 URL' : b.tipo === 'PHONE_NUMBER' ? '📞 Teléfono' : '↩ Respuesta'}</span>
+                        <span style={{ color: C.text, fontWeight: 600 }}>{b.texto}</span>
+                        {b.url && <span style={{ color: '#6b7280', fontSize: '0.75rem', marginLeft: 4 }}>{b.url}</span>}
+                        {b.telefono && <span style={{ color: '#6b7280', fontSize: '0.75rem', marginLeft: 4 }}>{b.telefono}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detalle.estado === 'RECHAZADA' && detalle.motivoRechazo && (
+                <div style={{ background: '#fef2f2', borderLeft: '4px solid #dc2626', borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: '0.72rem', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase' }}>Motivo de rechazo</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#7f1d1d' }}>{detalle.motivoRechazo}</p>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                {puedeEnviar && (
+                  <button onClick={() => enviarMeta(detalle.id)} disabled={enviandoMeta === detalle.id} style={{ ...btnPrimary, background: '#16a34a', opacity: enviandoMeta === detalle.id ? 0.6 : 1 }}>
+                    {enviandoMeta === detalle.id ? <><IonSpinner name="dots" style={{ width: 14, height: 14, marginRight: 4 }} /> Enviando…</> : 'Enviar a revisión Meta'}
+                  </button>
+                )}
+                <button onClick={() => abrirEditar(detalle)} style={btnSm}><IonIcon icon={createOutline} style={{ fontSize: '0.85rem' }} /> Editar</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div style={{ minWidth: 240 }}>
+            <WhatsappPreview form={{ nombre: detalle.nombre, categoria: detalle.categoria, uso: detalle.uso, idioma: detalle.idioma, headerTipo: detalle.headerTipo, headerContenido: detalle.headerContenido, body: detalle.body, footer: detalle.footer }} />
+          </div>
+        </div>
+
+        <IonToast isOpen={!!toast} message={toast?.msg} duration={3000} color={toast?.ok ? 'success' : 'danger'} onDidDismiss={() => setToast(null)} />
+      </>
+    );
+  }
+
+  // ── Vista Lista ────────────────────────────────────────────────────────────
+  return (
+    <>
+      <SectionHeader title={`Plantillas de WhatsApp (${plantillas.length})`} action={
+        <button onClick={abrirNueva} style={btnPrimary}>
+          <IonIcon icon={addOutline} style={{ fontSize: '1rem' }} /> Nueva Plantilla
+        </button>
+      } />
+
+      {toast && (
+        <div style={msgBox(toast.ok)}>
+          <span style={{ fontSize: '0.85rem', color: toast.ok ? '#166534' : '#991b1b' }}>{toast.msg}</span>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
+        </div>
+      )}
+
+      {plantillas.length === 0 && (
+        <div style={{ background: C.card, borderRadius: 14, padding: 40, textAlign: 'center', color: C.muted, border: `1px solid ${C.border}` }}>
+          No hay plantillas aún. Creá la primera con el botón "+ Nueva Plantilla".
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+        {plantillas.map(p => {
+          const estadoBadge = estadoPlantillaBadge(p.estado);
+          const catBadge = categoriaBadge(p.categoria);
+          const puedeEnviar = p.estado === 'BORRADOR' || p.estado === 'RECHAZADA';
+          return (
+            <div key={p.id} style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {/* Card header strip */}
+              <div style={{ background: `linear-gradient(135deg, ${C.dark} 0%, #1e1208 100%)`, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</span>
+                <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                  <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: estadoBadge.bg, color: estadoBadge.color }}>{p.estado}</span>
+                  <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: catBadge.bg, color: catBadge.color }}>{p.categoria}</span>
+                </div>
+              </div>
+
+              {/* Card body */}
+              <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#374151', lineHeight: 1.55, flex: 1 }}>
+                  {p.body.length > 80 ? p.body.slice(0, 80) + '…' : p.body}
+                </p>
+                {p.footer && <p style={{ margin: 0, fontSize: '0.75rem', color: C.muted, fontStyle: 'italic' }}>{p.footer}</p>}
+              </div>
+
+              {/* Card actions */}
+              <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button onClick={() => setDetalle(p)} style={{ ...btnSm, borderColor: '#3b82f6', color: '#3b82f6' }}>Ver detalle</button>
+                <button onClick={() => abrirEditar(p)} style={btnSm}><IonIcon icon={createOutline} style={{ fontSize: '0.75rem' }} /> Editar</button>
+                {puedeEnviar && (
+                  <button onClick={() => enviarMeta(p.id)} disabled={enviandoMeta === p.id} style={{ ...btnSm, borderColor: '#16a34a', color: '#16a34a', opacity: enviandoMeta === p.id ? 0.6 : 1 }}>
+                    {enviandoMeta === p.id ? <IonSpinner name="dots" style={{ width: 14, height: 14 }} /> : 'Enviar a Meta'}
+                  </button>
+                )}
+                <button onClick={() => eliminar(p)} style={{ ...btnSm, marginLeft: 'auto', borderColor: '#fecaca', color: '#dc2626' }}>
+                  <IonIcon icon={trashOutline} style={{ fontSize: '0.75rem' }} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Modal Nueva/Editar */}
+      <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)} style={{ '--height': 'auto', '--max-height': '90vh', '--border-radius': '16px', '--width': 'min(680px, 96vw)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}>
+          {/* Modal header */}
+          <div style={{ padding: '18px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: C.card }}>
+            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1rem', color: C.text }}>{editandoId ? 'Editar plantilla' : 'Nueva plantilla'}</h3>
+            <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}>
+              <IonIcon icon={closeOutline} style={{ fontSize: '1.4rem' }} />
+            </button>
+          </div>
+
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 0, alignItems: 'start' }}>
+              {/* Form */}
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {msg && (
+                  <div style={msgBox(msg.ok)}>
+                    <span style={{ fontSize: '0.82rem', color: msg.ok ? '#166534' : '#991b1b' }}>{msg.text}</span>
+                    <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted }}><IonIcon icon={closeOutline} /></button>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nombre interno *</label>
+                  <input value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="ej. bienvenida_postulante" style={inputCss} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Categoría</label>
+                    <select value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))} style={{ ...inputCss, cursor: 'pointer' }}>
+                      <option value="MARKETING">Marketing</option>
+                      <option value="UTILITY">Utility</option>
+                      <option value="AUTHENTICATION">Authentication</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Uso</label>
+                    <select value={form.uso} onChange={e => setForm(f => ({ ...f, uso: e.target.value }))} style={{ ...inputCss, cursor: 'pointer' }}>
+                      <option value="DIFUSION">Difusión</option>
+                      <option value="POST_VENTA">Post-venta</option>
+                      <option value="AMBAS">Ambas</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Idioma</label>
+                    <select value={form.idioma} onChange={e => setForm(f => ({ ...f, idioma: e.target.value }))} style={{ ...inputCss, cursor: 'pointer' }}>
+                      <option value="es_AR">Español (AR)</option>
+                      <option value="es_MX">Español (MX)</option>
+                      <option value="es_ES">Español (ES)</option>
+                      <option value="en_US">English (US)</option>
+                      <option value="pt_BR">Português (BR)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tipo de header</label>
+                    <select value={form.headerTipo ?? ''} onChange={e => setForm(f => ({ ...f, headerTipo: e.target.value || undefined }))} style={{ ...inputCss, cursor: 'pointer' }}>
+                      <option value="">Sin header</option>
+                      <option value="TEXT">Texto</option>
+                      <option value="IMAGE">Imagen</option>
+                      <option value="VIDEO">Video</option>
+                      <option value="DOCUMENT">Documento</option>
+                    </select>
+                  </div>
+                  {form.headerTipo && (
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Contenido del header</label>
+                      <input value={form.headerContenido ?? ''} onChange={e => setForm(f => ({ ...f, headerContenido: e.target.value }))} placeholder={form.headerTipo === 'TEXT' ? 'Título del mensaje' : 'URL del archivo'} style={inputCss} />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Body * <span style={{ fontSize: '0.68rem', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: form.body.length > 1024 ? '#dc2626' : '#9ca3af' }}>{form.body.length}/1024</span>
+                  </label>
+                  <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={5} maxLength={1024} placeholder="Hola {{1}}, te damos la bienvenida al concurso…" style={{ ...inputCss, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }} />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Footer (opcional)</label>
+                  <input value={form.footer ?? ''} onChange={e => setForm(f => ({ ...f, footer: e.target.value }))} placeholder="ej. Habisite · No respondas este mensaje" style={inputCss} />
+                </div>
+
+                {/* Editor de botones */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Botones <span style={{ fontWeight: 400, textTransform: 'none' }}>({(form.botones ?? []).length}/3)</span>
+                    </label>
+                    {(form.botones ?? []).length < 3 && (
+                      <button type="button" onClick={() => setForm(f => ({ ...f, botones: [...(f.botones ?? []), { ...BTN_VACÍO }] }))}
+                        style={{ ...btnSm, fontSize: '0.72rem', padding: '3px 10px' }}>+ Agregar botón</button>
+                    )}
+                  </div>
+                  {(form.botones ?? []).map((btn, idx) => (
+                    <div key={idx} style={{ background: '#f9fafb', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <select value={btn.tipo} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { tipo: e.target.value as PlantillaBoton['tipo'], texto: bs[idx].texto }; return { ...f, botones: bs }; })} style={{ ...inputCss, flex: '0 0 auto', width: 'auto', cursor: 'pointer' }}>
+                          <option value="URL">URL</option>
+                          <option value="PHONE_NUMBER">Teléfono</option>
+                          <option value="QUICK_REPLY">Respuesta rápida</option>
+                        </select>
+                        <input value={btn.texto} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], texto: e.target.value }; return { ...f, botones: bs }; })} placeholder="Texto del botón" style={{ ...inputCss, flex: 1 }} maxLength={25} />
+                        <button type="button" onClick={() => setForm(f => ({ ...f, botones: (f.botones ?? []).filter((_, i) => i !== idx) }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '1rem', padding: '0 4px' }}>✕</button>
+                      </div>
+                      {btn.tipo === 'URL' && (
+                        <input value={btn.url ?? ''} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], url: e.target.value }; return { ...f, botones: bs }; })} placeholder="https://..." style={inputCss} />
+                      )}
+                      {btn.tipo === 'PHONE_NUMBER' && (
+                        <input value={btn.telefono ?? ''} onChange={e => setForm(f => { const bs = [...(f.botones ?? [])]; bs[idx] = { ...bs[idx], telefono: e.target.value }; return { ...f, botones: bs }; })} placeholder="+54 9 11 1234-5678" style={inputCss} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live preview */}
+              <div style={{ padding: '20px 20px 20px 0', minWidth: 220 }}>
+                <WhatsappPreview form={form} />
+              </div>
+            </div>
+          </div>
+
+          {/* Modal footer */}
+          <div style={{ padding: '14px 20px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end', background: C.card }}>
+            <button onClick={() => setShowModal(false)} style={btnSm}>Cancelar</button>
+            <button onClick={guardar} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Guardando…' : editandoId ? 'Guardar cambios' : 'Crear plantilla'}
+            </button>
+          </div>
+        </div>
+      </IonModal>
+
+      <IonToast isOpen={!!toast} message={toast?.msg} duration={3000} color={toast?.ok ? 'success' : 'danger'} onDidDismiss={() => setToast(null)} />
+    </>
+  );
+};
+
 // ─── AdminPage — Layout principal ─────────────────────────────────────────────
 const AdminPage: React.FC = () => {
   const history = useHistory();
@@ -1193,6 +1643,7 @@ const AdminPage: React.FC = () => {
                 {activeSection === 'postulantes'   && <SecPostulantes />}
                 {activeSection === 'evaluaciones'  && <SecEvaluaciones />}
                 {activeSection === 'jurado'        && <SecJurado />}
+                {activeSection === 'plantillas'    && <SecPlantillas />}
                 {activeSection === 'configuracion' && <SecConfiguracion />}
               </div>
             </div>

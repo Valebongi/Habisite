@@ -82,6 +82,24 @@ def enviar():
         return jsonify({"ok": True})
     return jsonify({"ok": False, "error": r.json(), "guardado": True}), 400
 
+# ── API importar (desde log_envios.json local) ─────────────────
+@app.route("/importar", methods=["POST"])
+def importar():
+    data   = request.json
+    numero = data.get("numero")
+    texto  = data.get("texto")
+    dir_   = data.get("dir", "out")
+    hora   = data.get("hora")
+    db = cargar_db()
+    if numero not in db:
+        db[numero] = {"nombre": numero, "mensajes": []}
+    # No duplicar si ya existe
+    existe = any(m["texto"] == texto and m["hora"] == hora for m in db[numero]["mensajes"])
+    if not existe:
+        db[numero]["mensajes"].append({"texto": texto, "dir": dir_, "hora": hora})
+    guardar_db(db)
+    return jsonify({"ok": True})
+
 # ── API conversaciones ─────────────────────────────────────────
 @app.route("/conversaciones")
 def conversaciones():

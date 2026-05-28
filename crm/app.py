@@ -77,10 +77,10 @@ def enviar():
         "text": {"body": texto}
     })
 
+    agregar_mensaje(numero, texto, "out")  # guardar siempre para que aparezca en UI
     if r.status_code == 200:
-        agregar_mensaje(numero, texto, "out")
         return jsonify({"ok": True})
-    return jsonify({"ok": False, "error": r.json()}), 400
+    return jsonify({"ok": False, "error": r.json(), "guardado": True}), 400
 
 # ── API conversaciones ─────────────────────────────────────────
 @app.route("/conversaciones")
@@ -216,11 +216,16 @@ async function enviar() {
   const texto = input.value.trim();
   if (!texto || !numeroActivo) return;
   input.value = "";
-  await fetch("/enviar", {
+  const r = await fetch("/enviar", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({numero: numeroActivo, texto})
   });
+  const data = await r.json();
+  if (!data.ok) {
+    const err = data.error?.error?.message || "Error al enviar por WhatsApp";
+    alert("Mensaje guardado pero no entregado por WA: " + err);
+  }
   await cargar();
 }
 

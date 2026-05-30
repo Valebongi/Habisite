@@ -43,7 +43,8 @@ public class DataInitializer implements ApplicationRunner {
     }
 
     private void seedUsuario(String nombre, String username, String password, Rol rol) {
-        if (!usuarioRepository.existsByUsername(username)) {
+        var opt = usuarioRepository.findByUsername(username);
+        if (opt.isEmpty()) {
             Usuario nuevo = new Usuario();
             nuevo.setNombre(nombre);
             nuevo.setUsername(username);
@@ -51,6 +52,11 @@ public class DataInitializer implements ApplicationRunner {
             nuevo.setRol(rol);
             usuarioRepository.save(nuevo);
             log.info("Usuario '{}' ({}) creado en DB.", username, rol);
+        } else {
+            Usuario existente = opt.get();
+            existente.setPasswordHash(ENCODER.encode(password));
+            usuarioRepository.save(existente);
+            log.info("Usuario '{}' — contraseña actualizada.", username);
         }
     }
 

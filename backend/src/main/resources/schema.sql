@@ -194,3 +194,6 @@ CREATE TABLE IF NOT EXISTS plantilla_whatsapp (
     actualizado_en      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 ALTER TABLE plantilla_whatsapp ADD COLUMN IF NOT EXISTS botones JSONB;
+
+-- ── Permitir correos duplicados en postulante ────────────────────────────────
+ALTER TABLE postulante DROP CONSTRAINT IF EXISTS postulante_correo_electronico_key;

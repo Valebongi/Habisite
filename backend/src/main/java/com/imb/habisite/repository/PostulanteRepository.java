@@ -16,6 +16,8 @@ public interface PostulanteRepository extends JpaRepository<Postulante, Long> {
 
     Optional<Postulante> findByDni(String dni);
 
+    List<Postulante> findByCorreoElectronico(String correoElectronico);
+
     // ── Campañas ─────────────────────────────────────────────────────────────
     List<Postulante> findByInfoEnviadaEnIsNull();
 

@@ -39,8 +39,28 @@ public class PostulanteServiceImpl implements PostulanteService {
         if (!dni.isEmpty() && repository.existsByDni(dni)) {
             throw new DuplicateResourceException("Ya existe un postulante con el DNI: " + dni);
         }
-        boolean correoExistia = repository.existsByCorreoElectronico(request.getCorreoElectronico().toLowerCase());
+        String correoNorm = request.getCorreoElectronico().toLowerCase().trim();
+        List<Postulante> mismoCorreo = repository.findByCorreoElectronico(correoNorm);
 
+        // Si ya existe uno con exactamente los mismos datos, devolver éxito sin guardar
+        if (!mismoCorreo.isEmpty()) {
+            String nomReq = request.getNombres().trim().toLowerCase();
+            String apeReq = request.getApellidos().trim().toLowerCase();
+            String uniReq = request.getUniversidad() != null ? request.getUniversidad().trim().toLowerCase() : "";
+            boolean exacto = mismoCorreo.stream().anyMatch(p ->
+                p.getNombres().trim().toLowerCase().equals(nomReq) &&
+                p.getApellidos().trim().toLowerCase().equals(apeReq) &&
+                (p.getUniversidad() != null ? p.getUniversidad().trim().toLowerCase() : "").equals(uniReq)
+            );
+            if (exacto) {
+                log.info("Postulante duplicado exacto ignorado: {}", correoNorm);
+                PostulanteResponseDTO dto = mapper.toResponseDTO(mismoCorreo.get(0));
+                dto.setDuplicado(false); // camino feliz
+                return dto;
+            }
+        }
+
+        boolean correoExistia = !mismoCorreo.isEmpty();
         Postulante entity = mapper.toEntity(request);
         // Si DNI vacío, setear null para que no choque con UNIQUE constraint
         if (dni.isEmpty()) {

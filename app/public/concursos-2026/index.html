@@ -317,6 +317,7 @@
     <button type="submit" id="f-btn" disabled>Inscribirme al concurso &#8594;</button>
     <p class="hint">Al registrarte accedés al grupo oficial del concurso en WhatsApp.</p>
     <div id="f-ok" class="f-msg f-ok"><strong>¡Inscripción enviada!</strong> Te abrimos el grupo de WhatsApp del concurso.</div>
+    <div id="f-dup" class="f-msg f-ok" style="display:none"><strong>¡Te inscribiste!</strong> Tu correo ya estaba registrado, pero tu nueva inscripción fue guardada igual. <a href="https://chat.whatsapp.com/CE7trPF8mso8OJDSTKa1Qg" target="_blank" style="color:#fff;text-decoration:underline">Accedé al grupo de WhatsApp acá.</a></div>
     <div id="f-err" class="f-msg f-err"></div>
   </form>
   </div><!-- /card -->
@@ -580,13 +581,17 @@
       }
       return res.json();
     })
-    .then(function() {
+    .then(function(d) {
       form.reset();
       selProv.innerHTML = '<option value="">Primero elegí país</option>';
       var pt = getProvInput(); if (pt) { pt.value = ''; pt.style.display = 'none'; }
-      ok.style.display = 'block';
       btn.disabled = true; btn.textContent = 'Inscribirme al concurso →';
-      window.open(GRUPO_WA, '_blank');
+      if (d && d.correoYaExistia) {
+        document.getElementById('f-dup').style.display = 'block';
+      } else {
+        ok.style.display = 'block';
+        window.open(GRUPO_WA, '_blank');
+      }
     })
     .catch(function(error) {
       showErr(error.message || 'Error inesperado. Intentá de nuevo.');

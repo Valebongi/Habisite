@@ -39,7 +39,7 @@ public class PostulanteServiceImpl implements PostulanteService {
         if (!dni.isEmpty() && repository.existsByDni(dni)) {
             throw new DuplicateResourceException("Ya existe un postulante con el DNI: " + dni);
         }
-        // Duplicados de correo permitidos temporalmente
+        boolean correoExistia = repository.existsByCorreoElectronico(request.getCorreoElectronico().toLowerCase());
 
         Postulante entity = mapper.toEntity(request);
         // Si DNI vacío, setear null para que no choque con UNIQUE constraint
@@ -60,13 +60,17 @@ public class PostulanteServiceImpl implements PostulanteService {
             Postulante saved = repository.save(entity);
             log.info("Postulante registrado con ID: {} (inscripcion completa)", saved.getId());
             emailService.enviarCredenciales(saved, plainPassword);
-            return mapper.toResponseDTO(saved);
+            PostulanteResponseDTO dto = mapper.toResponseDTO(saved);
+            dto.setCorreoYaExistia(correoExistia);
+            return dto;
         }
 
         // Pre-registro sin DNI — no genera credenciales
         Postulante saved = repository.save(entity);
         log.info("Pre-registro con ID: {} (sin DNI, pendiente confirmacion)", saved.getId());
-        return mapper.toResponseDTO(saved);
+        PostulanteResponseDTO dto = mapper.toResponseDTO(saved);
+        dto.setCorreoYaExistia(correoExistia);
+        return dto;
     }
 
     @Override

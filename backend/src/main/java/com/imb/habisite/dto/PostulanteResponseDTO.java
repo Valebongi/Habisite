@@ -27,5 +27,5 @@ public class PostulanteResponseDTO {
     private OffsetDateTime infoEnviadaEn;
     private OffsetDateTime confirmadoEn;
     private OffsetDateTime recordatorioEnviadoEn;
-    private boolean correoYaExistia;
+    private Boolean duplicado;
 }

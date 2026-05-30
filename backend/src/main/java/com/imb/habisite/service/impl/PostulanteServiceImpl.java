@@ -61,7 +61,7 @@ public class PostulanteServiceImpl implements PostulanteService {
             log.info("Postulante registrado con ID: {} (inscripcion completa)", saved.getId());
             emailService.enviarCredenciales(saved, plainPassword);
             PostulanteResponseDTO dto = mapper.toResponseDTO(saved);
-            dto.setCorreoYaExistia(correoExistia);
+            dto.setDuplicado(correoExistia);
             return dto;
         }
 
@@ -69,7 +69,7 @@ public class PostulanteServiceImpl implements PostulanteService {
         Postulante saved = repository.save(entity);
         log.info("Pre-registro con ID: {} (sin DNI, pendiente confirmacion)", saved.getId());
         PostulanteResponseDTO dto = mapper.toResponseDTO(saved);
-        dto.setCorreoYaExistia(correoExistia);
+        dto.setDuplicado(correoExistia);
         return dto;
     }
 

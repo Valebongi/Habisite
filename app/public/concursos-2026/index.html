@@ -586,7 +586,7 @@
       selProv.innerHTML = '<option value="">Primero elegí país</option>';
       var pt = getProvInput(); if (pt) { pt.value = ''; pt.style.display = 'none'; }
       btn.disabled = true; btn.textContent = 'Inscribirme al concurso →';
-      if (d && d.correoYaExistia) {
+      if (d && d.duplicado) {
         document.getElementById('f-dup').style.display = 'block';
       } else {
         ok.style.display = 'block';

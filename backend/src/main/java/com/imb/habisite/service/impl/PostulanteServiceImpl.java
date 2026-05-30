@@ -39,9 +39,7 @@ public class PostulanteServiceImpl implements PostulanteService {
         if (!dni.isEmpty() && repository.existsByDni(dni)) {
             throw new DuplicateResourceException("Ya existe un postulante con el DNI: " + dni);
         }
-        if (repository.existsByCorreoElectronico(request.getCorreoElectronico().toLowerCase())) {
-            throw new DuplicateResourceException("Ya existe un postulante con el correo: " + request.getCorreoElectronico());
-        }
+        // Duplicados de correo permitidos temporalmente
 
         Postulante entity = mapper.toEntity(request);
         // Si DNI vacío, setear null para que no choque con UNIQUE constraint

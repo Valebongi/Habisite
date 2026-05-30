@@ -576,7 +576,7 @@
       if (!res.ok) {
         return res.json().then(function(d) {
           throw new Error(d.mensaje || d.message || d.error || 'Error al registrar (cód. ' + res.status + ').');
-        }).catch(function(err2) { if (err2 instanceof Error) throw err2; throw new Error('Error ' + res.status); });
+        });
       }
       return res.json();
     })

@@ -200,13 +200,21 @@
       .wrap { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; border-radius: 18px; }
       .side { display: none; }
       .card { border-radius: 18px; padding: 26px 20px 20px; }
+      .row { grid-template-columns: 1fr; gap: 0; }
+      .tel-row { grid-template-columns: 90px 1fr; }
+      label { font-size: 0.68rem; }
+      input, select { font-size: 0.95rem; padding: 10px 12px; }
+      button[type=submit] { font-size: 0.95rem; padding: 13px; }
     }
     @media (max-width: 400px) {
       body { padding: 0; }
       .wrap { border-radius: 0; max-width: 100%; min-height: 100vh; }
-      .card { border-radius: 0; padding: 22px 16px 18px; }
+      .card { border-radius: 0; padding: 20px 14px 16px; }
       .row { grid-template-columns: 1fr; gap: 0; }
       .tel-row { grid-template-columns: 80px 1fr; }
+      .modal-box { border-radius: 12px; max-height: 92vh; }
+      .modal-footer { flex-direction: column-reverse; }
+      .modal-btn { width: 100%; text-align: center; }
     }
     /* Pantallas grandes: ampliar el wrap */
     @media (min-width: 1400px) {

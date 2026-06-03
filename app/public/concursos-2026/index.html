@@ -314,6 +314,10 @@
       <span>Al inscribirte aceptás las <a id="open-policy">bases y condiciones</a> del concurso.</span>
     </div>
 
+    <div id="bases-aviso" style="font-size:0.78rem;color:#E85520;margin-bottom:8px;display:block;">
+      &#9888; Leé y aceptá las bases y condiciones para continuar.
+    </div>
+
     <button type="submit" id="f-btn" disabled>Inscribirme al concurso &#8594;</button>
     <p class="hint">Al registrarte accedés al grupo oficial del concurso en WhatsApp.</p>
     <div id="f-ok" class="f-msg f-ok"><strong>¡Inscripción enviada!</strong> Te abrimos el grupo de WhatsApp del concurso.</div>
@@ -505,6 +509,7 @@
 
   btnAccept.addEventListener('click', function() {
     document.getElementById('f-btn').disabled = false;
+    document.getElementById('bases-aviso').style.display = 'none';
     modal.classList.remove('open');
   });
   btnCancel.addEventListener('click', function() { modal.classList.remove('open'); });
